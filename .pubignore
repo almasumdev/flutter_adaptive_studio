@@ -1,0 +1,15 @@
+# Kept in the repo, but excluded from the published package.
+
+# The two incumbent packages, vendored for study only.
+reference/
+
+# Full dogfood app — the published usage sample is example/.
+example_2/
+
+# Internal planning notes and dev-only scripts.
+docs/
+tool/
+
+# Stray local artifacts.
+run_log.txt
+*.bak

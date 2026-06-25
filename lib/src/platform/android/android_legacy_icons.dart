@@ -1,0 +1,250 @@
+/// Generates the raster-only icon outputs: pre-API-26 legacy mipmaps (+ round)
+/// and the 512² Play Store PNG.
+///
+/// Source priority: an explicit `icon.image`, otherwise a composed
+/// foreground-over-background SVG. Rasterisation goes through the pluggable
+/// [RasterizerFactory] (pure-Dart for raster sources, a detected system tool for
+/// SVG). If no backend can handle the source, the outputs are skipped with a
+/// clear message — never a hard failure.
+library;
+
+import 'dart:io';
+
+import 'package:image/image.dart' as img;
+import 'package:path/path.dart' as p;
+
+import '../../config/config.dart';
+import '../../config/config_loader.dart';
+import '../../geometry/adaptive_geometry.dart';
+import '../../graphic/svg_color.dart';
+import '../../graphic/svg_document.dart';
+import '../../logger.dart';
+import '../../raster/image_rasterizer.dart';
+import '../../raster/svg_rasterizer.dart';
+import '../platform_generator.dart';
+import 'android_paths.dart';
+
+class AndroidLegacyIcons {
+  AndroidLegacyIcons({
+    required this.iconConfig,
+    required this.adaptive,
+    required this.loader,
+    required this.paths,
+    required this.logger,
+    required this.emitLegacy,
+    required this.emitPlayStore,
+  });
+
+  final AndroidIconConfig iconConfig;
+  final AdaptiveConfig? adaptive;
+  final ConfigLoader loader;
+  final AndroidPaths paths;
+  final Logger logger;
+  final bool emitLegacy;
+  final bool emitPlayStore;
+
+  /// Legacy ic_launcher mipmap pixel sizes per density.
+  static const Map<String, int> _mipmap = {
+    'mdpi': 48,
+    'hdpi': 72,
+    'xhdpi': 96,
+    'xxhdpi': 144,
+    'xxxhdpi': 192,
+  };
+
+  GenerationReport generate() {
+    final report = GenerationReport();
+    if (!emitLegacy && !emitPlayStore) return report;
+
+    final prepared = _prepareSource(report);
+    if (prepared == null) return report;
+
+    final name = iconConfig.iconName;
+    final elevate = iconConfig.effect == LegacyEffect.elevate;
+
+    if (emitLegacy) {
+      _mipmap.forEach((density, px) {
+        // Each density is rendered straight at its target size (SVG: a direct
+        // rasterisation — no resample, no grid). Geometry matches Android
+        // Studio / Asset Studio's square target (5,5,38,38 in 48dp): ~10.4%
+        // inset, ~8% corner radius.
+        _shapeDensity(prepared, px, density, '$name.png', report,
+            paddingFraction: 0.104,
+            cornerRadiusFraction: 0.08,
+            circle: false,
+            elevate: elevate);
+        if (iconConfig.round) {
+          _shapeDensity(prepared, px, density, '${name}_round.png', report,
+              paddingFraction: 0.042,
+              cornerRadiusFraction: 0,
+              circle: true,
+              elevate: elevate);
+        }
+      });
+      logger.step(
+          'legacy mipmaps (48–192px${iconConfig.round ? ' + round' : ''}) '
+          '— pure Dart');
+    }
+
+    if (emitPlayStore) {
+      final store = prepared.square(512); // opaque, full-bleed
+      if (store != null) {
+        final out = p.join(paths.appDir, '$name-playstore.png');
+        File(out)
+          ..parent.createSync(recursive: true)
+          ..writeAsBytesSync(img.encodePng(store));
+        report.written.add('$name-playstore.png (512²)');
+        logger.step('Play Store icon → android/app/$name-playstore.png');
+      }
+    }
+
+    prepared.cleanup();
+    return report;
+  }
+
+  /// Renders one density icon: a direct inner-sized square from [src], shaped
+  /// and written into `mipmap-<density>/`.
+  void _shapeDensity(
+    _Source src,
+    int px,
+    String density,
+    String fileName,
+    GenerationReport report, {
+    required double paddingFraction,
+    required double cornerRadiusFraction,
+    required bool circle,
+    required bool elevate,
+  }) {
+    final inset = (px * paddingFraction).round();
+    final inner = px - 2 * inset;
+    if (inner < 1) return;
+    final innerImg = src.square(inner);
+    if (innerImg == null) return;
+    if (ImageRasterizer.shapeIconImage(
+        inner: innerImg,
+        sizePx: px,
+        inset: inset,
+        cornerRadiusFraction: cornerRadiusFraction,
+        circle: circle,
+        outPath: p.join(paths.mipmapDir(density), fileName),
+        elevate: elevate)) {
+      report.written.add('mipmap-$density/$fileName');
+    }
+  }
+
+  /// Resolves the icon source into a [_Source] that can produce a solid square
+  /// at any size. The source is an explicit `icon.image` (a finished icon) or,
+  /// failing that, the adaptive foreground. SVG defers to a direct per-size
+  /// render (sharpest, grid-free); raster composes a high-res master once.
+  /// Returns null — with a clear skip — when no source can be used.
+  _Source? _prepareSource(GenerationReport report) {
+    final String rel;
+    final bool fullIcon;
+    if (iconConfig.image != null) {
+      rel = iconConfig.image!;
+      fullIcon = true;
+    } else if (adaptive?.foreground != null) {
+      rel = adaptive!.foreground!;
+      fullIcon = false;
+    } else {
+      logger.skip('legacy/store: no icon.image and no foreground to compose');
+      report.skipped.add('legacy/store (no composable source)');
+      return null;
+    }
+
+    final abs = loader.resolveAsset(rel);
+    if (!File(abs).existsSync()) {
+      logger.warn('legacy/store source not found: $abs');
+      report.skipped.add('legacy/store (source missing)');
+      return null;
+    }
+
+    final bg = (adaptive != null && adaptive!.backgroundIsColor)
+        ? adaptive!.background!
+        : '#FFFFFF';
+    final bgArgb = SvgColor.parse(bg).argb;
+    final ext = p.extension(abs).toLowerCase();
+
+    // SVG → render directly at each target size (no resample → no grid, sharpest
+    // result). A foreground logo is fit to fill; a finished `image:` icon keeps
+    // its own framing.
+    if (ext == '.svg') {
+      try {
+        final doc = SvgDocument.parse(File(abs).readAsStringSync());
+        // A foreground logo gets the same padding as the adaptive layer so the
+        // legacy tile matches; a finished `image:` keeps its own framing.
+        final pad = adaptive != null
+            ? AdaptiveGeometry.paddingFraction(adaptive!.safeZone)
+            : SafeZone.defaultPadding / 100;
+        return _Source.svg(doc, bgArgb, fullIcon ? null : (1 - pad));
+      } on Exception {
+        logger.skip('legacy/store: could not parse SVG "$rel"');
+        report.skipped.add('legacy/store (SVG parse failed)');
+        return null;
+      }
+    }
+
+    // Raster → compose a high-res master once; each density resizes from it.
+    if (ImageRasterizer().supports(ext)) {
+      final tmpDir = Directory.systemTemp.createTempSync('fas_legacy_');
+      final master = p.join(tmpDir.path, 'master.png');
+      final ok = fullIcon
+          ? const ImageRasterizer().renderFlattenedPng(
+              sourcePath: abs,
+              sizePx: 1024,
+              outPath: master,
+              backgroundArgb: bgArgb)
+          : const ImageRasterizer().composeIconPng(
+              foregroundPath: abs,
+              backgroundArgb: bgArgb,
+              sizePx: 1024,
+              fillFraction: 0.85,
+              outPath: master);
+      if (!ok) {
+        tmpDir.deleteSync(recursive: true);
+        report.skipped.add('legacy/store (compose failed)');
+        return null;
+      }
+      return _Source.raster(master, tmpDir);
+    }
+
+    logger.skip('legacy/store: source "$rel" not rasterisable ($ext)');
+    report.skipped.add('legacy/store (unsupported $ext)');
+    return null;
+  }
+}
+
+/// Produces a background-filled square icon image at any size. SVG renders
+/// directly at the requested size (no resampling — avoids the box-average grid
+/// on flat fills); a raster source resizes from a once-composed master.
+class _Source {
+  _Source.svg(this._doc, this._bgArgb, this._fit)
+      : _masterPath = null,
+        _tmpDir = null;
+  _Source.raster(this._masterPath, this._tmpDir)
+      : _doc = null,
+        _bgArgb = 0,
+        _fit = null;
+
+  final SvgDocument? _doc;
+  final String? _masterPath;
+  final int _bgArgb;
+  final double? _fit;
+  final Directory? _tmpDir;
+
+  img.Image? square(int size) {
+    final doc = _doc;
+    if (doc != null) {
+      return const SvgRasterizer()
+          .rasterize(doc, size, backgroundArgb: _bgArgb, fitFraction: _fit);
+    }
+    final src = img.decodeImage(File(_masterPath!).readAsBytesSync());
+    if (src == null) return null;
+    return ImageRasterizer.resizeSmart(src, size, size);
+  }
+
+  void cleanup() {
+    final d = _tmpDir;
+    if (d != null && d.existsSync()) d.deleteSync(recursive: true);
+  }
+}

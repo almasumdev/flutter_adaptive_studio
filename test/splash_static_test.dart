@@ -1,0 +1,235 @@
+import 'dart:io';
+
+import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
+import 'package:path/path.dart' as p;
+import 'package:test/test.dart';
+
+void main() {
+  late Directory project;
+  String res(String rel) =>
+      p.join(project.path, 'android', 'app', 'src', 'main', 'res', rel);
+
+  setUp(() {
+    project = Directory.systemTemp.createTempSync('fas_splash_static_');
+    Directory(p.join(project.path, 'android', 'app', 'src', 'main'))
+        .createSync(recursive: true);
+    final assets = Directory(p.join(project.path, 'assets'))..createSync();
+    // Square logo.
+    File(p.join(assets.path, 'logo.svg')).writeAsStringSync(
+        '<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" '
+        'height="60" rx="8" fill="#3e9aa6"/></svg>');
+    // Wide branding wordmark (non-square → aspect-preserving VD).
+    File(p.join(assets.path, 'wordmark.svg')).writeAsStringSync(
+        '<svg viewBox="0 0 240 60"><rect x="0" y="10" width="240" '
+        'height="40" fill="#1f5560"/></svg>');
+
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      background_dark: "#0E1A1C"
+      image: assets/logo.svg
+      branding: assets/wordmark.svg
+''');
+  });
+
+  tearDown(() => project.deleteSync(recursive: true));
+
+  test('static splash: centre logo + bottom branding, no animation duration',
+      () {
+    final report = AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+    expect(report, isNotNull);
+
+    // Drawables: centre icon (square VD) + branding (rectangular VD).
+    expect(File(res('drawable/splash_icon.xml')).existsSync(), isTrue);
+    expect(File(res('drawable/splash_branding.xml')).existsSync(), isTrue);
+
+    // Icon honours the Android 12 keyline: 288dp canvas (no icon background),
+    // art inscribed in the ⌀192 safe circle so the mask can't clip it.
+    final icon = File(res('drawable/splash_icon.xml')).readAsStringSync();
+    expect(icon, contains('android:viewportWidth="288"'));
+    final scale = RegExp(r'scaleX="([0-9.]+)"').firstMatch(icon);
+    expect(scale, isNotNull);
+    // 60×60 art (diagonal ≈ 84.85) → scale 192/84.85 ≈ 2.263.
+    expect(double.parse(scale!.group(1)!), closeTo(2.263, 0.01));
+
+    // Branding VD is letterboxed onto the 200×80dp Android branding slot so the
+    // system can't vertically stretch a wide/short wordmark. The art (240×40,
+    // 6:1) is scaled-to-fit: min(200/240, 80/40)*0.9 = 0.75, and centred.
+    final branding =
+        File(res('drawable/splash_branding.xml')).readAsStringSync();
+    expect(branding, contains('android:width="200dp"'));
+    expect(branding, contains('android:height="80dp"'));
+    expect(branding, contains('android:viewportWidth="200"'));
+    expect(branding, contains('android:viewportHeight="80"'));
+    final bScale = RegExp(r'scaleX="([0-9.]+)"').firstMatch(branding);
+    expect(bScale, isNotNull);
+    expect(double.parse(bScale!.group(1)!), closeTo(0.75, 0.001));
+
+    // API 31+ theme wires both the icon slot and the branding image, and —
+    // because this is a *static* logo — omits the animation duration.
+    final v31 = File(res('values-v31/styles.xml')).readAsStringSync();
+    expect(v31, contains('windowSplashScreenAnimatedIcon'));
+    expect(v31, contains('@drawable/splash_icon'));
+    expect(v31, contains('windowSplashScreenBrandingImage'));
+    expect(v31, contains('@drawable/splash_branding'));
+    expect(v31, isNot(contains('windowSplashScreenAnimationDuration')));
+    // postSplashScreenTheme is a compat-library-only attr — must never be
+    // emitted into the framework v31 theme (it fails to link).
+    expect(v31, isNot(contains('postSplashScreenTheme')));
+
+    // Pre-31 layer-list centres the icon and pins branding to the bottom.
+    final launch =
+        File(res('drawable/launch_background.xml')).readAsStringSync();
+    expect(launch, contains('@drawable/splash_icon'));
+    expect(launch, contains('@drawable/splash_branding'));
+    expect(launch, contains('bottom|center_horizontal'));
+
+    // Dark background colour emitted via -night.
+    final nightColors = File(res('values-night/colors.xml')).readAsStringSync();
+    expect(nightColors, contains('#0E1A1C'));
+
+    // Flutter fallback drop-in generated with baked colours.
+    final glue = File(p.join(project.path, 'flutter_adaptive_studio', 'splash',
+            'fas_splash.dart'))
+        .readAsStringSync();
+    expect(glue, contains('class FasSplash'));
+    expect(glue, contains('0xFF0E1A1C')); // dark bg baked in
+    expect(glue, contains('sdkInt < 31'));
+    // kDebugMode is used to force the splash in debug — foundation MUST be
+    // imported for it to compile (material doesn't re-export the k* constants).
+    expect(glue, contains('kDebugMode'));
+    expect(glue, contains("import 'package:flutter/foundation.dart'"));
+    // The fallback mirrors native branding: bottom-centre, same 48dp inset,
+    // pointing at the wordmark. No branding_dark here → single (un-themed) asset.
+    expect(glue, contains('Alignment.bottomCenter'));
+    expect(glue, contains('EdgeInsets.only(bottom: 48)'));
+    expect(glue, contains('assets/wordmark.svg'));
+    expect(glue, isNot(contains('wordmark_dark')));
+  });
+
+  test('themed branding: FasSplash swaps wordmark by app brightness', () {
+    File(p.join(project.path, 'assets', 'wordmark_dark.svg')).writeAsStringSync(
+        '<svg viewBox="0 0 240 60"><rect x="0" y="10" width="240" '
+        'height="40" fill="#E6F2F4"/></svg>');
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      background_dark: "#0E1A1C"
+      image: assets/logo.svg
+      branding: assets/wordmark.svg
+      branding_dark: assets/wordmark_dark.svg
+''');
+
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+
+    // Native: a -night branding drawable is emitted for the dark variant.
+    expect(
+        File(res('drawable-night/splash_branding.xml')).existsSync(), isTrue);
+
+    // Fallback: branding is chosen by the active theme brightness.
+    final glue = File(p.join(project.path, 'flutter_adaptive_studio', 'splash',
+            'fas_splash.dart'))
+        .readAsStringSync();
+    expect(glue, contains('dark ?'));
+    expect(glue, contains('assets/wordmark_dark.svg'));
+    expect(glue, contains('assets/wordmark.svg'));
+  });
+
+  test(
+      'splash knobs: image_dark, icon_background_dark, fullscreen, branding '
+      'mode + padding, gravity', () {
+    File(p.join(project.path, 'assets', 'logo_dark.svg')).writeAsStringSync(
+        '<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" '
+        'height="60" rx="8" fill="#E6F2F4"/></svg>');
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      background_dark: "#0E1A1C"
+      image: assets/logo.svg
+      image_dark: assets/logo_dark.svg
+      icon_background: "#FFFFFF"
+      icon_background_dark: "#111111"
+      gravity: fill
+      fullscreen: true
+      branding: assets/wordmark.svg
+      branding_mode: bottom_right
+      branding_bottom_padding: 24
+''');
+
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+
+    // image_dark → a -night centre logo (auto-resolved on dark mode).
+    expect(File(res('drawable-night/splash_icon.xml')).existsSync(), isTrue);
+
+    // icon_background_dark → -night colour the v31 theme resolves at runtime.
+    final nightColors = File(res('values-night/colors.xml')).readAsStringSync();
+    expect(nightColors, contains('#111111'));
+
+    // fullscreen → windowFullscreen on both the v31 and legacy launch themes.
+    expect(File(res('values-v31/styles.xml')).readAsStringSync(),
+        contains('android:windowFullscreen'));
+    expect(File(res('values/styles.xml')).readAsStringSync(),
+        contains('android:windowFullscreen'));
+
+    // Pre-31 layer-list honours gravity + branding mode/padding.
+    final launch =
+        File(res('drawable/launch_background.xml')).readAsStringSync();
+    expect(launch, contains('android:gravity="fill"'));
+    expect(launch, contains('android:gravity="bottom|right"'));
+    expect(launch, contains('android:bottom="24dp"'));
+
+    // Fallback mirrors the branding placement.
+    final glue = File(p.join(project.path, 'flutter_adaptive_studio', 'splash',
+            'fas_splash.dart'))
+        .readAsStringSync();
+    expect(glue, contains('Alignment.bottomRight'));
+    expect(glue, contains('EdgeInsets.only(bottom: 24)'));
+  });
+
+  test('animated splash: a ready-made AVD .xml is used verbatim', () {
+    const avd =
+        '<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" '
+        'xmlns:aapt="http://schemas.android.com/aapt">MY_UNIQUE_AVD_MARKER</animated-vector>';
+    File(p.join(project.path, 'assets', 'anim.xml')).writeAsStringSync(avd);
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      animated_icon: assets/anim.xml
+''');
+
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+
+    // Copied byte-for-byte (no Shapeshifter conversion).
+    final out = File(res('drawable/splash_icon.xml')).readAsStringSync();
+    expect(out, contains('MY_UNIQUE_AVD_MARKER'));
+
+    // Wired as the animated icon, with the animation duration (it's animated).
+    final v31 = File(res('values-v31/styles.xml')).readAsStringSync();
+    expect(v31, contains('windowSplashScreenAnimatedIcon'));
+    expect(v31, contains('windowSplashScreenAnimationDuration'));
+  });
+}

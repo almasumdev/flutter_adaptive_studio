@@ -1,0 +1,20 @@
+# Dart / Pub
+.dart_tool/
+.packages
+build/
+pubspec.lock
+doc/api/
+
+# Flutter example platform build artifacts
+**/.gradle/
+**/Pods/
+*.iml
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local backups (e.g. project.pbxproj.bak)
+*.bak

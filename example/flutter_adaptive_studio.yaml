@@ -1,0 +1,58 @@
+# Example flutter_adaptive_studio config.
+#
+# Drop this (and the assets/ folder) into a Flutter project, then run:
+#   dart run flutter_adaptive_studio generate
+#   dart run flutter_adaptive_studio generate --flavor dev
+#
+# It produces Android adaptive icons + a native (AnimatedVectorDrawable) splash
+# with a Flutter fallback, and iOS app icons + a launch screen — light & dark,
+# all from the same SVG sources. See `dart run flutter_adaptive_studio init` for
+# a fully-commented reference of every option.
+
+flutter_adaptive_studio:
+  source: assets/listkin_logo.svg
+
+  android:
+    icon:
+      adaptive:
+        foreground: assets/listkin_logo.svg
+        background: "#fbfaf5"
+        monochrome: assets/listkin_logo_mono.svg   # Android 13 themed icon
+        safe_zone: fit
+      round: true
+      play_store: true
+      image: assets/icon.png                        # finished icon for legacy + store
+
+    splash:
+      background: "#fbfaf5"
+      background_dark: "#0E1A1C"
+      icon_background: "#fbfaf5"
+      icon_background_dark: "#0E1A1C"
+      image: assets/listkin_logo.svg                # static logo → Flutter fallback + pre-31
+      animated_icon: assets/avd_listkin_light.xml   # API 31+ native animation
+      animated_icon_dark: assets/avd_listkin_dark.xml
+      branding: assets/wordmark.svg
+      branding_dark: assets/wordmark_dark.svg
+
+  ios:
+    icon:
+      image: assets/listkin_logo.svg
+      background: "#fbfaf5"
+      dark: assets/listkin_logo_dark.svg            # iOS 18 dark appearance
+      background_dark: "#0E1A1C"
+      tinted: assets/listkin_logo_mono.svg          # iOS 18 tinted appearance
+    splash:
+      background: "#fbfaf5"
+      background_dark: "#0E1A1C"
+      image: assets/listkin_logo.svg
+      image_dark: assets/listkin_logo_dark.svg
+
+  # Per-flavor overrides deep-merge over the base — set only what differs.
+  flavors:
+    dev:
+      android:
+        icon:
+          adaptive:
+            background: "#00C853"
+        splash:
+          background: "#00C853"
