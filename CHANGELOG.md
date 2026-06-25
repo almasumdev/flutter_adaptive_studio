@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0
+## 0.3.0
 
 ### Android
 
@@ -8,6 +8,10 @@
   and Play Store art is inset, independently of `adaptive.safe_zone`. When
   unset, the legacy art keeps following the adaptive safe zone, and a finished
   `icon.image` keeps its own framing.
+
+## 0.2.0
+
+- Maintenance release (no functional changes).
 
 ## 0.1.0
 
