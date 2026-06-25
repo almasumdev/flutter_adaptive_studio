@@ -76,8 +76,9 @@ flutter_adaptive_studio:
         monochrome: assets/logo_mono.svg    # Android 13 themed icon
         safe_zone: fit                       # fit | inset:<pct> | none
       round: true
-      play_store: true                       # 512² store icon
+      play_store: true                       # 512² store icon (always PNG)
       legacy_padding: 15                     # % inset for legacy/store art (overrides safe_zone for these)
+      image_format: webp                     # png (default) | webp — encoding for generated icon resources
     splash:
       background: "#E4ECE8"
       background_dark: "#0C1413"
@@ -125,9 +126,11 @@ Options: `-p/--project <path>`, `-c/--config <file>`, `-F/--flavor <name>`,
 ## What it generates
 
 **Android** — adaptive icon (`mipmap-anydpi-v26` + foreground/background/
-monochrome drawables), round icon, legacy mipmaps, Play Store PNG; the Android 12
-`SplashScreen` theme (`values-v31`, + `-night`) wired to your AVD, a pre-31
-classic splash, and a drop-in `FasSplash` Flutter fallback; bottom branding.
+monochrome drawables), round icon, legacy mipmaps (PNG or, with
+`image_format: webp`, lossless WebP), and the 512² Play Store PNG written to
+`src/main`; the Android 12 `SplashScreen` theme (`values-v31`, + `-night`) wired
+to your AVD, a pre-31 classic splash, and a drop-in `FasSplash` Flutter fallback;
+bottom branding.
 
 **iOS** — `AppIcon.appiconset` (single-size 1024², light/dark/tinted) with a
 modern `Contents.json`, a patched `LaunchScreen.storyboard`, and a

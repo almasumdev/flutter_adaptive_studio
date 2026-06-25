@@ -19,6 +19,10 @@ class ResWriter {
 
   final List<String> written = [];
 
+  /// Files (or entries) we deleted to keep the build consistent — surfaced in
+  /// the generation report's `removed` list.
+  final List<String> removed = [];
+
   /// Writes [content] to [absPath], creating parent directories as needed.
   void writeText(String absPath, String content) {
     final file = File(absPath);
@@ -65,5 +69,57 @@ class ResWriter {
     file.writeAsStringSync(doc.toXmlString(pretty: true, indent: '    '));
     written.add(file.path);
     logger.detail('upserted @color/$name in colors.xml');
+
+    // Resolve duplicates: a `<color name="$name">` declared in a *different*
+    // file in the same values dir (e.g. an Android-Studio-generated
+    // `ic_launcher_background.xml`) collides with ours at build time
+    // ("Duplicate resources"). colors.xml is our single source of truth, so we
+    // strip the stray copy — deleting the file if that empties it.
+    _removeDuplicateColor(valuesDir, name, keep: file);
+  }
+
+  /// Removes a `<color name="[name]">` element from every `*.xml` in [valuesDir]
+  /// except [keep], deleting any file left with no resources.
+  void _removeDuplicateColor(String valuesDir, String name,
+      {required File keep}) {
+    final dir = Directory(valuesDir);
+    if (!dir.existsSync()) return;
+    for (final entity in dir.listSync()) {
+      if (entity is! File) continue;
+      if (p.extension(entity.path).toLowerCase() != '.xml') continue;
+      if (p.equals(entity.path, keep.path)) continue;
+
+      final content = entity.readAsStringSync();
+      if (!content.contains('name="$name"')) continue; // cheap pre-check
+
+      final XmlDocument doc;
+      try {
+        doc = XmlDocument.parse(content);
+      } on XmlException {
+        continue; // not our concern if it doesn't even parse
+      }
+      final root = doc.rootElement;
+      if (root.name.local != 'resources') continue;
+
+      final dupes = root.childElements
+          .where(
+              (e) => e.name.local == 'color' && e.getAttribute('name') == name)
+          .toList();
+      if (dupes.isEmpty) continue;
+      for (final e in dupes) {
+        root.children.remove(e);
+      }
+
+      final base = p.basename(entity.path);
+      if (root.childElements.isEmpty) {
+        entity.deleteSync();
+        removed.add('$base (duplicate @color/$name)');
+        logger.step('removed $base — duplicate @color/$name (kept colors.xml)');
+      } else {
+        entity.writeAsStringSync(doc.toXmlString(pretty: true, indent: '    '));
+        removed.add('@color/$name in $base (duplicate)');
+        logger.step('stripped duplicate @color/$name from $base');
+      }
+    }
   }
 }

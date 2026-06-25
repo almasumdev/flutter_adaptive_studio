@@ -72,6 +72,9 @@ class AndroidGenerator extends PlatformGenerator {
       report.skipped.add('android.splash (not configured)');
     }
 
+    // Surface any duplicate-resource cleanups the shared writer performed.
+    report.removed.addAll(writer.removed);
+
     return report;
   }
 }

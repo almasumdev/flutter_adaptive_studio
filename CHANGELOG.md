@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.0
+
+### Android
+
+- New `icon.image_format` option (`png` | `webp`): encode the generated launcher
+  icon resources (legacy mipmaps + raster foreground density layers) as lossless
+  WebP to shrink the app. The Play Store marketing icon is always PNG, per
+  Google's requirement. Switching format cleans up the same-name file from the
+  previous format so the two can't shadow each other.
+- The Play Store icon is now written to `android/app/src/main/` (matching
+  flutter_launcher_icons), not the `android/app` root; a copy left in the old
+  location by earlier versions is removed.
+- Fixed a "Duplicate resources" build failure: a stray
+  `<color name="ic_launcher_background">` declared in another `values/*.xml`
+  (e.g. an Android-Studio-generated `ic_launcher_background.xml`) is now stripped
+  so `colors.xml` is the single source of truth.
+
 ## 0.5.0
 
 ### Docs

@@ -9,6 +9,10 @@ library;
 
 import 'package:meta/meta.dart';
 
+import '../raster/image_format.dart';
+
+export '../raster/image_format.dart' show ImageFormat;
+
 /// Root configuration.
 @immutable
 class AdaptiveStudioConfig {
@@ -125,9 +129,14 @@ class AndroidIconConfig {
     this.image,
     this.iconName = 'ic_launcher',
     this.effect = LegacyEffect.none,
+    this.imageFormat = ImageFormat.png,
   });
 
   final AdaptiveConfig? adaptive;
+
+  /// Encoding for the generated raster icon resources (legacy mipmaps + raster
+  /// foreground density layers). The Play Store PNG is always PNG regardless.
+  final ImageFormat imageFormat;
 
   /// Post-processing for the raster (legacy mipmap + store) icon, mirroring the
   /// Android Asset Studio / IconKitchen "effect" toggle. `none` is flat (modern

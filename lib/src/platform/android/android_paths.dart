@@ -23,6 +23,11 @@ class AndroidPaths {
   /// `android/app`.
   String get appDir => p.join(projectRoot, 'android', 'app');
 
+  /// `android/app/src/main` — non-`res/` assets like the Play Store marketing
+  /// icon live here (matching flutter_launcher_icons), not the `android/app`
+  /// root.
+  String get mainSrcDir => p.join(projectRoot, 'android', 'app', 'src', 'main');
+
   /// Always the **main** manifest — flavors overlay resources (icons, colours,
   /// styles), not the manifest, so the shared `android:icon`/aliases there apply
   /// to every flavor and the flavor's `res/` swaps the actual drawables.

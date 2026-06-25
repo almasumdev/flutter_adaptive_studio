@@ -64,7 +64,8 @@ flutter_adaptive_studio:
       # icon_name: ic_launcher             # launcher resource base name
       # legacy: true                       # pre-API-26 mipmap PNGs
       # legacy_padding: 15                 # % the legacy/store art is inset (overrides the adaptive safe zone for these raster icons)
-      # play_store: true                   # 512² Play Store icon
+      # play_store: true                   # 512² Play Store icon (always PNG, per Google)
+      # image_format: png                  # png | webp — encoding for the generated icon resources
       # image: assets/icon.png             # finished-icon source for legacy + play_store
       #                                    #   (otherwise they're rasterised from `foreground`)
       # effect: elevate                    # none | elevate (Material drop shadow + sheen)

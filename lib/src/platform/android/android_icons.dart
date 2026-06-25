@@ -223,21 +223,40 @@ class AndroidIcons {
       'xxxhdpi': 4.0,
     };
     const rasterizer = ImageRasterizer();
+    final fmt = iconConfig.imageFormat;
+    final ext = fmt.extension;
     var any = false;
     densities.forEach((density, mult) {
-      final out = p.join(paths.drawableDensityDir(density), '$base.png');
+      final out = p.join(paths.drawableDensityDir(density), '$base$ext');
       if (rasterizer.renderFittedPng(
         sourcePath: abs,
         canvasPx: (layerDp * mult).round(),
         fillFraction: fillFraction,
         outPath: out,
+        format: fmt,
       )) {
         any = true;
-        report.written.add('drawable-$density/$base.png');
+        report.written.add('drawable-$density/$base$ext');
+        // Drop a same-name sibling in the other format from a previous run.
+        _removeStaleRasterSibling(density, base, ext, report);
       }
     });
-    if (any) logger.step('$label (raster) → drawable-*/$base.png');
+    if (any) logger.step('$label (raster, ${fmt.name}) → drawable-*/$base$ext');
     return any;
+  }
+
+  /// Deletes a `drawable-<density>/<base>.<other>` left by a previous run in the
+  /// other raster format, so a stale PNG can't shadow a fresh WebP layer.
+  void _removeStaleRasterSibling(
+      String density, String base, String keepExt, GenerationReport report) {
+    for (final e in const ['.png', '.webp']) {
+      if (e == keepExt) continue;
+      final f = File(p.join(paths.drawableDensityDir(density), '$base$e'));
+      if (f.existsSync()) {
+        f.deleteSync();
+        report.removed.add('drawable-$density/$base$e (stale)');
+      }
+    }
   }
 
   static const _layerDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi'];
@@ -247,10 +266,12 @@ class AndroidIcons {
   /// vector, so a stale PNG would silently keep showing the old layer.
   void _removeStaleRaster(String base, GenerationReport report) {
     for (final d in _layerDensities) {
-      final f = File(p.join(paths.drawableDensityDir(d), '$base.png'));
-      if (f.existsSync()) {
-        f.deleteSync();
-        report.removed.add('drawable-$d/$base.png (stale)');
+      for (final e in const ['.png', '.webp']) {
+        final f = File(p.join(paths.drawableDensityDir(d), '$base$e'));
+        if (f.existsSync()) {
+          f.deleteSync();
+          report.removed.add('drawable-$d/$base$e (stale)');
+        }
       }
     }
   }

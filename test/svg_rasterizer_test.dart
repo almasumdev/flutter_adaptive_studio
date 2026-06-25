@@ -125,11 +125,8 @@ flutter_adaptive_studio:
     final im = img.decodeImage(png.readAsBytesSync())!;
     expect(im.width, 192);
     expect(im.getPixel(96, 96).a, 255); // centre painted (teal over white card)
-    expect(
-        File(p.join(
-                project.path, 'android', 'app', 'ic_launcher-playstore.png'))
-            .existsSync(),
-        isTrue);
+    expect(File(p.join(main, 'ic_launcher-playstore.png')).existsSync(), isTrue,
+        reason: 'Play Store icon lives in src/main');
 
     // Regression: the flat teal interior must stay flat — no box-average grid
     // (rendering per-density directly instead of resizing a master). A 16×16

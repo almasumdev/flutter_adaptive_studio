@@ -13,12 +13,19 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 
 import 'icon_effects.dart';
+import 'image_format.dart';
 import 'rasterizer.dart';
 
 class ImageRasterizer implements Rasterizer {
   const ImageRasterizer();
 
   static const _rasterExts = {'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif'};
+
+  /// Encodes [image] in the requested [format] (PNG by default). WebP uses the
+  /// `image` package's lossless VP8L encoder.
+  static List<int> encode(img.Image image,
+          [ImageFormat format = ImageFormat.png]) =>
+      format == ImageFormat.webp ? img.encodeWebP(image) : img.encodePng(image);
 
   @override
   String get name => 'image (pure Dart)';
@@ -81,6 +88,7 @@ class ImageRasterizer implements Rasterizer {
     required int canvasPx,
     required double fillFraction,
     required String outPath,
+    ImageFormat format = ImageFormat.png,
   }) {
     final src = img.decodeImage(File(sourcePath).readAsBytesSync());
     if (src == null) return false;
@@ -99,7 +107,7 @@ class ImageRasterizer implements Rasterizer {
     );
     File(outPath)
       ..parent.createSync(recursive: true)
-      ..writeAsBytesSync(img.encodePng(canvas));
+      ..writeAsBytesSync(encode(canvas, format));
     return true;
   }
 
@@ -181,6 +189,7 @@ class ImageRasterizer implements Rasterizer {
     required bool circle,
     required String outPath,
     bool elevate = false,
+    ImageFormat format = ImageFormat.png,
   }) {
     final shaped =
         circle ? _maskCircle(inner) : _maskRounded(inner, cornerRadiusFraction);
@@ -190,7 +199,7 @@ class ImageRasterizer implements Rasterizer {
     if (elevate) canvas = IconEffects.elevate(canvas);
     File(outPath)
       ..parent.createSync(recursive: true)
-      ..writeAsBytesSync(img.encodePng(canvas));
+      ..writeAsBytesSync(encode(canvas, format));
     return true;
   }
 

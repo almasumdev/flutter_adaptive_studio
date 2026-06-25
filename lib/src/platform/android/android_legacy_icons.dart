@@ -61,6 +61,8 @@ class AndroidLegacyIcons {
 
     final name = iconConfig.iconName;
     final elevate = iconConfig.effect == LegacyEffect.elevate;
+    final fmt = iconConfig.imageFormat;
+    final ext = fmt.extension;
 
     if (emitLegacy) {
       _mipmap.forEach((density, px) {
@@ -68,33 +70,48 @@ class AndroidLegacyIcons {
         // rasterisation — no resample, no grid). Geometry matches Android
         // Studio / Asset Studio's square target (5,5,38,38 in 48dp): ~10.4%
         // inset, ~8% corner radius.
-        _shapeDensity(prepared, px, density, '$name.png', report,
+        _shapeDensity(prepared, px, density, '$name$ext', report,
             paddingFraction: 0.104,
             cornerRadiusFraction: 0.08,
             circle: false,
-            elevate: elevate);
+            elevate: elevate,
+            format: fmt);
         if (iconConfig.round) {
-          _shapeDensity(prepared, px, density, '${name}_round.png', report,
+          _shapeDensity(prepared, px, density, '${name}_round$ext', report,
               paddingFraction: 0.042,
               cornerRadiusFraction: 0,
               circle: true,
-              elevate: elevate);
+              elevate: elevate,
+              format: fmt);
         }
+        // A same-name PNG from a previous (png) run would shadow a new webp
+        // resource of the same name — drop any stale sibling.
+        _removeStaleMipmap(density, name, ext, report);
       });
       logger.step(
-          'legacy mipmaps (48–192px${iconConfig.round ? ' + round' : ''}) '
-          '— pure Dart');
+          'legacy mipmaps (48–192px${iconConfig.round ? ' + round' : ''}, '
+          '${fmt.name}) — pure Dart');
     }
 
     if (emitPlayStore) {
+      // The Play Store marketing icon must be a 32-bit PNG (Google's rule), so
+      // it ignores `image_format`. It lives in src/main, not the android/app
+      // root.
       final store = prepared.square(512); // opaque, full-bleed
       if (store != null) {
-        final out = p.join(paths.appDir, '$name-playstore.png');
+        final out = p.join(paths.mainSrcDir, '$name-playstore.png');
         File(out)
           ..parent.createSync(recursive: true)
           ..writeAsBytesSync(img.encodePng(store));
         report.written.add('$name-playstore.png (512²)');
-        logger.step('Play Store icon → android/app/$name-playstore.png');
+        logger.step('Play Store icon → '
+            'android/app/src/main/$name-playstore.png');
+        // Clean up a copy left in the old android/app root by older versions.
+        final stale = File(p.join(paths.appDir, '$name-playstore.png'));
+        if (stale.existsSync()) {
+          stale.deleteSync();
+          report.removed.add('android/app/$name-playstore.png (moved to main)');
+        }
       }
     }
 
@@ -114,6 +131,7 @@ class AndroidLegacyIcons {
     required double cornerRadiusFraction,
     required bool circle,
     required bool elevate,
+    required ImageFormat format,
   }) {
     final inset = (px * paddingFraction).round();
     final inner = px - 2 * inset;
@@ -127,8 +145,26 @@ class AndroidLegacyIcons {
         cornerRadiusFraction: cornerRadiusFraction,
         circle: circle,
         outPath: p.join(paths.mipmapDir(density), fileName),
-        elevate: elevate)) {
+        elevate: elevate,
+        format: format)) {
       report.written.add('mipmap-$density/$fileName');
+    }
+  }
+
+  /// Removes a `mipmap-<density>/<name>.<other>` left by a previous run in the
+  /// other format, so a stale PNG can't shadow a fresh WebP (or vice-versa).
+  void _removeStaleMipmap(
+      String density, String name, String keepExt, GenerationReport report) {
+    const exts = ['.png', '.webp'];
+    for (final base in [name, '${name}_round']) {
+      for (final e in exts) {
+        if (e == keepExt) continue;
+        final f = File(p.join(paths.mipmapDir(density), '$base$e'));
+        if (f.existsSync()) {
+          f.deleteSync();
+          report.removed.add('mipmap-$density/$base$e (stale)');
+        }
+      }
     }
   }
 

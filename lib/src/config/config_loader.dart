@@ -163,6 +163,7 @@ class ConfigLoader {
       iconName: _str(raw['icon_name']) ?? 'ic_launcher',
       legacy: _bool(raw['legacy']),
       legacyPadding: _int(raw['legacy_padding']),
+      imageFormat: _imageFormat(raw['image_format']),
       round: _bool(raw['round']) ?? false,
       playStore: _bool(raw['play_store']) ?? false,
       image: _str(raw['image']),
@@ -251,6 +252,14 @@ class ConfigLoader {
     return switch (s) {
       'elevate' || 'shadow' || 'elevated' => LegacyEffect.elevate,
       _ => LegacyEffect.none,
+    };
+  }
+
+  static ImageFormat _imageFormat(Object? v) {
+    final s = v?.toString().trim().toLowerCase();
+    return switch (s) {
+      'webp' => ImageFormat.webp,
+      _ => ImageFormat.png,
     };
   }
 
