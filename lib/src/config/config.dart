@@ -118,6 +118,7 @@ class AndroidIconConfig {
   const AndroidIconConfig({
     this.adaptive,
     this.legacy,
+    this.legacyPadding,
     this.round = false,
     this.playStore = false,
     this.themed,
@@ -139,6 +140,12 @@ class AndroidIconConfig {
 
   /// Emit pre-API-26 mipmap PNGs. `null` ⇒ decide from `minSdk` (Phase 3).
   final bool? legacy;
+
+  /// Percent the composed legacy/store art is inset from the icon edge,
+  /// overriding the adaptive safe zone for the raster outputs only. `null` ⇒
+  /// follow `adaptive.safe_zone`/`padding`. Ignored when a finished [image] is
+  /// supplied (that keeps its own framing).
+  final int? legacyPadding;
 
   /// Emit `ic_launcher_round` and wire `android:roundIcon`.
   final bool round;

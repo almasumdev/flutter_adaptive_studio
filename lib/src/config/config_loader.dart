@@ -162,6 +162,7 @@ class ConfigLoader {
     return AndroidIconConfig(
       iconName: _str(raw['icon_name']) ?? 'ic_launcher',
       legacy: _bool(raw['legacy']),
+      legacyPadding: _int(raw['legacy_padding']),
       round: _bool(raw['round']) ?? false,
       playStore: _bool(raw['play_store']) ?? false,
       image: _str(raw['image']),

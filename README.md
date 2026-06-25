@@ -69,6 +69,7 @@ flutter_adaptive_studio:
         safe_zone: fit                       # fit | inset:<pct> | none
       round: true
       play_store: true                       # 512² store icon
+      legacy_padding: 15                     # % inset for legacy/store art (overrides safe_zone for these)
     splash:
       background: "#E4ECE8"
       background_dark: "#0C1413"

@@ -165,18 +165,18 @@ class AndroidLegacyIcons {
     final bgArgb = SvgColor.parse(bg).argb;
     final ext = p.extension(abs).toLowerCase();
 
+    // Padding for the *composed* (foreground) art. An explicit `legacy_padding`
+    // wins and tunes the legacy/store tile independently; otherwise it follows
+    // the adaptive safe zone so the two icon styles line up.
+    final composeFill = 1 - _composePadding();
+
     // SVG → render directly at each target size (no resample → no grid, sharpest
     // result). A foreground logo is fit to fill; a finished `image:` icon keeps
     // its own framing.
     if (ext == '.svg') {
       try {
         final doc = SvgDocument.parse(File(abs).readAsStringSync());
-        // A foreground logo gets the same padding as the adaptive layer so the
-        // legacy tile matches; a finished `image:` keeps its own framing.
-        final pad = adaptive != null
-            ? AdaptiveGeometry.paddingFraction(adaptive!.safeZone)
-            : SafeZone.defaultPadding / 100;
-        return _Source.svg(doc, bgArgb, fullIcon ? null : (1 - pad));
+        return _Source.svg(doc, bgArgb, fullIcon ? null : composeFill);
       } on Exception {
         logger.skip('legacy/store: could not parse SVG "$rel"');
         report.skipped.add('legacy/store (SVG parse failed)');
@@ -198,7 +198,8 @@ class AndroidLegacyIcons {
               foregroundPath: abs,
               backgroundArgb: bgArgb,
               sizePx: 1024,
-              fillFraction: 0.85,
+              fillFraction:
+                  iconConfig.legacyPadding != null ? composeFill : 0.85,
               outPath: master);
       if (!ok) {
         tmpDir.deleteSync(recursive: true);
@@ -211,6 +212,17 @@ class AndroidLegacyIcons {
     logger.skip('legacy/store: source "$rel" not rasterisable ($ext)');
     report.skipped.add('legacy/store (unsupported $ext)');
     return null;
+  }
+
+  /// Fraction (0..1) the composed legacy/store art is inset from the tile edge.
+  /// An explicit `legacy_padding` (percent, clamped 0–95) wins; otherwise it
+  /// follows the adaptive safe zone, then the package default.
+  double _composePadding() {
+    final lp = iconConfig.legacyPadding;
+    if (lp != null) return lp.clamp(0, 95) / 100;
+    return adaptive != null
+        ? AdaptiveGeometry.paddingFraction(adaptive!.safeZone)
+        : SafeZone.defaultPadding / 100;
   }
 }
 

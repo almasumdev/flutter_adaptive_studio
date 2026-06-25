@@ -2,7 +2,12 @@
 
 ## 0.2.0
 
-- _In development._
+### Android
+
+- New `icon.legacy_padding` option: set the percent the composed legacy mipmap
+  and Play Store art is inset, independently of `adaptive.safe_zone`. When
+  unset, the legacy art keeps following the adaptive safe zone, and a finished
+  `icon.image` keeps its own framing.
 
 ## 0.1.0
 

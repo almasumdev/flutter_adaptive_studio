@@ -16,6 +16,7 @@ const Map<String, dynamic> _schema = {
     'icon': {
       'icon_name': null,
       'legacy': null,
+      'legacy_padding': null,
       'round': null,
       'play_store': null,
       'image': null,

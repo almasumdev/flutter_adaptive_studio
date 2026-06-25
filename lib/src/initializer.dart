@@ -62,6 +62,7 @@ flutter_adaptive_studio:
       round: true                          # also emit ic_launcher_round
       # icon_name: ic_launcher             # launcher resource base name
       # legacy: true                       # pre-API-26 mipmap PNGs
+      # legacy_padding: 15                 # % the legacy/store art is inset (overrides the adaptive safe zone for these raster icons)
       # play_store: true                   # 512² Play Store icon
       # image: assets/icon.png             # finished-icon source for legacy + play_store
       #                                    #   (otherwise they're rasterised from `foreground`)
