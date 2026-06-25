@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0
+
+- _In development._
+
 ## 0.1.0
 
 First public release.
