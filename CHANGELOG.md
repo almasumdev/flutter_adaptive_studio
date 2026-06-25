@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+### CLI
+
+- Added a short `fas` executable alias. After
+  `dart pub global activate flutter_adaptive_studio` you can run `fas generate`,
+  `fas init`, etc. instead of typing the full package name.
+
 ## 0.3.0
 
 ### Android

@@ -53,6 +53,14 @@ dart run flutter_adaptive_studio init       # write a fully-commented starter co
 dart run flutter_adaptive_studio generate
 ```
 
+Prefer a shorter command? Activate it once and call `fas` from anywhere:
+
+```sh
+dart pub global activate flutter_adaptive_studio
+fas init
+fas generate
+```
+
 `init` writes a `flutter_adaptive_studio.yaml` documenting **every** option. A
 minimal config:
 
@@ -99,7 +107,8 @@ See [`example/`](example/) for a complete config + assets.
 ## Commands
 
 ```sh
-dart run flutter_adaptive_studio <command> [options]
+dart run flutter_adaptive_studio <command> [options]   # local dev dependency
+fas <command> [options]                                # after `dart pub global activate`
 ```
 
 | Command    | What it does                                          |

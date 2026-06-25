@@ -1,6 +1,9 @@
 /// CLI entry point.
 ///
 ///   dart run flutter_adaptive_studio [init|generate|doctor|preview|revert] [options]
+///
+/// After `dart pub global activate flutter_adaptive_studio`, the same commands
+/// are available via the short `fas` alias (e.g. `fas generate`).
 library;
 
 import 'dart:io';
@@ -38,7 +41,8 @@ void main(List<String> args) {
   if (opts['help'] as bool) {
     stdout.writeln('flutter_adaptive_studio — Android & iOS icons & splash\n');
     stdout.writeln(
-        'Usage: dart run flutter_adaptive_studio <command> [options]\n');
+        'Usage: dart run flutter_adaptive_studio <command> [options]\n'
+        '   or: fas <command> [options]   (after `dart pub global activate`)\n');
     stdout.writeln('Commands:');
     stdout.writeln('  init       Write a starter config into the project');
     stdout.writeln('  generate   Generate icons + splash (default)');
