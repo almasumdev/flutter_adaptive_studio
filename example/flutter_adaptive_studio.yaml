@@ -3,6 +3,7 @@
 # Drop this (and the assets/ folder) into a Flutter project, then run:
 #   dart run flutter_adaptive_studio generate
 #   dart run flutter_adaptive_studio generate --flavor dev
+# (or, after `dart pub global activate flutter_adaptive_studio`, just `fas generate`)
 #
 # It produces Android adaptive icons + a native (AnimatedVectorDrawable) splash
 # with a Flutter fallback, and iOS app icons + a launch screen — light & dark,

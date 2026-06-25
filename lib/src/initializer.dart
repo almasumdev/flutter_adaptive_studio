@@ -40,6 +40,7 @@ class Initializer {
 # rest as you need them. Asset paths are relative to this project's root, and
 # unknown keys are ignored. Then run:
 #   dart run flutter_adaptive_studio generate
+# (or, after `dart pub global activate flutter_adaptive_studio`, just `fas generate`)
 
 flutter_adaptive_studio:
   # Global fallback art, used when a more specific `foreground:`/`image:` is not

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+### Docs
+
+- Documented the short `fas` command across the example config + README and the
+  `init` starter template (the `fas` alias itself shipped in 0.4.0).
+
 ## 0.4.0
 
 ### CLI

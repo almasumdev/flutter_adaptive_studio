@@ -24,6 +24,10 @@ dart run flutter_adaptive_studio preview    # HTML launcher-mask preview
 dart run flutter_adaptive_studio revert     # remove generated files
 ```
 
+Prefer a shorter command? `dart pub global activate flutter_adaptive_studio`
+once, then use `fas` in place of `dart run flutter_adaptive_studio` (e.g.
+`fas generate`).
+
 ## What it generates
 
 - **Android** — adaptive icon (foreground + background + monochrome themed icon), round icon, legacy mipmaps, Play Store PNG; a native Android 12 `SplashScreen` with the AnimatedVectorDrawable (light/dark), a pre-31 splash, and a Flutter fallback widget; bottom branding.
