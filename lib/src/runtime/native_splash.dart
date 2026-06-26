@@ -15,13 +15,14 @@ import 'package:flutter/widgets.dart';
 /// No native code, no method channel.
 ///
 /// ```dart
-/// void main() {
+/// Future<void> main() async {
 ///   final binding = WidgetsFlutterBinding.ensureInitialized();
 ///   FasNativeSplash.preserve(widgetsBinding: binding);
+///   await loadEverything();   // your startup work
 ///   runApp(const MyApp());
+///   FasNativeSplash.remove();  // right after runApp() — NOT in a post-frame
+///                              // callback (it won't fire while deferred)
 /// }
-/// // ...once your first screen is ready to be shown:
-/// FasNativeSplash.remove();
 /// ```
 ///
 /// Migrating from `flutter_native_splash`? The `preserve`/`remove` signatures

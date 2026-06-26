@@ -278,35 +278,28 @@ is independent of the Flutter fallback below. Migrating from flutter_native_spla
 The `preserve`/`remove` signatures match, so it's a drop-in swap.
 
 ### Where to call `remove()`
-Call it right after the **first frame of the first screen you want the user to
-see** has painted — i.e. from a post-frame callback. Too early brings the white
-flash back; never calling it strands the app on the splash. Two questions decide:
-(1) is there async startup work (prefs/DB/auth) before the first usable screen,
-and (2) during it, should the user see the frozen native splash or your own
-Flutter screen?
+Call it **right after `runApp()`** (synchronously), once you've finished the
+startup work you wanted the native splash to cover. Do your async init BEFORE
+`runApp()`, so the first frame `runApp()` schedules is already your real screen:
 
-- **No async work** → remove in your first screen's `initState`:
-  ```dart
-  WidgetsBinding.instance.addPostFrameCallback((_) => FasNativeSplash.remove());
-  ```
-- **Async work, native splash covers it** → easiest is to `await` it BEFORE
-  `runApp()` (the splash is then held for free); or `preserve()` + `remove()`
-  after the real screen's first frame. Keep it short — a frozen splash > ~2s
-  reads as a hang.
-  ```dart
-  Future<void> main() async {
-    final binding = WidgetsFlutterBinding.ensureInitialized();
-    FasNativeSplash.preserve(widgetsBinding: binding);
-    try {
-      await loadEverything();
-    } finally {
-      runApp(const MyApp());
-      FasNativeSplash.remove();
-    }
-  }
-  ```
-- **Async work, your own loader** → call `remove()` right after your LOADER
-  screen's first frame, then do the work behind your Flutter UI.
+```dart
+Future<void> main() async {
+  final binding = WidgetsFlutterBinding.ensureInitialized();
+  FasNativeSplash.preserve(widgetsBinding: binding);
+  await loadEverything();        // prefs / DB / auth — keep it short (< ~2s)
+  runApp(const MyApp());
+  FasNativeSplash.remove();      // first real frame replaces the native splash
+}
+```
+
+**Do NOT put `remove()` inside an `addPostFrameCallback`.** While the first frame
+is deferred, that callback never fires — so `remove()` would never run and the
+app stays stuck on the splash. Calling it synchronously after `runApp()` lets the
+(now-allowed) first frame paint your real UI.
+
+If you want to show your *own* animated loader during a long load instead of the
+frozen native splash, call `remove()` synchronously right after the `runApp()`
+that mounts the loader, then do the work behind it.
 
 Guardrails: guarantee `remove()` runs on every path (wrap init in `try/finally`),
 call it once, and keep the held time short — the native splash can't animate or

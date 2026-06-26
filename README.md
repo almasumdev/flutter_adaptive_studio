@@ -58,14 +58,15 @@ before your first frame). Pure Flutter framework; works on every platform.
 ```dart
 import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
 
-void main() {
+Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
   FasNativeSplash.preserve(widgetsBinding: binding);
+  await loadEverything();      // your startup work — keep it short
   runApp(const MyApp());
+  FasNativeSplash.remove();     // call right after runApp(), NOT in a
+                               // post-frame callback (it won't fire while
+                               // the first frame is deferred)
 }
-
-// ...once your first screen is ready to be shown:
-FasNativeSplash.remove();
 ```
 
 Migrating from `flutter_native_splash`? The signatures match — swap the import

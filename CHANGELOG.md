@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0
+
+- Widened the `xml` constraint to `>=6.5.0 <8.0.0` so apps can depend on this
+  package even when another dependency pins `xml` 6.x (e.g.
+  `flutter_local_notifications`). The runtime `FasNativeSplash` uses no `xml`, so
+  the app is unaffected; the generator dev-resolves to `xml` 7.x.
+- Docs: call `FasNativeSplash.remove()` **right after `runApp()`**, not inside a
+  post-frame callback — `deferFirstFrame` prevents that callback from firing, so
+  `remove()` there would strand the app on the splash.
+
 ## 0.8.0
 
 ### Splash

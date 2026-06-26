@@ -2,7 +2,7 @@ name: flutter_adaptive_studio
 description: >-
   Vector-native, theme-aware, mask-correct launcher icons and animated splash
   screens for Flutter — done the way native tooling does it, per platform.
-version: 0.8.0
+version: 0.9.0
 repository: https://github.com/almasumdev/flutter_adaptive_studio
 issue_tracker: https://github.com/almasumdev/flutter_adaptive_studio/issues
 
@@ -34,7 +34,10 @@ dependencies:
   image: ^4.5.4
   meta: ^1.16.0
   path: ^1.9.0
-  xml: ^7.0.0
+  # Widened so apps can add this package even when another dependency pins xml
+  # 6.x (e.g. flutter_local_notifications). The generator dev-resolves to 7.x;
+  # the runtime (FasNativeSplash) never touches xml, so the app is unaffected.
+  xml: ">=6.5.0 <8.0.0"
   yaml: ^3.1.2
 
 dev_dependencies:
