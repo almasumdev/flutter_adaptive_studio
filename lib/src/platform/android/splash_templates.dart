@@ -245,7 +245,12 @@ flutter_adaptive_studio generated the **native** Android splash:
   are masked to the same keyline circle, so design the animation inside it (we
   don't reshape it).
 - **Android < 12:** a classic `windowBackground` (`drawable/launch_background.xml`)
-  with the logo centred and branding at the bottom. Light/dark via `-night`.
+  with the logo centred and branding at the bottom (light/dark via `-night`). The
+  centre logo is rendered to **per-density PNG/WebP** (`drawable-*/splash_icon_legacy`),
+  not a VectorDrawable: `windowBackground` is inflated before AppCompat's vector
+  support, so a vector logo silently fails to paint on API 21–23 (Android 5–6).
+  A bitmap always renders. Choose the encoding with `image_format: png | webp`
+  under `splash:`.
 
 ## Keep the native splash during startup (no white flash) — `FasNativeSplash`
 The OS shows the native splash only until Flutter paints its **first frame**.
@@ -343,6 +348,8 @@ first frame so there's no visible gap (most noticeable on Android ≤ 9 going da
 - **`gravity`** — pre-31 centre-image alignment. **`fullscreen`** — hide the
   system bars. **`screen_orientation`** — lock orientation (app-wide; written to
   the shared manifest, so `revert` won't undo it).
+- **`image_format`** (`png` / `webp`) — encoding for the pre-31 raster splash
+  logo (`png` default; `webp` is smaller, supported on API 18+).
 
 ## Flavors
 One config, base + per-flavor overrides under `flavors:`. Generate a flavor with

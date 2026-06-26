@@ -229,6 +229,7 @@ class ConfigLoader {
       gravity: _str(raw['gravity']) ?? 'center',
       fullscreen: _bool(raw['fullscreen']) ?? false,
       screenOrientation: _str(raw['screen_orientation']),
+      imageFormat: _imageFormat(raw['image_format']),
     );
   }
 

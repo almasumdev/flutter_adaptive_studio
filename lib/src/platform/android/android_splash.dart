@@ -23,6 +23,8 @@ import '../../graphic/svg_color.dart';
 import '../../graphic/svg_document.dart';
 import '../../io/res_writer.dart';
 import '../../logger.dart';
+import '../../raster/image_rasterizer.dart';
+import '../../raster/svg_rasterizer.dart';
 import '../../vector/vector_drawable_writer.dart';
 import '../platform_generator.dart';
 import 'android_manifest_editor.dart';
@@ -47,9 +49,32 @@ class AndroidSplash {
 
   static const _ns = 'http://schemas.android.com/apk/res/android';
   static const _name = 'splash_icon';
+
+  /// Separate resource name for the pre-31 windowBackground centre logo. It's a
+  /// **raster** (PNG/WebP), kept distinct from the v31 vector [_name] so the
+  /// density bitmaps can't shadow the crisp vector on API 31+.
+  static const _legacyName = 'splash_icon_legacy';
   static const _branding = 'splash_branding';
   static const _bgImage = 'splash_bg';
   static const _rasterExts = {'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif'};
+
+  /// Centre-logo box size (dp) in the pre-31 layer-list. The rasters are
+  /// rendered at this size per density so the logo is a consistent dp on every
+  /// device — including API 21–22, where the item's `width`/`height` is ignored
+  /// and the drawable's intrinsic size is used instead.
+  static const _legacyBoxDp = 192;
+
+  /// Raster (non-SVG) logos have no measurable art bounds, so they fill this
+  /// fraction of the square — a comfortable, mask-free size on the pre-31 splash.
+  static const _legacyRasterFill = 0.7;
+
+  static const _legacyDensities = {
+    'mdpi': 1.0,
+    'hdpi': 1.5,
+    'xhdpi': 2.0,
+    'xxhdpi': 3.0,
+    'xxxhdpi': 4.0,
+  };
 
   GenerationReport generate() {
     final report = GenerationReport();
@@ -182,11 +207,23 @@ class AndroidSplash {
   /// takes priority; otherwise a static `image`. Animated icons are used **as
   /// authored** — never keyline-reshaped, since that would break the animation.
   _IconPlan _resolveIcon(GenerationReport report) {
+    // The pre-31 windowBackground centre logo is ALWAYS a raster. A
+    // VectorDrawable (or AVD) referenced from `windowBackground` is inflated by
+    // the platform before AppCompat's vector compat layer is active, so it
+    // silently fails to paint on API 21–23 (you'd see the colour but no logo).
+    // Rasterise the static `image:` instead — a bitmap always renders. (The
+    // API 31+ slot below still uses the crisp vector / AVD.)
+    final legacyRef = _emitLegacyIcon(report);
+
     if (splash.animatedIcon != null) {
       if (_copyAvd(splash.animatedIcon!, splash.animatedIconDark, report)) {
         _warnAnimatedKeyline();
-        // The AVD has no separate resting frame → reuse it for the pre-31 layer.
-        return const _IconPlan(slotRef: _name, layerRef: _name, animated: true);
+        if (legacyRef == null) {
+          logger.warn('pre-31 splash: an animated_icon cannot be a '
+              'windowBackground drawable. Add a static `image:` for a resting '
+              'logo on Android < 12 (otherwise it shows the background only).');
+        }
+        return _IconPlan(slotRef: _name, layerRef: legacyRef, animated: true);
       }
       // Fall through to static if the AVD couldn't be used.
     }
@@ -195,20 +232,148 @@ class AndroidSplash {
       if (_emitDrawable(image, _name, report,
           role: 'splash image', square: true)) {
         // Dark variant → drawable-night/splash_icon, picked up automatically by
-        // the night API-31 theme and the pre-31 launch_background on dark mode.
+        // the night API-31 theme.
         if (splash.imageDark != null) {
           _emitDrawable(splash.imageDark!, _name, report,
               role: 'splash image (dark)', square: true, night: true);
         }
-        return const _IconPlan(
-            slotRef: _name, layerRef: _name, animated: false);
+        return _IconPlan(slotRef: _name, layerRef: legacyRef, animated: false);
       }
     } else if (splash.animatedIcon == null) {
       logger.skip(
           'splash icon: no image or animated_icon (background-only splash)');
       report.skipped.add('splash icon (none)');
     }
-    return const _IconPlan(slotRef: null, layerRef: null, animated: false);
+    return _IconPlan(slotRef: null, layerRef: legacyRef, animated: false);
+  }
+
+  // ----------------------------------------------------- pre-31 raster logo
+
+  /// Rasterises the static centre logo into per-density PNG/WebP under
+  /// `drawable-<density>/` (+ `-night`) for the pre-31 windowBackground, and
+  /// returns its resource base name — or null when there's no static `image:`
+  /// (an animated-only or background-only splash).
+  String? _emitLegacyIcon(GenerationReport report) {
+    final src = splash.image;
+    if (src == null) return null;
+    if (!_rasterizeLegacyIcon(src, report, night: false)) return null;
+    if (splash.imageDark != null) {
+      _rasterizeLegacyIcon(splash.imageDark!, report, night: true);
+    }
+    final fmt = splash.imageFormat;
+    logger.step('pre-31 splash logo (raster, ${fmt.name}) → '
+        'drawable-*/$_legacyName${fmt.extension}');
+    return _legacyName;
+  }
+
+  /// Renders [source] (SVG or raster) into a transparent square at each density
+  /// for the pre-31 splash logo. Returns true if any density was written.
+  bool _rasterizeLegacyIcon(String source, GenerationReport report,
+      {required bool night}) {
+    final abs = loader.resolveAsset(source);
+    if (!File(abs).existsSync()) {
+      logger.warn('pre-31 splash logo source not found: $abs');
+      report.skipped.add('pre-31 splash logo (file not found)');
+      return false;
+    }
+    final ext = p.extension(abs).toLowerCase();
+    final fmt = splash.imageFormat;
+    final outExt = fmt.extension;
+
+    if (ext == '.svg') {
+      final SvgDocument doc;
+      try {
+        doc = SvgDocument.parse(File(abs).readAsStringSync());
+      } on Exception catch (e) {
+        logger.error('pre-31 splash logo parse error: $e');
+        report.warnings.add('pre-31 splash logo parse error: $e');
+        return false;
+      }
+      final fit = _legacyFitFraction(doc);
+      var any = false;
+      _legacyDensities.forEach((density, mult) {
+        final sizePx = (_legacyBoxDp * mult).round();
+        // Transparent canvas (no backgroundArgb) — the layer-list paints the
+        // colour behind it.
+        final image =
+            const SvgRasterizer().rasterize(doc, sizePx, fitFraction: fit);
+        final dir = _legacyDensityDir(density, night);
+        File(p.join(dir, '$_legacyName$outExt'))
+          ..parent.createSync(recursive: true)
+          ..writeAsBytesSync(ImageRasterizer.encode(image, fmt));
+        report.written.add('${night ? 'drawable-night' : 'drawable'}'
+            '-$density/$_legacyName$outExt');
+        _removeStaleLegacySibling(density, outExt, night, report);
+        any = true;
+      });
+      if (any) report.warnings.addAll(doc.warnings);
+      return any;
+    }
+
+    if (_rasterExts.contains(ext)) {
+      const rasterizer = ImageRasterizer();
+      var any = false;
+      _legacyDensities.forEach((density, mult) {
+        final out =
+            p.join(_legacyDensityDir(density, night), '$_legacyName$outExt');
+        if (rasterizer.renderFittedPng(
+          sourcePath: abs,
+          canvasPx: (_legacyBoxDp * mult).round(),
+          fillFraction: _legacyRasterFill,
+          outPath: out,
+          format: fmt,
+        )) {
+          report.written.add('${night ? 'drawable-night' : 'drawable'}'
+              '-$density/$_legacyName$outExt');
+          _removeStaleLegacySibling(density, outExt, night, report);
+          any = true;
+        }
+      });
+      return any;
+    }
+
+    logger.skip('pre-31 splash logo "$source": unsupported ($ext) — '
+        'use SVG or a raster image');
+    report.skipped.add('pre-31 splash logo (unsupported $ext)');
+    return false;
+  }
+
+  /// `drawable[-night]-<density>` directory for the legacy raster logo.
+  String _legacyDensityDir(String density, bool night) => night
+      ? p.join(paths.resDir, 'drawable-night-$density')
+      : paths.drawableDensityDir(density);
+
+  /// Fraction of the square the SVG art fills, reproducing the API 31+ keyline
+  /// look (the art's bounding box inscribed in the 2/3 safe circle) so the
+  /// pre-31 logo matches the size of the system splash icon on API 31+.
+  double _legacyFitFraction(SvgDocument doc) {
+    final canvas = splash.iconBackground != null ? 240.0 : 288.0;
+    final safeDiameter = canvas * 2 / 3;
+    final art = doc.artBounds();
+    final w = (art?.width ?? doc.viewportWidth).abs();
+    final h = (art?.height ?? doc.viewportHeight).abs();
+    final longest = math.max(w, h);
+    final diagonal = math.sqrt(w * w + h * h);
+    if (longest == 0 || diagonal == 0) return 0.6;
+    // SvgRasterizer fits the longest side to `fraction * canvas`; the vector
+    // keyline fits the *diagonal* to the safe diameter. Convert between them.
+    return (longest / diagonal) * (safeDiameter / canvas);
+  }
+
+  /// Drops a same-name legacy logo left in the other raster format by a previous
+  /// run, so a stale PNG can't shadow a fresh WebP (or vice-versa).
+  void _removeStaleLegacySibling(
+      String density, String keepExt, bool night, GenerationReport report) {
+    for (final e in const ['.png', '.webp']) {
+      if (e == keepExt) continue;
+      final f =
+          File(p.join(_legacyDensityDir(density, night), '$_legacyName$e'));
+      if (f.existsSync()) {
+        f.deleteSync();
+        report.removed.add('${night ? 'drawable-night' : 'drawable'}'
+            '-$density/$_legacyName$e (stale)');
+      }
+    }
   }
 
   // ----------------------------------------------------------------- branding

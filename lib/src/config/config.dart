@@ -275,6 +275,7 @@ class AndroidSplashConfig {
     this.gravity = 'center',
     this.fullscreen = false,
     this.screenOrientation,
+    this.imageFormat = ImageFormat.png,
   });
 
   final String? background;
@@ -327,6 +328,13 @@ class AndroidSplashConfig {
   /// `landscape`, `sensorPortrait`). Written to the **main** manifest, so it is
   /// app-wide and not undone by `revert`.
   final String? screenOrientation;
+
+  /// Encoding for the pre-31 raster splash logo (`drawable-*/splash_icon_legacy`).
+  /// The centre logo is rasterised — not a VectorDrawable — because
+  /// `windowBackground` is inflated before AppCompat's vector support and a
+  /// vector silently fails to paint on API 21–23. PNG is the safe default; WebP
+  /// (lossless) is smaller and resolves identically on API 18+.
+  final ImageFormat imageFormat;
 
   /// True when there is any centre logo to render (animated or static).
   bool get hasIcon => animatedIcon != null || image != null;

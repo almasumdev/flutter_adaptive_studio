@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.10.0
+
+### Splash (pre-31 reliability)
+
+- **The pre-31 `windowBackground` splash logo is now rasterised** to per-density
+  PNG/WebP (`drawable-*/splash_icon_legacy`) instead of being referenced as a
+  VectorDrawable. `windowBackground` is inflated by the platform before
+  AppCompat's vector support is active, so a vector logo silently failed to paint
+  on **API 21–23** (Android 5–6) — you'd get the background colour but no logo.
+  A bitmap always renders, so the old-device launch splash is now bulletproof.
+  The crisp vector is still used for the Android 12+ `SplashScreen` slot.
+- New `splash.image_format: png | webp` chooses the encoding for that raster
+  logo (PNG default; WebP is smaller and resolves identically on API 18+).
+- An `animated_icon` with no static `image:` now logs a warning — an AVD can't be
+  a `windowBackground` drawable, so add an `image:` for a resting pre-31 logo.
+- `revert` now also removes the per-density legacy splash rasters, WebP mipmaps,
+  and the `src/main` Play Store PNG.
+
 ## 0.9.0
 
 - Widened the `xml` constraint to `>=6.5.0 <8.0.0` so apps can depend on this

@@ -85,6 +85,7 @@ flutter_adaptive_studio:
     #   background_image_dark: assets/splash_bg_dark.png
     #   image: assets/logo.svg                    # static centre logo (SVG or raster)
     #   image_dark: assets/logo_dark.svg          # dark-mode centre logo
+    #   image_format: png                         # png | webp — encoding for the pre-31 raster splash logo
     #   icon_background: "#FFFFFF"                 # hex circle behind the icon (API 31+)
     #   icon_background_dark: "#111111"           # dark-mode icon circle
     #   gravity: center                           # pre-31 centre-image alignment (center, fill, bottom, …)

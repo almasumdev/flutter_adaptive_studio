@@ -43,6 +43,7 @@ const Map<String, dynamic> _schema = {
       'background_image_dark': null,
       'image': null,
       'image_dark': null,
+      'image_format': null,
       'icon_background': null,
       'icon_background_dark': null,
       'gravity': null,

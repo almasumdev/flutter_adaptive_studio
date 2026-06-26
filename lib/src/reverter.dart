@@ -81,6 +81,14 @@ class Reverter {
       rm(p.join(paths.resDir, dir, 'splash_branding.png'));
       rm(p.join(paths.resDir, dir, 'splash_bg.png'));
     }
+    // Pre-31 raster splash logo, per density (PNG or WebP, + night).
+    for (final d in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
+      for (final base in ['drawable', 'drawable-night']) {
+        for (final e in ['.png', '.webp']) {
+          rm(p.join(paths.resDir, '$base-$d', 'splash_icon_legacy$e'));
+        }
+      }
+    }
     // Animators.
     final animDir = Directory(paths.animatorDir);
     if (animDir.existsSync()) {
@@ -94,11 +102,15 @@ class Reverter {
     // API 31 styles (splash-only, owned by us).
     rm(p.join(paths.valuesV31Dir, 'styles.xml'));
     rm(p.join(paths.valuesNightV31Dir, 'styles.xml'));
-    // Legacy mipmaps + store icon.
+    // Legacy mipmaps + store icon (PNG or WebP).
     for (final d in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
-      rm(p.join(paths.mipmapDir(d), '$name.png'));
-      rm(p.join(paths.mipmapDir(d), '${name}_round.png'));
+      for (final e in ['.png', '.webp']) {
+        rm(p.join(paths.mipmapDir(d), '$name$e'));
+        rm(p.join(paths.mipmapDir(d), '${name}_round$e'));
+      }
     }
+    // Play Store PNG now lives in src/main; clean the legacy android/app copy too.
+    rm(p.join(paths.mainSrcDir, '$name-playstore.png'));
     rm(p.join(paths.appDir, '$name-playstore.png'));
 
     // iOS assets. A flavor's whole AppIcon-<flavor>.appiconset is ours; the base

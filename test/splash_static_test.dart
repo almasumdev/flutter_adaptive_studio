@@ -83,12 +83,23 @@ flutter_adaptive_studio:
     // emitted into the framework v31 theme (it fails to link).
     expect(v31, isNot(contains('postSplashScreenTheme')));
 
-    // Pre-31 layer-list centres the icon and pins branding to the bottom.
+    // Pre-31 layer-list centres the icon and pins branding to the bottom. The
+    // centre logo is the RASTER (`splash_icon_legacy`), not the v31 vector — a
+    // VectorDrawable in windowBackground doesn't paint on API 21–23.
     final launch =
         File(res('drawable/launch_background.xml')).readAsStringSync();
-    expect(launch, contains('@drawable/splash_icon'));
+    expect(launch, contains('@drawable/splash_icon_legacy'));
     expect(launch, contains('@drawable/splash_branding'));
     expect(launch, contains('bottom|center_horizontal'));
+
+    // The pre-31 logo is rasterised to PNG (default) at every density, and the
+    // crisp v31 vector (splash_icon.xml) is left untouched for API 31+.
+    for (final d in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
+      expect(
+          File(res('drawable-$d/splash_icon_legacy.png')).existsSync(), isTrue,
+          reason: 'missing pre-31 raster logo for $d');
+    }
+    expect(File(res('drawable/splash_icon.xml')).existsSync(), isTrue);
 
     // Dark background colour emitted via -night.
     final nightColors = File(res('values-night/colors.xml')).readAsStringSync();
@@ -266,5 +277,73 @@ flutter_adaptive_studio:
     final v31 = File(res('values-v31/styles.xml')).readAsStringSync();
     expect(v31, contains('windowSplashScreenAnimatedIcon'));
     expect(v31, contains('windowSplashScreenAnimationDuration'));
+
+    // Animated-only (no static `image:`) → no pre-31 raster logo (an AVD can't
+    // be a windowBackground drawable), so the launch background is colour-only.
+    expect(File(res('drawable-xxhdpi/splash_icon_legacy.png')).existsSync(),
+        isFalse);
+    final launch =
+        File(res('drawable/launch_background.xml')).readAsStringSync();
+    expect(launch, isNot(contains('splash_icon_legacy')));
+  });
+
+  test('pre-31 splash logo honours image_format: webp', () {
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      image: assets/logo.svg
+      image_format: webp
+''');
+
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+
+    // WebP per density, and NO stale .png sibling of the same name.
+    for (final d in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
+      expect(
+          File(res('drawable-$d/splash_icon_legacy.webp')).existsSync(), isTrue,
+          reason: 'missing webp pre-31 logo for $d');
+      expect(File(res('drawable-$d/splash_icon_legacy.png')).existsSync(),
+          isFalse);
+    }
+    // A real WebP file: starts with the RIFF/WEBP magic.
+    final bytes =
+        File(res('drawable-xxhdpi/splash_icon_legacy.webp')).readAsBytesSync();
+    expect(String.fromCharCodes(bytes.sublist(0, 4)), 'RIFF');
+    expect(String.fromCharCodes(bytes.sublist(8, 12)), 'WEBP');
+  });
+
+  test('pre-31 splash logo: image_dark → -night raster per density', () {
+    File(p.join(project.path, 'assets', 'logo_dark.svg')).writeAsStringSync(
+        '<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" '
+        'height="60" rx="8" fill="#E6F2F4"/></svg>');
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      background_dark: "#0E1A1C"
+      image: assets/logo.svg
+      image_dark: assets/logo_dark.svg
+''');
+
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+
+    // Both light and dark rasters exist; the single launch_background resolves
+    // the -night density variant automatically on dark mode.
+    expect(File(res('drawable-xxhdpi/splash_icon_legacy.png')).existsSync(),
+        isTrue);
+    expect(
+        File(res('drawable-night-xxhdpi/splash_icon_legacy.png')).existsSync(),
+        isTrue);
   });
 }

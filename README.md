@@ -110,6 +110,7 @@ flutter_adaptive_studio:
       background: "#E4ECE8"
       background_dark: "#0C1413"
       image: assets/logo.svg                 # static logo (Flutter fallback + pre-31)
+      image_format: png                      # png (default) | webp — pre-31 raster logo encoding
       animated_icon: assets/logo_anim.xml    # AnimatedVectorDrawable for Android 12+
       animated_icon_dark: assets/logo_anim_dark.xml
       branding: assets/wordmark.svg          # bottom branding (200×80dp slot)
@@ -156,9 +157,11 @@ Options: `-p/--project <path>`, `-c/--config <file>`, `-F/--flavor <name>`,
 monochrome drawables), round icon, legacy mipmaps (PNG or, with
 `image_format: webp`, lossless WebP), and the 512² Play Store PNG written to
 `src/main`; the Android 12 `SplashScreen` theme (`values-v31`, + `-night`) wired
-to your AVD, a pre-31 classic splash, a drop-in `FasSplash` Flutter fallback, and
-a zero-dependency `FasNativeSplash.preserve()/remove()` keeper (hold the native
-splash through app startup — no white flash); bottom branding.
+to your AVD, a pre-31 classic splash (its centre logo rasterised to per-density
+PNG/WebP so it renders on Android 5–6, where a vector `windowBackground` doesn't),
+a drop-in `FasSplash` Flutter fallback, and a zero-dependency
+`FasNativeSplash.preserve()/remove()` keeper (hold the native splash through app
+startup — no white flash); bottom branding.
 
 **iOS** — `AppIcon.appiconset` (single-size 1024², light/dark/tinted) with a
 modern `Contents.json`, a patched `LaunchScreen.storyboard`, and a
