@@ -168,9 +168,16 @@ class AndroidSplash {
           backgroundImageDarkAsset:
               bgImageRef == null ? null : splash.backgroundImageDark,
         ));
+    // Zero-dependency native-splash keeper (preserve/remove) — keeps the native
+    // splash up during app startup so there's no white flash. Independent of the
+    // FasSplash widget; useful on every API level.
+    writer.writeText(
+        p.join(dir, 'fas_native_splash.dart'), nativeSplashKeeperDart);
     writer.writeText(p.join(dir, 'SPLASH.md'), splashGuide);
-    report.written.add('flutter_adaptive_studio/splash/ (FasSplash + guide)');
-    logger.step('Flutter fallback splash → flutter_adaptive_studio/splash/');
+    report.written.add(
+        'flutter_adaptive_studio/splash/ (FasSplash + FasNativeSplash + guide)');
+    logger.step('Flutter fallback splash + native-splash keeper → '
+        'flutter_adaptive_studio/splash/');
   }
 
   // --------------------------------------------------------------- centre icon

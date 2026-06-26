@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0
+
+### Splash
+
+- New generated drop-in `flutter_adaptive_studio/splash/fas_native_splash.dart`
+  with `FasNativeSplash.preserve({required widgetsBinding})` / `remove()` — keeps
+  the native splash on screen through app startup (no white flash before your
+  first screen is ready). Pure Flutter framework (`deferFirstFrame`/
+  `allowFirstFrame`): no plugin, no native code, no extra dependencies. The
+  signatures match `flutter_native_splash` for a drop-in migration.
+
 ## 0.6.0
 
 ### Android

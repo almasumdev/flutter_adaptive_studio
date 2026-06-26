@@ -129,8 +129,9 @@ Options: `-p/--project <path>`, `-c/--config <file>`, `-F/--flavor <name>`,
 monochrome drawables), round icon, legacy mipmaps (PNG or, with
 `image_format: webp`, lossless WebP), and the 512² Play Store PNG written to
 `src/main`; the Android 12 `SplashScreen` theme (`values-v31`, + `-night`) wired
-to your AVD, a pre-31 classic splash, and a drop-in `FasSplash` Flutter fallback;
-bottom branding.
+to your AVD, a pre-31 classic splash, a drop-in `FasSplash` Flutter fallback, and
+a zero-dependency `FasNativeSplash.preserve()/remove()` keeper (hold the native
+splash through app startup — no white flash); bottom branding.
 
 **iOS** — `AppIcon.appiconset` (single-size 1024², light/dark/tinted) with a
 modern `Contents.json`, a patched `LaunchScreen.storyboard`, and a

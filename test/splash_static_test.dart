@@ -113,6 +113,30 @@ flutter_adaptive_studio:
     expect(glue, isNot(contains('wordmark_dark')));
   });
 
+  test('native-splash keeper: FasNativeSplash.preserve/remove, zero deps', () {
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+
+    final keeper = File(p.join(project.path, 'flutter_adaptive_studio',
+        'splash', 'fas_native_splash.dart'));
+    expect(keeper.existsSync(), isTrue);
+    final src = keeper.readAsStringSync();
+
+    // The preserve/remove API (matching flutter_native_splash for migration)…
+    expect(src, contains('class FasNativeSplash'));
+    expect(src, contains('static void preserve({required WidgetsBinding'));
+    expect(src, contains('static void remove()'));
+    // …implemented purely with the framework's first-frame deferral.
+    expect(src, contains('deferFirstFrame'));
+    expect(src, contains('allowFirstFrame'));
+    // Zero extra dependencies: only flutter/widgets, no plugin/native imports.
+    expect(src, contains("import 'package:flutter/widgets.dart'"));
+    expect(src, isNot(contains('device_info_plus')));
+    expect(src, isNot(contains('MethodChannel')));
+  });
+
   test('themed branding: FasSplash swaps wordmark by app brightness', () {
     File(p.join(project.path, 'assets', 'wordmark_dark.svg')).writeAsStringSync(
         '<svg viewBox="0 0 240 60"><rect x="0" y="10" width="240" '
