@@ -12,7 +12,7 @@ import 'package:args/args.dart';
 import 'package:flutter_adaptive_studio/generator.dart';
 import 'package:path/path.dart' as p;
 
-const _commands = {'init', 'generate', 'doctor', 'preview', 'revert'};
+const _commands = {'init', 'sync', 'generate', 'doctor', 'preview', 'revert'};
 
 void main(List<String> args) {
   final parser = ArgParser()
@@ -45,6 +45,8 @@ void main(List<String> args) {
         '   or: fas <command> [options]   (after `dart pub global activate`)\n');
     stdout.writeln('Commands:');
     stdout.writeln('  init       Write a starter config into the project');
+    stdout.writeln('  sync       Add new config options (commented) — keeps '
+        'your values');
     stdout.writeln('  generate   Generate icons + splash (default)');
     stdout.writeln('  doctor     Validate config + environment');
     stdout.writeln('  preview    Write an HTML launcher-mask preview sheet');
@@ -76,6 +78,11 @@ void main(List<String> args) {
       final path = Initializer(projectRoot: projectRoot, logger: logger)
           .run(force: opts['force'] as bool);
       exit(path == null ? 1 : 0);
+    case 'sync':
+      final added = ConfigSync(
+              projectRoot: projectRoot, configPath: configPath, logger: logger)
+          .run();
+      exit(added < 0 ? 1 : 0);
     case 'doctor':
       exit(Doctor(
                   projectRoot: projectRoot,

@@ -9,6 +9,7 @@ library;
 
 export 'src/config/config.dart';
 export 'src/config/config_loader.dart' show ConfigLoader, ConfigException;
+export 'src/config_sync.dart';
 export 'src/doctor.dart';
 export 'src/geometry/adaptive_geometry.dart';
 export 'src/graphic/svg_document.dart';

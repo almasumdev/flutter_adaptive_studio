@@ -147,6 +147,7 @@ fas <command> [options]                                # after `dart pub global 
 | Command    | What it does                                          |
 | ---------- | ----------------------------------------------------- |
 | `init`     | Write a fully-commented starter config                |
+| `sync`     | Add newly-available options to an existing config (commented; keeps your values) |
 | `generate` | Generate icons + splash (the default command)         |
 | `doctor`   | Validate the config and project                       |
 | `preview`  | Write an HTML launcher-mask preview sheet             |

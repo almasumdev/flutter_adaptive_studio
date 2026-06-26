@@ -16,6 +16,10 @@ class Initializer {
   final String projectRoot;
   final Logger logger;
 
+  /// The fully-commented starter config — every supported option. Exposed so
+  /// `sync` can diff a user's config against it and fill in what's missing.
+  static String get starterTemplate => _starter;
+
   /// Writes the starter config. Returns the path, or null if it already exists
   /// and [force] is false.
   String? run({bool force = false}) {

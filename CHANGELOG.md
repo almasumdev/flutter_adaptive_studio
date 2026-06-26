@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.15.0
+
+### New `sync` command
+
+- `fas sync` (or `dart run flutter_adaptive_studio sync`) adds any options your
+  `flutter_adaptive_studio.yaml` doesn't yet mention — as **commented**
+  placeholders in the right section — **without touching your existing lines,
+  values, or formatting**. It's the non-destructive way for existing users to
+  pick up newly-added options (unlike `init --force`, which overwrites the
+  whole file). Because every inserted line is a comment, it can never change
+  behaviour or break the YAML; it's also idempotent.
+
 ## 0.14.0
 
 ### Splash — text branding
