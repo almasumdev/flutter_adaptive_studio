@@ -2,7 +2,7 @@ name: flutter_adaptive_studio
 description: >-
   Vector-native, theme-aware, mask-correct launcher icons and animated splash
   screens for Flutter — done the way native tooling does it, per platform.
-version: 0.11.0
+version: 0.12.0
 repository: https://github.com/almasumdev/flutter_adaptive_studio
 issue_tracker: https://github.com/almasumdev/flutter_adaptive_studio/issues
 

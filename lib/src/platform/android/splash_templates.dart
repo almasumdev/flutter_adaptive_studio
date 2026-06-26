@@ -4,6 +4,26 @@
 /// SDK gate and a guide. These are *references* the developer wires in.
 library;
 
+/// The stock Flutter `launch_background.xml` (a plain `?android:colorBackground`
+/// layer). `revert` restores this to `drawable/` and `drawable-v21/` instead of
+/// deleting them — `LaunchTheme.windowBackground` still references
+/// `@drawable/launch_background`, so removing the file outright would dangle that
+/// reference and break the build.
+const String stockLaunchBackgroundXml =
+    '''<?xml version="1.0" encoding="utf-8"?>
+<!-- Modify this file to customize your launch splash screen -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="?android:colorBackground" />
+
+    <!-- You can insert your own image assets here -->
+    <!-- <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@mipmap/launch_image" />
+    </item> -->
+</layer-list>
+''';
+
 String _hex8(int argb) =>
     '0x${(argb & 0xFFFFFFFF).toRadixString(16).padLeft(8, '0').toUpperCase()}';
 

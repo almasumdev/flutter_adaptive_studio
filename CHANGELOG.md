@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.12.0
+
+### Splash (critical pre-31 fix)
+
+- **The pre-31 launch splash now actually shows.** A stock Flutter project ships
+  `drawable-v21/launch_background.xml`, and on API 21+ (virtually every device)
+  Android resolves `@drawable/launch_background` to that `-v21` file — so the
+  generator only writing `drawable/launch_background.xml` was **silently
+  shadowed** by the stock white default, and the splash background/logo never
+  appeared. We now write the launch background to **`drawable/` and
+  `drawable-v21/`** (and overwrite any `-night` variants), so it shows on Android
+  10 and friends.
+- `revert` restores the **stock** `launch_background.xml` to `drawable/` +
+  `drawable-v21/` (instead of deleting), so the `LaunchTheme` reference can't
+  dangle and break the build.
+
 ## 0.11.0
 
 ### Splash (pre-31 launch background)

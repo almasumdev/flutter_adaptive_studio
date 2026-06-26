@@ -92,6 +92,15 @@ flutter_adaptive_studio:
     expect(launch, contains('@drawable/splash_branding'));
     expect(launch, contains('bottom|center_horizontal'));
 
+    // CRUCIAL: the same launch background is also written to drawable-v21/.
+    // On API 21+ Android resolves @drawable/launch_background to the -v21
+    // bucket, so the stock white drawable-v21/launch_background.xml would
+    // otherwise shadow ours and the splash would never appear.
+    final launchV21 =
+        File(res('drawable-v21/launch_background.xml')).readAsStringSync();
+    expect(launchV21, contains('@color/splash_background'));
+    expect(launchV21, contains('@drawable/splash_icon_legacy'));
+
     // The pre-31 logo is rasterised to PNG (default) at every density, and the
     // crisp v31 vector (splash_icon.xml) is left untouched for API 31+.
     for (final d in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
@@ -285,6 +294,40 @@ flutter_adaptive_studio:
     final launch =
         File(res('drawable/launch_background.xml')).readAsStringSync();
     expect(launch, isNot(contains('splash_icon_legacy')));
+  });
+
+  test(
+      'generate overwrites a stale stock drawable-v21 launch background; '
+      'revert restores the stock template', () {
+    // Simulate the stock Flutter project: a white drawable-v21 launch background
+    // that shadows ours on API 21+.
+    final v21 = File(res('drawable-v21/launch_background.xml'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('<layer-list xmlns:android="http://schemas.android'
+          '.com/apk/res/android"><item android:drawable="?android:color'
+          'Background" /></layer-list>');
+
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+
+    // The stale white -v21 file is replaced with our splash.
+    final after = v21.readAsStringSync();
+    expect(after, contains('@color/splash_background'));
+    expect(after, contains('@drawable/splash_icon_legacy'));
+    expect(after, isNot(contains('?android:colorBackground')));
+
+    // Revert restores the stock template to drawable/ + drawable-v21/ (so the
+    // LaunchTheme windowBackground reference doesn't dangle).
+    Reverter(projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
+        .run();
+    for (final d in ['drawable', 'drawable-v21']) {
+      final restored = File(res('$d/launch_background.xml')).readAsStringSync();
+      expect(restored, contains('?android:colorBackground'),
+          reason: '$d/launch_background.xml should be stock after revert');
+      expect(restored, isNot(contains('splash_icon_legacy')));
+    }
   });
 
   test('animated-only splash falls back to the app logo for the pre-31 launch',

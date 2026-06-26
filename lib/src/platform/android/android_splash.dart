@@ -145,16 +145,17 @@ class AndroidSplash {
         launchParent: '@android:style/Theme.Light.NoTitleBar');
     _writeLegacyStyles(paths.valuesNightDir,
         launchParent: '@android:style/Theme.Black.NoTitleBar');
-    // One launch_background.xml suffices: @color/splash_background and the icon
-    // /branding @drawable refs resolve to their `-night` variants automatically.
-    _writeLaunchBackground(paths.drawableDir,
+    // Written to drawable/ AND drawable-v21/ (+ any night variants) so the
+    // stock Flutter drawable-v21/launch_background.xml can't shadow ours on
+    // API 21+ devices. The @color/icon refs resolve their `-night` flavours
+    // automatically, so one theme-agnostic XML covers light and dark.
+    final launchFiles = _writeLaunchBackgrounds(
         iconRef: icon.layerRef,
         brandingRef: brandingRef,
         bgImageRef: bgImageRef);
-    report.written
-      ..add('values/styles.xml (LaunchTheme)')
-      ..add('drawable/launch_background.xml');
-    logger.step('pre-31 classic splash written');
+    report.written.add('values/styles.xml (LaunchTheme)');
+    report.written.addAll(launchFiles);
+    logger.step('pre-31 classic splash written (drawable/ + drawable-v21/)');
 
     // ---- Flutter fallback drop-in (for Android < 12 / app-theme splash) ----
     _writeFallbackGlue(brandingRef, bgImageRef, report);
@@ -697,7 +698,37 @@ class AndroidSplash {
         BrandingMode.bottom => 'Alignment.bottomCenter',
       };
 
-  void _writeLaunchBackground(String dir,
+  /// Writes `launch_background.xml` to **every** drawable bucket the OS could
+  /// resolve `@drawable/launch_background` from. A stock Flutter project ships
+  /// `drawable-v21/launch_background.xml`, and on API 21+ (i.e. essentially every
+  /// device) the `-v21` qualifier WINS over plain `drawable/` — so writing only
+  /// `drawable/` leaves the stale white default in `-v21` shadowing our splash.
+  /// We always write `drawable/` + `drawable-v21/`, and overwrite any `-night`
+  /// variants the project shipped (night has higher qualifier precedence than
+  /// version, so a stale `drawable-night/` would shadow us in dark mode).
+  List<String> _writeLaunchBackgrounds(
+      {String? iconRef, String? brandingRef, String? bgImageRef}) {
+    final xml = _buildLaunchBackgroundXml(
+        iconRef: iconRef, brandingRef: brandingRef, bgImageRef: bgImageRef);
+    final written = <String>[];
+    // Always written (covers pre-21 and API 21+ respectively).
+    for (final dir in const ['drawable', 'drawable-v21']) {
+      writer.writeText(p.join(paths.resDir, dir, 'launch_background.xml'), xml);
+      written.add('$dir/launch_background.xml');
+    }
+    // Only overwrite night variants that already exist — don't create new ones
+    // (the colour/icon refs resolve their own `-night` flavours at runtime).
+    for (final dir in const ['drawable-night', 'drawable-night-v21']) {
+      final f = File(p.join(paths.resDir, dir, 'launch_background.xml'));
+      if (f.existsSync()) {
+        writer.writeText(f.path, xml);
+        written.add('$dir/launch_background.xml');
+      }
+    }
+    return written;
+  }
+
+  String _buildLaunchBackgroundXml(
       {String? iconRef, String? brandingRef, String? bgImageRef}) {
     final b = XmlBuilder();
     b.processing('xml', 'version="1.0" encoding="utf-8"');
@@ -730,8 +761,7 @@ class AndroidSplash {
         });
       }
     });
-    writer.writeText(p.join(dir, 'launch_background.xml'),
-        b.buildDocument().toXmlString(pretty: true, indent: '    '));
+    return b.buildDocument().toXmlString(pretty: true, indent: '    ');
   }
 }
 

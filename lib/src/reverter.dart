@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'config/config_loader.dart';
 import 'logger.dart';
 import 'platform/android/android_paths.dart';
+import 'platform/android/splash_templates.dart';
 import 'platform/ios/ios_paths.dart';
 import 'platform/ios/pbxproj_editor.dart';
 import 'platform/ios/xcode_scheme.dart';
@@ -66,14 +67,28 @@ class Reverter {
     ]) {
       rm(p.join(paths.drawableDir, '$name$v.xml'));
     }
-    // Splash drawables + launch backgrounds.
+    // Splash drawables.
     for (final dir in [paths.drawableDir, paths.drawableNightDir]) {
       rm(p.join(dir, 'splash_icon.xml'));
       rm(p.join(dir, 'splash_icon_vector.xml'));
       rm(p.join(dir, 'splash_icon_static.xml'));
       rm(p.join(dir, 'splash_branding.xml'));
       rm(p.join(dir, 'splash_bg.xml'));
-      rm(p.join(dir, 'launch_background.xml'));
+    }
+    // Launch backgrounds: we overwrite drawable/ + drawable-v21/, which
+    // LaunchTheme.windowBackground references — so RESTORE the stock Flutter
+    // template there (deleting would dangle that ref and break the build), and
+    // remove the night variants we may have written.
+    for (final dir in ['drawable', 'drawable-v21']) {
+      final f = File(p.join(paths.resDir, dir, 'launch_background.xml'));
+      if (f.existsSync()) {
+        f.writeAsStringSync(stockLaunchBackgroundXml);
+        removed++;
+        logger.detail('restored stock $dir/launch_background.xml');
+      }
+    }
+    for (final dir in ['drawable-night', 'drawable-night-v21']) {
+      rm(p.join(paths.resDir, dir, 'launch_background.xml'));
     }
     // Raster splash drawables (nodpi).
     for (final dir in ['drawable-nodpi', 'drawable-night-nodpi']) {
