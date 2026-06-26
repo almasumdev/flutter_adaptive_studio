@@ -278,13 +278,50 @@ flutter_adaptive_studio:
     expect(v31, contains('windowSplashScreenAnimatedIcon'));
     expect(v31, contains('windowSplashScreenAnimationDuration'));
 
-    // Animated-only (no static `image:`) → no pre-31 raster logo (an AVD can't
-    // be a windowBackground drawable), so the launch background is colour-only.
+    // Animated-only with NO fallback logo (no source / icon foreground) → no
+    // pre-31 raster logo, so the launch background is colour-only.
     expect(File(res('drawable-xxhdpi/splash_icon_legacy.png')).existsSync(),
         isFalse);
     final launch =
         File(res('drawable/launch_background.xml')).readAsStringSync();
     expect(launch, isNot(contains('splash_icon_legacy')));
+  });
+
+  test('animated-only splash falls back to the app logo for the pre-31 launch',
+      () {
+    const avd =
+        '<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" '
+        'xmlns:aapt="http://schemas.android.com/aapt">AVD</animated-vector>';
+    File(p.join(project.path, 'assets', 'anim.xml')).writeAsStringSync(avd);
+    // No splash `image:`, but a root `source:` is available as the fallback.
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  source: assets/logo.svg
+  android:
+    splash:
+      background: "#E4ECE8"
+      animated_icon: assets/anim.xml
+''');
+
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+
+    // The pre-31 launch logo is rasterised from the app logo so the launch
+    // screen isn't a bare colour, and the launch background references it.
+    for (final d in ['mdpi', 'xxhdpi', 'xxxhdpi']) {
+      expect(
+          File(res('drawable-$d/splash_icon_legacy.png')).existsSync(), isTrue,
+          reason: 'expected fallback pre-31 logo for $d');
+    }
+    final launch =
+        File(res('drawable/launch_background.xml')).readAsStringSync();
+    expect(launch, contains('@drawable/splash_icon_legacy'));
+    // The AVD still drives the API 31+ animated slot.
+    expect(File(res('values-v31/styles.xml')).readAsStringSync(),
+        contains('windowSplashScreenAnimatedIcon'));
   });
 
   test('pre-31 splash logo honours image_format: webp', () {

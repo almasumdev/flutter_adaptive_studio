@@ -39,6 +39,7 @@ class AndroidSplash {
     required this.paths,
     required this.writer,
     required this.logger,
+    this.fallbackLogoSource,
   });
 
   final AndroidSplashConfig splash;
@@ -46,6 +47,12 @@ class AndroidSplash {
   final AndroidPaths paths;
   final ResWriter writer;
   final Logger logger;
+
+  /// Logo to use for the **pre-31** static launch logo when the splash has no
+  /// `image:` (typically an animated-only splash). The Android < 12
+  /// windowBackground can't run an animation, so without this the launch screen
+  /// would be a bare colour. Wired to the app icon's foreground / root `source`.
+  final String? fallbackLogoSource;
 
   static const _ns = 'http://schemas.android.com/apk/res/android';
   static const _name = 'splash_icon';
@@ -220,8 +227,12 @@ class AndroidSplash {
         _warnAnimatedKeyline();
         if (legacyRef == null) {
           logger.warn('pre-31 splash: an animated_icon cannot be a '
-              'windowBackground drawable. Add a static `image:` for a resting '
-              'logo on Android < 12 (otherwise it shows the background only).');
+              'windowBackground drawable, and no static `image:` (or app logo) '
+              'was available — Android < 12 will show the background colour '
+              'only. Add a static `image:` for a resting logo there.');
+        } else if (splash.image == null) {
+          logger.detail('pre-31 splash: using the app logo as the static '
+              'launch logo (set splash `image:` to override).');
         }
         return _IconPlan(slotRef: _name, layerRef: legacyRef, animated: true);
       }
@@ -254,14 +265,20 @@ class AndroidSplash {
   /// returns its resource base name — or null when there's no static `image:`
   /// (an animated-only or background-only splash).
   String? _emitLegacyIcon(GenerationReport report) {
-    final src = splash.image;
+    // Prefer the splash `image:`; otherwise fall back to the app logo so an
+    // animated-only splash still shows a mark on Android < 12 (where the
+    // animated icon doesn't apply) instead of a bare colour.
+    final usingFallback = splash.image == null;
+    final src = splash.image ?? fallbackLogoSource;
     if (src == null) return null;
     if (!_rasterizeLegacyIcon(src, report, night: false)) return null;
-    if (splash.imageDark != null) {
+    // A dark variant only exists for an explicit splash `image_dark:`.
+    if (!usingFallback && splash.imageDark != null) {
       _rasterizeLegacyIcon(splash.imageDark!, report, night: true);
     }
     final fmt = splash.imageFormat;
-    logger.step('pre-31 splash logo (raster, ${fmt.name}) → '
+    logger.step('pre-31 splash logo (raster, ${fmt.name}'
+        '${usingFallback ? ', from app logo' : ''}) → '
         'drawable-*/$_legacyName${fmt.extension}');
     return _legacyName;
   }

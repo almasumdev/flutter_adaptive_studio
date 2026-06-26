@@ -67,6 +67,9 @@ class AndroidGenerator extends PlatformGenerator {
         paths: paths,
         writer: writer,
         logger: logger,
+        // So an animated-only splash still gets a pre-31 launch logo: the app
+        // icon's foreground, else the root source.
+        fallbackLogoSource: android.icon?.adaptive?.foreground ?? config.source,
       ).generate());
     } else {
       report.skipped.add('android.splash (not configured)');

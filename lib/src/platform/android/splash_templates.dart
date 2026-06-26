@@ -252,6 +252,13 @@ flutter_adaptive_studio generated the **native** Android splash:
   A bitmap always renders. Choose the encoding with `image_format: png | webp`
   under `splash:`.
 
+  **An `animated_icon` does NOT apply here — Android < 12 can't run an animation
+  in a `windowBackground`.** It needs a *still* logo. So the pre-31 launch logo
+  comes from `splash.image:`; if you only set `animated_icon` (no `image:`), the
+  generator falls back to your **app logo** (`icon.adaptive.foreground`, else the
+  root `source:`) so the launch screen still shows a mark instead of a bare
+  colour. Set `splash.image:` to control it explicitly.
+
 ## Keep the native splash during startup (no white flash) — `FasNativeSplash`
 The OS shows the native splash only until Flutter paints its **first frame**.
 If your app still has work to do then (load prefs, open a DB, check auth), that

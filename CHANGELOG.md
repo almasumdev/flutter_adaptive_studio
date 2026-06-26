@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.11.0
+
+### Splash (pre-31 launch background)
+
+- **An animated-only splash no longer leaves the Android < 12 launch screen
+  logo-less.** An `animated_icon` can't run in a pre-31 `windowBackground`, so
+  when no static `splash.image:` is set the generator now falls back to your app
+  logo (`icon.adaptive.foreground`, else the root `source:`) for the pre-31
+  launch logo — the launch screen shows your mark instead of a bare colour. Set
+  `splash.image:` to control it explicitly.
+
+> Note: if your launch screen stays blank/white through a long startup, check
+> that `FasNativeSplash.remove()` is called **synchronously right after
+> `runApp()`** — not inside an `addPostFrameCallback`. While the first frame is
+> deferred by `preserve()`, that callback never fires, so `remove()` there never
+> runs and the app is stranded on a blank window.
+
 ## 0.10.0
 
 ### Splash (pre-31 reliability)
