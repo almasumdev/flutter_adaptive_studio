@@ -91,6 +91,15 @@ flutter_adaptive_studio:
     #   gravity: center                           # pre-31 centre-image alignment (center, fill, bottom, …)
     #   fullscreen: false                         # hide status/nav bars during splash
     #   screen_orientation: portrait              # lock orientation (app-wide; not undone by revert)
+    #   # --- system bars during the splash (status + bottom navigation) ---
+    #   status_bar_color: "#E4ECE8"               # hex or `transparent`
+    #   status_bar_color_dark: "#0C1413"
+    #   status_bar_icon_brightness: dark          # dark | light icons (auto from colour if unset)
+    #   status_bar_icon_brightness_dark: light
+    #   navigation_bar_color: "#E4ECE8"           # hex or `transparent`
+    #   navigation_bar_color_dark: "#0C1413"
+    #   navigation_bar_icon_brightness: dark      # dark | light icons (auto from colour if unset)
+    #   navigation_bar_icon_brightness_dark: light
     #   branding: assets/wordmark.svg             # bottom branding (SVG/raster, 200×80dp slot)
     #   branding_dark: assets/wordmark_dark.svg   # dark-mode branding variant
     #   branding_mode: bottom                     # bottom | bottom_left | bottom_right (pre-31 + fallback)

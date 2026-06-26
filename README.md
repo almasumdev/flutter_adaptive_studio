@@ -114,6 +114,10 @@ flutter_adaptive_studio:
       animated_icon: assets/logo_anim.xml    # AnimatedVectorDrawable for Android 12+
       animated_icon_dark: assets/logo_anim_dark.xml
       branding: assets/wordmark.svg          # bottom branding (200×80dp slot)
+      status_bar_color: transparent          # status bar during splash (hex | transparent)
+      navigation_bar_color: "#E4ECE8"        # bottom nav bar (hex | transparent)
+      navigation_bar_color_dark: "#0C1413"
+      status_bar_icon_brightness: dark       # dark | light icons (auto from colour if unset)
 
   ios:
     icon:

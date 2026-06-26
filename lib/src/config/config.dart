@@ -253,6 +253,11 @@ class ThemedIconConfig {
 /// Where the bottom branding image sits in the splash.
 enum BrandingMode { bottom, bottomLeft, bottomRight }
 
+/// Brightness of the system-bar **icons** during the splash. `dark` icons suit a
+/// light bar/background (maps to `windowLight*Bar = true`); `light` icons suit a
+/// dark one. When unset, it's auto-derived from the bar/background colour.
+enum SystemBarIconBrightness { light, dark }
+
 /// Android splash configuration.
 @immutable
 class AndroidSplashConfig {
@@ -276,6 +281,14 @@ class AndroidSplashConfig {
     this.fullscreen = false,
     this.screenOrientation,
     this.imageFormat = ImageFormat.png,
+    this.statusBarColor,
+    this.statusBarColorDark,
+    this.statusBarIconBrightness,
+    this.statusBarIconBrightnessDark,
+    this.navigationBarColor,
+    this.navigationBarColorDark,
+    this.navigationBarIconBrightness,
+    this.navigationBarIconBrightnessDark,
   });
 
   final String? background;
@@ -328,6 +341,30 @@ class AndroidSplashConfig {
   /// `landscape`, `sensorPortrait`). Written to the **main** manifest, so it is
   /// app-wide and not undone by `revert`.
   final String? screenOrientation;
+
+  /// Status-bar background during the splash: a hex colour (`#RRGGBB[AA]`) or
+  /// the keyword `transparent`. Null leaves the platform default. Applies to the
+  /// pre-31 launch theme and the API 31+ splash theme. [statusBarColorDark]
+  /// supplies the dark-mode value (emitted to `-night`).
+  final String? statusBarColor;
+  final String? statusBarColorDark;
+
+  /// Status-bar **icon** brightness (`dark` icons for a light bar, `light` for a
+  /// dark one). Null auto-derives from the bar colour (or the background, when
+  /// the bar is transparent). [statusBarIconBrightnessDark] overrides in dark
+  /// mode.
+  final SystemBarIconBrightness? statusBarIconBrightness;
+  final SystemBarIconBrightness? statusBarIconBrightnessDark;
+
+  /// Navigation-bar background during the splash: hex or `transparent`.
+  /// [navigationBarColorDark] supplies the dark-mode value.
+  final String? navigationBarColor;
+  final String? navigationBarColorDark;
+
+  /// Navigation-bar **icon** brightness (API 27+ `windowLightNavigationBar`).
+  /// Null auto-derives from the bar/background colour.
+  final SystemBarIconBrightness? navigationBarIconBrightness;
+  final SystemBarIconBrightness? navigationBarIconBrightnessDark;
 
   /// Encoding for the pre-31 raster splash logo (`drawable-*/splash_icon_legacy`).
   /// The centre logo is rasterised — not a VectorDrawable — because

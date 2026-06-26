@@ -230,7 +230,28 @@ class ConfigLoader {
       fullscreen: _bool(raw['fullscreen']) ?? false,
       screenOrientation: _str(raw['screen_orientation']),
       imageFormat: _imageFormat(raw['image_format']),
+      statusBarColor: _str(raw['status_bar_color']),
+      statusBarColorDark: _str(raw['status_bar_color_dark']),
+      statusBarIconBrightness:
+          _barBrightness(raw['status_bar_icon_brightness']),
+      statusBarIconBrightnessDark:
+          _barBrightness(raw['status_bar_icon_brightness_dark']),
+      navigationBarColor: _str(raw['navigation_bar_color']),
+      navigationBarColorDark: _str(raw['navigation_bar_color_dark']),
+      navigationBarIconBrightness:
+          _barBrightness(raw['navigation_bar_icon_brightness']),
+      navigationBarIconBrightnessDark:
+          _barBrightness(raw['navigation_bar_icon_brightness_dark']),
     );
+  }
+
+  static SystemBarIconBrightness? _barBrightness(Object? v) {
+    final s = v?.toString().trim().toLowerCase();
+    return switch (s) {
+      'dark' => SystemBarIconBrightness.dark,
+      'light' => SystemBarIconBrightness.light,
+      _ => null,
+    };
   }
 
   static BrandingMode _brandingMode(Object? v) {

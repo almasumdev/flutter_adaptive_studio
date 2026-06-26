@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.13.0
+
+### Splash — system bars
+
+- New: tint the **status bar** and **bottom navigation bar** during the splash.
+  `status_bar_color` / `navigation_bar_color` take a hex value or `transparent`
+  (each with a `_dark` variant), and `status_bar_icon_brightness` /
+  `navigation_bar_icon_brightness` (`dark` | `light`, + `_dark`) set the bar
+  **icon** colour — auto-derived from the bar/background colour when omitted.
+  These set `statusBarColor` / `navigationBarColor` / `windowLightStatusBar` /
+  `windowLightNavigationBar` on both the pre-31 launch theme and the API 31+
+  splash theme (and their `-night` variants).
+- Docs: branding already renders on the pre-31 launch background (it's the
+  bottom layer of `launch_background.xml`) — now visible on Android 10+ after
+  the 0.12.0 `-v21` fix.
+
 ## 0.12.0
 
 ### Splash (critical pre-31 fix)

@@ -105,6 +105,9 @@ class AndroidSplash {
           splash.iconBackgroundDark!.toUpperCase());
     }
 
+    // ---- System bar colours (status + navigation), if configured ----
+    _writeSystemBarColors();
+
     // ---- Full-bleed background image (pre-31 + fallback only) ----
     final bgImageRef = _resolveBackgroundImage(report);
 
@@ -118,11 +121,13 @@ class AndroidSplash {
     _writeV31Styles(paths.valuesV31Dir,
         launchParent: '@android:style/Theme.Light.NoTitleBar',
         icon: icon,
-        brandingRef: brandingRef);
+        brandingRef: brandingRef,
+        night: false);
     _writeV31Styles(paths.valuesNightV31Dir,
         launchParent: '@android:style/Theme.Black.NoTitleBar',
         icon: icon,
-        brandingRef: brandingRef);
+        brandingRef: brandingRef,
+        night: true);
     if (splash.brandingMode != BrandingMode.bottom && brandingRef != null) {
       logger.warn('branding_mode only affects the pre-31 splash + Flutter '
           'fallback; the Android 12+ system splash always bottom-centres it.');
@@ -142,9 +147,9 @@ class AndroidSplash {
 
     // ---- Pre-31 classic splash ----
     _writeLegacyStyles(paths.valuesDir,
-        launchParent: '@android:style/Theme.Light.NoTitleBar');
+        launchParent: '@android:style/Theme.Light.NoTitleBar', night: false);
     _writeLegacyStyles(paths.valuesNightDir,
-        launchParent: '@android:style/Theme.Black.NoTitleBar');
+        launchParent: '@android:style/Theme.Black.NoTitleBar', night: true);
     // Written to drawable/ AND drawable-v21/ (+ any night variants) so the
     // stock Flutter drawable-v21/launch_background.xml can't shadow ours on
     // API 21+ devices. The @color/icon refs resolve their `-night` flavours
@@ -628,7 +633,8 @@ class AndroidSplash {
   void _writeV31Styles(String dir,
       {required String launchParent,
       required _IconPlan icon,
-      String? brandingRef}) {
+      String? brandingRef,
+      required bool night}) {
     final editor = AndroidStylesEditor(p.join(dir, 'styles.xml'));
     final launch = editor.ensureStyle('LaunchTheme', parent: launchParent);
     editor.upsertItem(launch, 'android:windowSplashScreenBackground',
@@ -650,6 +656,7 @@ class AndroidSplash {
           '@drawable/$brandingRef');
     }
     _applyFullscreen(editor, launch);
+    _applySystemBars(editor, launch, night: night);
     // No `postSplashScreenTheme` — that attribute exists only in the androidx
     // core-splashscreen *compat* library, not the Android framework (it fails
     // to link). Flutter hands off to the normal theme via the
@@ -659,12 +666,14 @@ class AndroidSplash {
     editor.save();
   }
 
-  void _writeLegacyStyles(String dir, {required String launchParent}) {
+  void _writeLegacyStyles(String dir,
+      {required String launchParent, required bool night}) {
     final editor = AndroidStylesEditor(p.join(dir, 'styles.xml'));
     final launch = editor.ensureStyle('LaunchTheme', parent: launchParent);
     editor.upsertItem(
         launch, 'android:windowBackground', '@drawable/launch_background');
     _applyFullscreen(editor, launch);
+    _applySystemBars(editor, launch, night: night);
     final normal = editor.ensureStyle('NormalTheme', parent: launchParent);
     editor.upsertItem(
         normal, 'android:windowBackground', '?android:colorBackground');
@@ -681,6 +690,94 @@ class AndroidSplash {
     } else {
       editor.removeItem(launch, 'android:windowFullscreen');
       editor.removeItem(launch, 'android:windowLayoutInDisplayCutoutMode');
+    }
+  }
+
+  // --------------------------------------------------------------- system bars
+
+  /// Writes the opaque status/navigation bar colours to `colors.xml` (+ night).
+  /// `transparent` bars need no colour resource (they use `@android:color/
+  /// transparent`), so only real hex values are emitted.
+  void _writeSystemBarColors() {
+    void write(String? light, String? dark, String name) {
+      if (light != null && !_isTransparent(light)) {
+        writer.upsertColor(paths.valuesDir, name, light.toUpperCase());
+      }
+      final d = dark ?? light;
+      if (d != null && !_isTransparent(d)) {
+        writer.upsertColor(paths.valuesNightDir, name, d.toUpperCase());
+      }
+    }
+
+    write(
+        splash.statusBarColor, splash.statusBarColorDark, 'splash_status_bar');
+    write(splash.navigationBarColor, splash.navigationBarColorDark,
+        'splash_navigation_bar');
+  }
+
+  /// Applies status/navigation bar colour + icon-brightness items to a launch
+  /// theme. A no-op when neither bar is configured, so it never disturbs the
+  /// platform defaults. [night] selects the dark-mode colour/brightness.
+  void _applySystemBars(AndroidStylesEditor editor, XmlElement launch,
+      {required bool night}) {
+    final statusColor = night
+        ? (splash.statusBarColorDark ?? splash.statusBarColor)
+        : splash.statusBarColor;
+    final navColor = night
+        ? (splash.navigationBarColorDark ?? splash.navigationBarColor)
+        : splash.navigationBarColor;
+    if (statusColor == null && navColor == null) return;
+
+    // Required for statusBarColor / navigationBarColor to take effect.
+    editor.upsertItem(
+        launch, 'android:windowDrawsSystemBarBackgrounds', 'true');
+
+    if (statusColor != null) {
+      editor.upsertItem(launch, 'android:statusBarColor',
+          _barColorRef(statusColor, 'splash_status_bar'));
+      editor.upsertItem(launch, 'android:windowLightStatusBar',
+          '${_lightBar(statusColor, night, splash.statusBarIconBrightness, splash.statusBarIconBrightnessDark)}');
+    }
+    if (navColor != null) {
+      editor.upsertItem(launch, 'android:navigationBarColor',
+          _barColorRef(navColor, 'splash_navigation_bar'));
+      editor.upsertItem(launch, 'android:windowLightNavigationBar',
+          '${_lightBar(navColor, night, splash.navigationBarIconBrightness, splash.navigationBarIconBrightnessDark)}');
+    }
+  }
+
+  /// A drawable/colour reference for a bar: the framework transparent colour for
+  /// `transparent`, otherwise the `@color/<name>` resource we emitted.
+  String _barColorRef(String value, String name) =>
+      _isTransparent(value) ? '@android:color/transparent' : '@color/$name';
+
+  /// Resolves `windowLight*Bar` (true ⇒ dark icons, for a light bar). Honours an
+  /// explicit brightness override; otherwise auto-derives from the bar colour
+  /// (or, for a transparent bar, the splash background it reveals).
+  bool _lightBar(String barColor, bool night, SystemBarIconBrightness? light,
+      SystemBarIconBrightness? dark) {
+    final override = night ? (dark ?? light) : light;
+    if (override != null) return override == SystemBarIconBrightness.dark;
+    final ref = _isTransparent(barColor)
+        ? (night
+            ? (splash.backgroundDark ?? splash.background)
+            : splash.background)
+        : barColor;
+    return ref != null && _isLightColor(ref);
+  }
+
+  static bool _isTransparent(String v) =>
+      v.trim().toLowerCase() == 'transparent';
+
+  /// True when [hex] is a perceptually light colour (so the system bar should use
+  /// dark icons). Falls back to false (light icons) if it can't be parsed.
+  static bool _isLightColor(String hex) {
+    try {
+      final argb = SvgColor.parse(hex).argb;
+      final r = (argb >> 16) & 0xFF, g = (argb >> 8) & 0xFF, b = argb & 0xFF;
+      return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5;
+    } on Object {
+      return false;
     }
   }
 

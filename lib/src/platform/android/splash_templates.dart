@@ -377,6 +377,17 @@ first frame so there's no visible gap (most noticeable on Android ≤ 9 going da
   the shared manifest, so `revert` won't undo it).
 - **`image_format`** (`png` / `webp`) — encoding for the pre-31 raster splash
   logo (`png` default; `webp` is smaller, supported on API 18+).
+- **System bars during the splash** — `status_bar_color` and
+  `navigation_bar_color` (each a hex value or `transparent`, with `_dark`
+  variants) tint the status / bottom-navigation bars while the splash is up
+  (set on the launch theme for both pre-31 and API 31+). `status_bar_icon_
+  brightness` / `navigation_bar_icon_brightness` (`dark` | `light`, with `_dark`
+  variants) choose the **icon** colour — `dark` icons for a light bar, `light`
+  for a dark one; omit them and it's auto-derived from the bar/background
+  colour. These set `statusBarColor` / `navigationBarColor` /
+  `windowLightStatusBar` / `windowLightNavigationBar` on the theme, so they
+  cover the **native** splash; your Flutter app should keep driving its own bars
+  via `SystemChrome` once it's running.
 
 ## Flavors
 One config, base + per-flavor overrides under `flavors:`. Generate a flavor with

@@ -88,4 +88,56 @@ flutter_adaptive_studio:
     expect(File(manifestPath()).readAsStringSync(),
         contains('android:screenOrientation="portrait"'));
   });
+
+  test('system bars: status/nav colours, transparent, icon brightness', () {
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      background_dark: "#000000"
+      image: assets/logo.svg
+      status_bar_color: "#E4ECE8"
+      status_bar_color_dark: "#0C1413"
+      navigation_bar_color: transparent
+      navigation_bar_icon_brightness: light
+''');
+    AdaptiveStudio(
+            projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
+        .run();
+
+    final styles = File(res('values/styles.xml')).readAsStringSync();
+    // Opaque status bar → @color reference; transparent nav bar → framework colour.
+    expect(styles, contains('android:statusBarColor'));
+    expect(styles, contains('@color/splash_status_bar'));
+    expect(styles, contains('android:navigationBarColor'));
+    expect(styles, contains('@android:color/transparent'));
+    // Needed for the colours to take effect.
+    expect(styles, contains('android:windowDrawsSystemBarBackgrounds'));
+    // #E4ECE8 is light → dark icons → windowLightStatusBar=true (auto-derived).
+    expect(
+        styles,
+        contains(RegExp(
+            r'windowLightStatusBar[^>]*>\s*true|windowLightStatusBar">true')));
+    // Explicit light icons on the nav bar → windowLightNavigationBar=false.
+    expect(styles, contains('android:windowLightNavigationBar'));
+
+    // The opaque colour is emitted; the transparent bar needs no resource.
+    final colors = File(res('values/colors.xml')).readAsStringSync();
+    expect(colors, contains('splash_status_bar'));
+    expect(colors, contains('#E4ECE8'));
+    expect(colors, isNot(contains('splash_navigation_bar')));
+
+    // Dark mode: the -night colour is emitted and brightness flips for the dark
+    // status bar (#0C1413 dark → light icons → windowLightStatusBar=false).
+    expect(File(res('values-night/colors.xml')).readAsStringSync(),
+        contains('#0C1413'));
+    final nightStyles = File(res('values-night/styles.xml')).readAsStringSync();
+    expect(nightStyles, contains('android:statusBarColor'));
+
+    // The API 31+ theme carries the same system-bar items.
+    expect(File(res('values-v31/styles.xml')).readAsStringSync(),
+        contains('android:statusBarColor'));
+  });
 }
