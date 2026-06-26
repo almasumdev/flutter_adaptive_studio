@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.14.0
+
+### Splash — text branding
+
+- New `branding_text:` renders a **text** wordmark at the bottom of the splash
+  when no `branding` image is given (with `branding_text_color` / `_dark`,
+  auto-contrasting the background when unset). It's rasterised with a built-in
+  font for the native splash (pre-31 launch background + API 31+ branding slot,
+  per density + `-night`) and emitted as a crisp `Text` widget in the Flutter
+  fallback. For a brand typeface, use a `branding` SVG/PNG instead.
+
 ## 0.13.0
 
 ### Splash — system bars

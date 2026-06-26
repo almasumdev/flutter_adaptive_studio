@@ -199,6 +199,16 @@ class AndroidSplash {
           brandingAsset: brandingRef == null ? null : splash.branding,
           // Themed bottom branding, mirroring the native `-night` drawable.
           brandingDarkAsset: brandingRef == null ? null : splash.brandingDark,
+          // Text branding (used when no branding image is given): a crisp Text
+          // widget in the fallback, mirroring the native rasterised wordmark.
+          brandingText: splash.branding == null ? splash.brandingText : null,
+          brandingTextColorLight: SvgColor.parse(
+                  splash.brandingTextColor ?? _defaultBrandingTextColor(false))
+              .argb,
+          brandingTextColorDark: SvgColor.parse(splash.brandingTextColorDark ??
+                  splash.brandingTextColor ??
+                  _defaultBrandingTextColor(true))
+              .argb,
           brandingAlignment: _brandingAlignment,
           brandingBottomDp: splash.brandingBottomPadding,
           backgroundImageAsset:
@@ -423,20 +433,99 @@ class AndroidSplash {
   }
 
   /// Emits the bottom branding drawable (+ dark) and returns its base name, or
-  /// null when no branding source is configured/usable.
+  /// null when no branding source is configured/usable. An `branding:` image
+  /// wins; otherwise `branding_text:` is rendered to a wordmark.
   String? _resolveBranding(GenerationReport report) {
     final src = splash.branding;
-    if (src == null) return null;
-    if (!_emitDrawable(src, _branding, report,
-        role: 'splash branding', square: false)) {
-      return null;
+    if (src != null) {
+      if (!_emitDrawable(src, _branding, report,
+          role: 'splash branding', square: false)) {
+        return null;
+      }
+      if (splash.brandingDark != null) {
+        _emitDrawable(splash.brandingDark!, _branding, report,
+            role: 'splash branding (dark)', square: false, night: true);
+      }
+      logger.step('branding → drawable/$_branding');
+      return _branding;
     }
-    if (splash.brandingDark != null) {
-      _emitDrawable(splash.brandingDark!, _branding, report,
-          role: 'splash branding (dark)', square: false, night: true);
+
+    final text = splash.brandingText;
+    if (text == null) return null;
+    final lightArgb = SvgColor.parse(
+            splash.brandingTextColor ?? _defaultBrandingTextColor(false))
+        .argb;
+    if (!_emitBrandingText(text, lightArgb, report, night: false)) return null;
+    // A dark wordmark is emitted when a dark text colour or dark background is
+    // configured (so the `-night` resource contrasts the dark splash).
+    if (splash.brandingTextColorDark != null || splash.backgroundDark != null) {
+      final darkArgb = SvgColor.parse(
+              splash.brandingTextColorDark ?? _defaultBrandingTextColor(true))
+          .argb;
+      _emitBrandingText(text, darkArgb, report, night: true);
     }
-    logger.step('branding → drawable/$_branding');
+    logger.step('branding text "$text" → drawable-*/$_branding');
     return _branding;
+  }
+
+  /// Default branding-text colour: dark text on a light background, light text
+  /// on a dark one.
+  String _defaultBrandingTextColor(bool night) {
+    final bg = (night ? splash.backgroundDark : splash.background) ??
+        splash.background ??
+        (night ? '#000000' : '#FFFFFF');
+    return _isLightColor(bg) ? '#000000' : '#FFFFFF';
+  }
+
+  /// Renders [text] as a bottom wordmark, letterboxed into the 200×80dp branding
+  /// slot at each density (so the API 31+ system can't distort it and the pre-31
+  /// layer shows a consistent dp size), written to `drawable[-night]-<density>/`.
+  bool _emitBrandingText(String text, int colorArgb, GenerationReport report,
+      {required bool night}) {
+    final tight = _renderTextTight(text, colorArgb);
+    if (tight == null) {
+      logger.warn('branding text: could not render "$text"');
+      return false;
+    }
+    const slotW = 200, slotH = 80, margin = 0.9;
+    final fmt = splash.imageFormat;
+    var any = false;
+    _legacyDensities.forEach((density, mult) {
+      final canvasW = (slotW * mult).round();
+      final canvasH = (slotH * mult).round();
+      final scale = math.min(
+          canvasW * margin / tight.width, canvasH * margin / tight.height);
+      final w = (tight.width * scale).round().clamp(1, canvasW);
+      final h = (tight.height * scale).round().clamp(1, canvasH);
+      final scaled = ImageRasterizer.resizeSmart(tight, w, h);
+      final canvas = img.Image(width: canvasW, height: canvasH, numChannels: 4);
+      img.compositeImage(canvas, scaled,
+          dstX: ((canvasW - w) / 2).round(), dstY: ((canvasH - h) / 2).round());
+      final dir = _legacyDensityDir(density, night);
+      File(p.join(dir, '$_branding${fmt.extension}'))
+        ..parent.createSync(recursive: true)
+        ..writeAsBytesSync(ImageRasterizer.encode(canvas, fmt));
+      report.written.add('${night ? 'drawable-night' : 'drawable'}'
+          '-$density/$_branding${fmt.extension}');
+      any = true;
+    });
+    return any;
+  }
+
+  /// Draws [text] with the bundled font and trims to the glyph bounds, so the
+  /// caller can scale the tight wordmark into the branding slot.
+  img.Image? _renderTextTight(String text, int colorArgb) {
+    final canvas =
+        img.Image(width: text.length * 60 + 80, height: 96, numChannels: 4);
+    img.drawString(canvas, text,
+        font: img.arial48,
+        x: 8,
+        y: 8,
+        color: img.ColorRgba8((colorArgb >> 16) & 0xFF, (colorArgb >> 8) & 0xFF,
+            colorArgb & 0xFF, 0xFF));
+    final t = img.findTrim(canvas, mode: img.TrimMode.transparent);
+    if (t[2] <= 0 || t[3] <= 0) return null;
+    return img.copyCrop(canvas, x: t[0], y: t[1], width: t[2], height: t[3]);
   }
 
   /// Emits a drawable [base] from [source]: SVG → VectorDrawable, raster → a

@@ -102,6 +102,9 @@ flutter_adaptive_studio:
     #   navigation_bar_icon_brightness_dark: light
     #   branding: assets/wordmark.svg             # bottom branding (SVG/raster, 200×80dp slot)
     #   branding_dark: assets/wordmark_dark.svg   # dark-mode branding variant
+    #   branding_text: "My App"                   # text wordmark when no branding image is given
+    #   branding_text_color: "#1F5560"            # branding text colour (auto-contrasts the bg if unset)
+    #   branding_text_color_dark: "#E6F2F4"
     #   branding_mode: bottom                     # bottom | bottom_left | bottom_right (pre-31 + fallback)
     #   branding_bottom_padding: 48               # branding distance from bottom edge, dp
     #   # --- animated centre icon, instead of the static `image` above ---

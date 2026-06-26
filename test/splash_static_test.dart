@@ -330,6 +330,46 @@ flutter_adaptive_studio:
     }
   });
 
+  test('text branding renders a wordmark when no branding image is given', () {
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      background_dark: "#0E1A1C"
+      image: assets/logo.svg
+      branding_text: "ListKin"
+      branding_text_color: "#1F5560"
+''');
+
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+
+    // Native: a rasterised wordmark per density (+ night, since background_dark).
+    for (final d in ['mdpi', 'xxhdpi', 'xxxhdpi']) {
+      expect(File(res('drawable-$d/splash_branding.png')).existsSync(), isTrue,
+          reason: 'missing text branding for $d');
+    }
+    expect(File(res('drawable-night-xxhdpi/splash_branding.png')).existsSync(),
+        isTrue);
+
+    // Pre-31 launch background + v31 theme reference the branding.
+    expect(File(res('drawable/launch_background.xml')).readAsStringSync(),
+        contains('@drawable/splash_branding'));
+    expect(File(res('values-v31/styles.xml')).readAsStringSync(),
+        contains('windowSplashScreenBrandingImage'));
+
+    // Flutter fallback renders a crisp Text widget with the configured colour.
+    final glue = File(p.join(project.path, 'flutter_adaptive_studio', 'splash',
+            'fas_splash.dart'))
+        .readAsStringSync();
+    expect(glue, contains("Text('ListKin'"));
+    expect(glue, contains('0xFF1F5560'));
+  });
+
   test('animated-only splash falls back to the app logo for the pre-31 launch',
       () {
     const avd =

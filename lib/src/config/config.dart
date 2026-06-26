@@ -275,6 +275,9 @@ class AndroidSplashConfig {
     this.iconBackgroundDark,
     this.branding,
     this.brandingDark,
+    this.brandingText,
+    this.brandingTextColor,
+    this.brandingTextColorDark,
     this.brandingMode = BrandingMode.bottom,
     this.brandingBottomPadding = 48,
     this.gravity = 'center',
@@ -322,6 +325,16 @@ class AndroidSplashConfig {
   /// the icon. Light variant; [brandingDark] supplies the `-night` version.
   final String? branding;
   final String? brandingDark;
+
+  /// Text branding shown when no [branding] image is given — rendered to a
+  /// bottom wordmark (rasterised with a built-in font for the native splash, a
+  /// crisp `Text` widget in the Flutter fallback). Ignored if [branding] is set.
+  final String? brandingText;
+
+  /// Colour for [brandingText]. Defaults to a contrasting tone derived from the
+  /// background (dark text on a light background, light text on a dark one).
+  final String? brandingTextColor;
+  final String? brandingTextColorDark;
 
   /// Branding placement on the pre-31 splash + Flutter fallback (the API 31+
   /// system splash always bottom-centres it).

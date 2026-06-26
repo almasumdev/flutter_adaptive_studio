@@ -54,6 +54,9 @@ String splashFallbackDart({
   String? logoAsset,
   String? brandingAsset,
   String? brandingDarkAsset,
+  String? brandingText,
+  int brandingTextColorLight = 0xFF000000,
+  int brandingTextColorDark = 0xFFFFFFFF,
   String brandingAlignment = 'Alignment.bottomCenter',
   int brandingBottomDp = 48,
   String? backgroundImageAsset,
@@ -104,15 +107,22 @@ String splashFallbackDart({
           // Full-bleed background image — mirrors the pre-31 windowBackground.
           Positioned.fill(child: $bgImageWidget),''';
 
-  // Theme-aware branding widget: dark variant on a dark app theme when given.
-  final brandingWidget = brandingAsset == null
-      ? ''
-      : hasDarkBrand
+  // Theme-aware branding widget: an image when given, else a text wordmark
+  // (mirroring the native rasterised text branding), else nothing.
+  final hasTextBrand = brandingAsset == null && brandingText != null;
+  final brandingWidget = brandingAsset != null
+      ? (hasDarkBrand
           ? 'dark ? ${_assetWidget(brandingDarkAsset, 'height: 40')} '
               ': ${_assetWidget(brandingAsset, 'height: 40')}'
-          : _assetWidget(brandingAsset, 'height: 40');
+          : _assetWidget(brandingAsset, 'height: 40'))
+      : hasTextBrand
+          ? "Text('${brandingText.replaceAll(r'$', r'\$').replaceAll("'", r"\'")}', "
+              'style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, '
+              'color: dark ? const Color(${_hex8(brandingTextColorDark)}) '
+              ': const Color(${_hex8(brandingTextColorLight)})))'
+          : '';
 
-  final brandingBlock = brandingAsset == null
+  final brandingBlock = (brandingAsset == null && !hasTextBrand)
       ? ''
       : '''
           // Bottom branding — mirrors windowSplashScreenBrandingImage.
@@ -369,6 +379,11 @@ first frame so there's no visible gap (most noticeable on Android ≤ 9 going da
 - **`background_image`** (+ `_dark`) — full-bleed background behind the logo on
   the pre-31 splash + Flutter fallback. The Android 12+ system splash takes a
   colour only, so it uses `background` there.
+- **`branding_text`** (+ `branding_text_color` / `_dark`) — a **text** wordmark
+  shown when no `branding` image is given. Rendered with a built-in font for the
+  native splash (a crisp `Text` widget in the Flutter fallback). The colour
+  auto-contrasts the background when unset. For a brand typeface, use a
+  `branding` SVG/PNG instead — the built-in font is generic.
 - **`branding_mode`** (`bottom` / `bottom_left` / `bottom_right`) +
   **`branding_bottom_padding`** — branding placement (pre-31 + fallback; the
   system splash always bottom-centres).
