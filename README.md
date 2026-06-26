@@ -42,8 +42,34 @@ built-in rasterizer. **No system tools, no FFI, no setup.**
 ## Install
 
 ```sh
-dart pub add dev:flutter_adaptive_studio
+dart pub add flutter_adaptive_studio
 ```
+
+Add it to `dependencies` if you use the runtime `FasNativeSplash` (below);
+`dart pub add dev:flutter_adaptive_studio` is enough if you only run the
+generator CLI.
+
+## Keep the native splash up during startup
+
+Ship `FasNativeSplash` — the `flutter_native_splash`-style `preserve`/`remove`,
+so the native splash stays on screen until your app is ready (no white flash
+before your first frame). Pure Flutter framework; works on every platform.
+
+```dart
+import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
+
+void main() {
+  final binding = WidgetsFlutterBinding.ensureInitialized();
+  FasNativeSplash.preserve(widgetsBinding: binding);
+  runApp(const MyApp());
+}
+
+// ...once your first screen is ready to be shown:
+FasNativeSplash.remove();
+```
+
+Migrating from `flutter_native_splash`? The signatures match — swap the import
+and the class name.
 
 ## Quick start
 

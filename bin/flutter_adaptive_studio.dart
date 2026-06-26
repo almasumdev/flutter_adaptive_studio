@@ -9,7 +9,7 @@ library;
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
+import 'package:flutter_adaptive_studio/generator.dart';
 import 'package:path/path.dart' as p;
 
 const _commands = {'init', 'generate', 'doctor', 'preview', 'revert'};

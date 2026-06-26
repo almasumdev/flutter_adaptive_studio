@@ -1,4 +1,4 @@
-import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
+import 'package:flutter_adaptive_studio/generator.dart';
 import 'package:flutter_adaptive_studio/src/graphic/bounds.dart';
 import 'package:flutter_adaptive_studio/src/graphic/svg_color.dart';
 import 'package:test/test.dart';

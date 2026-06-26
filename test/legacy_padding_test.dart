@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
+import 'package:flutter_adaptive_studio/generator.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';

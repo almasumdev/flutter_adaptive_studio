@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
+import 'package:flutter_adaptive_studio/generator.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -113,28 +113,39 @@ flutter_adaptive_studio:
     expect(glue, isNot(contains('wordmark_dark')));
   });
 
-  test('native-splash keeper: FasNativeSplash.preserve/remove, zero deps', () {
+  test('FasNativeSplash ships in the package, not generated as a drop-in', () {
     AdaptiveStudio(
       projectRoot: project.path,
       logger: Logger(level: LogLevel.quiet),
     ).run();
 
+    // The keeper now ships as `package:flutter_adaptive_studio/...` — generating
+    // it too would collide with the imported class, so it must NOT be written.
     final keeper = File(p.join(project.path, 'flutter_adaptive_studio',
         'splash', 'fas_native_splash.dart'));
-    expect(keeper.existsSync(), isTrue);
-    final src = keeper.readAsStringSync();
+    expect(keeper.existsSync(), isFalse);
 
-    // The preserve/remove API (matching flutter_native_splash for migration)…
+    // The guide points users at the package import instead.
+    final guide = File(p.join(
+            project.path, 'flutter_adaptive_studio', 'splash', 'SPLASH.md'))
+        .readAsStringSync();
+    expect(
+        guide,
+        contains(
+            "import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart'"));
+    expect(guide, contains('FasNativeSplash.preserve'));
+  });
+
+  test('the runtime library exposes the FasNativeSplash API', () {
+    // Source-level guard on the shipped runtime class (it imports flutter, so it
+    // can't be exercised under `dart test`; this asserts its public shape).
+    final src = File('lib/src/runtime/native_splash.dart').readAsStringSync();
     expect(src, contains('class FasNativeSplash'));
     expect(src, contains('static void preserve({required WidgetsBinding'));
     expect(src, contains('static void remove()'));
-    // …implemented purely with the framework's first-frame deferral.
     expect(src, contains('deferFirstFrame'));
     expect(src, contains('allowFirstFrame'));
-    // Zero extra dependencies: only flutter/widgets, no plugin/native imports.
     expect(src, contains("import 'package:flutter/widgets.dart'"));
-    expect(src, isNot(contains('device_info_plus')));
-    expect(src, isNot(contains('MethodChannel')));
   });
 
   test('themed branding: FasSplash swaps wordmark by app brightness', () {

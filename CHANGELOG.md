@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.8.0
+
+### Splash
+
+- **`FasNativeSplash` now ships in the package** as a runtime API — import it and
+  call `FasNativeSplash.preserve(widgetsBinding: …)` / `remove()` exactly like
+  `flutter_native_splash`, instead of copying a generated file:
+
+  ```dart
+  import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
+  ```
+
+  The CLI no longer emits `fas_native_splash.dart` (it would collide with the
+  imported class).
+
+### Packaging (breaking)
+
+- The package now depends on the Flutter SDK so it can expose the runtime API.
+  Add it to `dependencies` (not `dev_dependencies`) if you use `FasNativeSplash`.
+- The main library `package:flutter_adaptive_studio/flutter_adaptive_studio.dart`
+  now exposes the **runtime** API (`FasNativeSplash`). The programmatic
+  **generator** API moved to `package:flutter_adaptive_studio/generator.dart`.
+
 ## 0.7.0
 
 ### Splash
