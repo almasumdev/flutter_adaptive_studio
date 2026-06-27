@@ -4,6 +4,8 @@
 /// `dart:io` so it works on every Flutter target.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 /// Keeps the **native** splash on screen while your app finishes starting up —
@@ -26,22 +28,55 @@ import 'package:flutter/widgets.dart';
 /// ```
 ///
 /// Migrating from `flutter_native_splash`? The `preserve`/`remove` signatures
-/// match, so it's a drop-in swap.
+/// match (the extra params are optional), so it's a drop-in swap — with two
+/// robustness guards that package lacks: an optional [maxDuration] failsafe and
+/// double-`preserve` protection (see below).
 class FasNativeSplash {
   FasNativeSplash._();
 
   static WidgetsBinding? _binding;
+  static Timer? _failsafe;
+
+  /// Whether the first frame is currently being held back (between [preserve]
+  /// and [remove]). Handy in tests or to avoid a double-call.
+  static bool get isPreserved => _binding != null;
 
   /// Call right after `WidgetsFlutterBinding.ensureInitialized()` in `main()`,
   /// BEFORE `runApp()`. Holds back Flutter's first frame so the native splash
   /// stays visible during your startup work (async init, first build, etc.).
-  static void preserve({required WidgetsBinding widgetsBinding}) {
+  ///
+  /// [maxDuration] is an optional **failsafe**: if [remove] hasn't been called
+  /// within it, the splash is released automatically. This is the safety net
+  /// flutter_native_splash doesn't have — without it, a forgotten `remove()` or
+  /// an exception thrown during startup strands the app on the splash *forever*
+  /// (the frozen/white screen). Leave it null to match the classic behaviour;
+  /// set e.g. `const Duration(seconds: 10)` for a guaranteed escape hatch.
+  ///
+  /// Calling [preserve] while already preserving is a no-op (it won't
+  /// double-defer the first frame, which would otherwise need two [remove]s).
+  static void preserve({
+    required WidgetsBinding widgetsBinding,
+    Duration? maxDuration,
+  }) {
+    if (_binding != null) return; // already holding the frame — don't re-defer.
     _binding = widgetsBinding..deferFirstFrame();
+    if (maxDuration != null) {
+      _failsafe = Timer(maxDuration, () {
+        if (_binding != null) {
+          debugPrint('FasNativeSplash: maxDuration ($maxDuration) elapsed '
+              'before remove() — releasing the splash as a failsafe.');
+          remove();
+        }
+      });
+    }
   }
 
   /// Lets Flutter paint its first frame, replacing the native splash with your
-  /// UI. Call once your app is ready. Safe to call more than once.
+  /// UI. Call once your app is ready. Idempotent — safe to call more than once,
+  /// and a no-op if [preserve] was never called.
   static void remove() {
+    _failsafe?.cancel();
+    _failsafe = null;
     _binding?.allowFirstFrame();
     _binding = null;
   }

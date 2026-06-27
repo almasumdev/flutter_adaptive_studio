@@ -42,8 +42,11 @@ flutter_adaptive_studio:
             projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
         .run();
 
-    // A fill drawable is emitted and layered into the pre-31 splash.
-    expect(File(res('drawable/splash_bg.xml')).existsSync(), isTrue);
+    // The SVG background is RASTERISED (not a vector) for the pre-31 layer — a
+    // VectorDrawable can't paint in windowBackground on API 21–23. It lands as a
+    // nodpi bitmap, and the pre-31 splash layers it in.
+    expect(File(res('drawable-nodpi/splash_bg.png')).existsSync(), isTrue);
+    expect(File(res('drawable/splash_bg.xml')).existsSync(), isFalse);
     final launch =
         File(res('drawable/launch_background.xml')).readAsStringSync();
     expect(launch, contains('@drawable/splash_bg'));

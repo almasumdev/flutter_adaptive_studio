@@ -62,6 +62,12 @@ class AndroidSplash {
   /// density bitmaps can't shadow the crisp vector on API 31+.
   static const _legacyName = 'splash_icon_legacy';
   static const _branding = 'splash_branding';
+
+  /// Pre-31 branding raster, kept distinct from the v31 vector [_branding] (same
+  /// reason as [_legacyName]): a VectorDrawable can't paint in `windowBackground`
+  /// on API 21–23, so an SVG branding gets a per-density raster sibling for the
+  /// launch layer-list while the crisp vector stays in the API 31+ slot.
+  static const _legacyBranding = 'splash_branding_legacy';
   static const _bgImage = 'splash_bg';
   static const _rasterExts = {'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif'};
 
@@ -115,20 +121,24 @@ class AndroidSplash {
     final icon = _resolveIcon(report);
 
     // ---- Bottom branding image ----
-    final brandingRef = _resolveBranding(report);
+    // Two refs: the crisp vector (slotRef) for the API 31+ branding slot, and a
+    // raster (layerRef) for the pre-31 windowBackground (where a vector can't
+    // paint on API 21–23). They're the same name unless the source is an SVG.
+    final branding = _resolveBranding(report);
 
     // ---- API 31+ SplashScreen theme ----
     _writeV31Styles(paths.valuesV31Dir,
         launchParent: '@android:style/Theme.Light.NoTitleBar',
         icon: icon,
-        brandingRef: brandingRef,
+        brandingRef: branding.slotRef,
         night: false);
     _writeV31Styles(paths.valuesNightV31Dir,
         launchParent: '@android:style/Theme.Black.NoTitleBar',
         icon: icon,
-        brandingRef: brandingRef,
+        brandingRef: branding.slotRef,
         night: true);
-    if (splash.brandingMode != BrandingMode.bottom && brandingRef != null) {
+    if (splash.brandingMode != BrandingMode.bottom &&
+        branding.slotRef != null) {
       logger.warn('branding_mode only affects the pre-31 splash + Flutter '
           'fallback; the Android 12+ system splash always bottom-centres it.');
     }
@@ -156,14 +166,14 @@ class AndroidSplash {
     // automatically, so one theme-agnostic XML covers light and dark.
     final launchFiles = _writeLaunchBackgrounds(
         iconRef: icon.layerRef,
-        brandingRef: brandingRef,
+        brandingRef: branding.layerRef,
         bgImageRef: bgImageRef);
     report.written.add('values/styles.xml (LaunchTheme)');
     report.written.addAll(launchFiles);
     logger.step('pre-31 classic splash written (drawable/ + drawable-v21/)');
 
     // ---- Flutter fallback drop-in (for Android < 12 / app-theme splash) ----
-    _writeFallbackGlue(brandingRef, bgImageRef, report);
+    _writeFallbackGlue(branding.slotRef, bgImageRef, report);
 
     // ---- Optional: lock orientation on the launcher activity (main manifest) ----
     if (splash.screenOrientation != null) {
@@ -414,15 +424,36 @@ class AndroidSplash {
   /// Emits the full-bleed background image (+ dark) and returns its base name,
   /// or null when none is configured/usable. Stretched to fill the window on the
   /// pre-31 splash; the API 31+ splash takes a colour only (see generate()).
+  ///
+  /// Because the background image is used ONLY on the pre-31 windowBackground
+  /// (where a VectorDrawable can't paint on API 21–23), an SVG source is
+  /// rasterised to a `drawable[-night]-nodpi` bitmap — a raster always inflates,
+  /// so it can never break the launch background on old devices.
   String? _resolveBackgroundImage(GenerationReport report) {
     final src = splash.backgroundImage;
     if (src == null) return null;
+    final dark = splash.backgroundImageDark;
+    if (_isSvg(src)) {
+      if (!_rasterizeFillImage(src, report, night: false)) return null;
+      if (dark != null) {
+        _isSvg(dark)
+            ? _rasterizeFillImage(dark, report, night: true)
+            : _emitDrawable(dark, _bgImage, report,
+                role: 'splash background image (dark)',
+                square: false,
+                fill: true,
+                night: true);
+      }
+      logger.step('background image (raster, ${splash.imageFormat.name}) → '
+          'drawable-nodpi/$_bgImage${splash.imageFormat.extension}');
+      return _bgImage;
+    }
     if (!_emitDrawable(src, _bgImage, report,
         role: 'splash background image', square: false, fill: true)) {
       return null;
     }
-    if (splash.backgroundImageDark != null) {
-      _emitDrawable(splash.backgroundImageDark!, _bgImage, report,
+    if (dark != null) {
+      _emitDrawable(dark, _bgImage, report,
           role: 'splash background image (dark)',
           square: false,
           fill: true,
@@ -432,30 +463,100 @@ class AndroidSplash {
     return _bgImage;
   }
 
-  /// Emits the bottom branding drawable (+ dark) and returns its base name, or
-  /// null when no branding source is configured/usable. An `branding:` image
-  /// wins; otherwise `branding_text:` is rendered to a wordmark.
-  String? _resolveBranding(GenerationReport report) {
+  /// Rasterises an SVG fill background to a single `drawable[-night]-nodpi`
+  /// bitmap (the layer-list stretches it to the window), so it inflates on API
+  /// 21–23. Rendered at the viewBox aspect (longest side 1024) and cropped to it,
+  /// so the no-gravity stretch fills full-bleed instead of letterboxing.
+  bool _rasterizeFillImage(String source, GenerationReport report,
+      {required bool night}) {
+    final abs = loader.resolveAsset(source);
+    if (!File(abs).existsSync()) {
+      logger.warn('splash background image not found: $abs');
+      report.skipped.add('splash background image (file not found)');
+      return false;
+    }
+    final SvgDocument doc;
+    try {
+      doc = SvgDocument.parse(File(abs).readAsStringSync());
+    } on Exception catch (e) {
+      logger.error('splash background image parse error: $e');
+      report.warnings.add('splash background image parse error: $e');
+      return false;
+    }
+    // Render the whole viewBox into a square (it letterboxes), then crop to the
+    // viewBox's own rectangle so the bitmap carries the source aspect.
+    const sq = 1024;
+    final vw = doc.viewportWidth <= 0 ? 1.0 : doc.viewportWidth;
+    final vh = doc.viewportHeight <= 0 ? 1.0 : doc.viewportHeight;
+    final s = sq / math.max(vw, vh);
+    final w = (vw * s).round().clamp(1, sq);
+    final h = (vh * s).round().clamp(1, sq);
+    final square = const SvgRasterizer().rasterize(doc, sq);
+    final image = (w == sq && h == sq)
+        ? square
+        : img.copyCrop(square,
+            x: ((sq - w) / 2).round(),
+            y: ((sq - h) / 2).round(),
+            width: w,
+            height: h);
+    final fmt = splash.imageFormat;
+    final dir =
+        p.join(paths.resDir, night ? 'drawable-night-nodpi' : 'drawable-nodpi');
+    File(p.join(dir, '$_bgImage${fmt.extension}'))
+      ..parent.createSync(recursive: true)
+      ..writeAsBytesSync(ImageRasterizer.encode(image, fmt));
+    report.written.add('${night ? 'drawable-night-nodpi' : 'drawable-nodpi'}'
+        '/$_bgImage${fmt.extension}');
+    // A stale vector or other-format sibling could otherwise shadow this raster.
+    for (final stale in [
+      File(p.join(
+          night ? paths.drawableNightDir : paths.drawableDir, '$_bgImage.xml')),
+      File(p.join(
+          dir, '$_bgImage${fmt.extension == '.png' ? '.webp' : '.png'}')),
+    ]) {
+      if (stale.existsSync()) {
+        stale.deleteSync();
+        report.removed.add('${p.basename(stale.path)} (stale)');
+      }
+    }
+    report.warnings.addAll(doc.warnings);
+    return true;
+  }
+
+  /// Emits the bottom branding drawables and returns a [_BrandingPlan] of how to
+  /// wire them: `slotRef` feeds the API 31+ branding slot (a crisp vector for an
+  /// SVG source), `layerRef` feeds the pre-31 windowBackground (always a raster,
+  /// since a vector can't paint there on API 21–23). A `branding:` image wins;
+  /// otherwise `branding_text:` is rendered to a wordmark. An empty plan
+  /// (`slotRef == null`) means no branding was configured/usable.
+  _BrandingPlan _resolveBranding(GenerationReport report) {
     final src = splash.branding;
     if (src != null) {
       if (!_emitDrawable(src, _branding, report,
           role: 'splash branding', square: false)) {
-        return null;
+        return const _BrandingPlan(slotRef: null, layerRef: null);
       }
       if (splash.brandingDark != null) {
         _emitDrawable(splash.brandingDark!, _branding, report,
             role: 'splash branding (dark)', square: false, night: true);
       }
       logger.step('branding → drawable/$_branding');
-      return _branding;
+      // A raster branding is already a bitmap (legacy-safe); only an SVG needs a
+      // rasterised sibling for the pre-31 launch layer-list.
+      final layerRef = _isSvg(src)
+          ? _emitLegacyBranding(src, splash.brandingDark, report)
+          : _branding;
+      return _BrandingPlan(slotRef: _branding, layerRef: layerRef);
     }
 
     final text = splash.brandingText;
-    if (text == null) return null;
+    if (text == null) return const _BrandingPlan(slotRef: null, layerRef: null);
     final lightArgb = SvgColor.parse(
             splash.brandingTextColor ?? _defaultBrandingTextColor(false))
         .argb;
-    if (!_emitBrandingText(text, lightArgb, report, night: false)) return null;
+    if (!_emitBrandingText(text, lightArgb, report, night: false)) {
+      return const _BrandingPlan(slotRef: null, layerRef: null);
+    }
     // A dark wordmark is emitted when a dark text colour or dark background is
     // configured (so the `-night` resource contrasts the dark splash).
     if (splash.brandingTextColorDark != null || splash.backgroundDark != null) {
@@ -465,8 +566,99 @@ class AndroidSplash {
       _emitBrandingText(text, darkArgb, report, night: true);
     }
     logger.step('branding text "$text" → drawable-*/$_branding');
-    return _branding;
+    // Text branding is already a per-density raster → the same name is
+    // legacy-safe for the pre-31 launch layer.
+    return const _BrandingPlan(slotRef: _branding, layerRef: _branding);
   }
+
+  /// Rasterises an SVG [src] branding into per-density `splash_branding_legacy`
+  /// bitmaps (+ `-night` from [darkSrc]) for the pre-31 windowBackground, and
+  /// returns its base name. Falls back to the vector [_branding] ref if the SVG
+  /// can't be rasterised (still works on API 24+).
+  String? _emitLegacyBranding(
+      String src, String? darkSrc, GenerationReport report) {
+    if (!_rasterizeLegacyBranding(src, report, night: false)) return _branding;
+    if (darkSrc != null && _isSvg(darkSrc)) {
+      _rasterizeLegacyBranding(darkSrc, report, night: true);
+    }
+    logger.step('pre-31 branding (raster, ${splash.imageFormat.name}) → '
+        'drawable-*/$_legacyBranding${splash.imageFormat.extension}');
+    return _legacyBranding;
+  }
+
+  /// Renders an SVG branding [source] into the 200×80dp branding slot at each
+  /// density (aspect-preserved + centred, like [_brandingVd]), written to
+  /// `drawable[-night]-<density>/`. Returns true if any density was written.
+  bool _rasterizeLegacyBranding(String source, GenerationReport report,
+      {required bool night}) {
+    final abs = loader.resolveAsset(source);
+    if (!File(abs).existsSync()) return false;
+    final SvgDocument doc;
+    try {
+      doc = SvgDocument.parse(File(abs).readAsStringSync());
+    } on Exception catch (e) {
+      logger.warn('pre-31 branding parse error: $e');
+      report.warnings.add('pre-31 branding parse error: $e');
+      return false;
+    }
+    const slotW = 200, slotH = 80, margin = 0.9;
+    final fmt = splash.imageFormat;
+    var any = false;
+    _legacyDensities.forEach((density, mult) {
+      final canvasW = (slotW * mult).round();
+      final canvasH = (slotH * mult).round();
+      // Render the art tightly to a square, trim, then letterbox into the slot —
+      // so its aspect matches the slot and the layer can't distort it.
+      final rendered = const SvgRasterizer()
+          .rasterize(doc, math.max(canvasW, canvasH), fitFraction: 0.95);
+      final tight = _trimTransparent(rendered);
+      final scale = math.min(
+          canvasW * margin / tight.width, canvasH * margin / tight.height);
+      final w = (tight.width * scale).round().clamp(1, canvasW);
+      final h = (tight.height * scale).round().clamp(1, canvasH);
+      final scaled = ImageRasterizer.resizeSmart(tight, w, h);
+      final canvas = img.Image(width: canvasW, height: canvasH, numChannels: 4);
+      img.compositeImage(canvas, scaled,
+          dstX: ((canvasW - w) / 2).round(), dstY: ((canvasH - h) / 2).round());
+      final dir = _legacyDensityDir(density, night);
+      File(p.join(dir, '$_legacyBranding${fmt.extension}'))
+        ..parent.createSync(recursive: true)
+        ..writeAsBytesSync(ImageRasterizer.encode(canvas, fmt));
+      report.written.add('${night ? 'drawable-night' : 'drawable'}'
+          '-$density/$_legacyBranding${fmt.extension}');
+      _removeStaleLegacyBrandingSibling(density, fmt.extension, night, report);
+      any = true;
+    });
+    if (any) report.warnings.addAll(doc.warnings);
+    return any;
+  }
+
+  /// Drops a same-name legacy branding raster left in the other format by a
+  /// previous run, so a stale PNG can't shadow a fresh WebP (or vice-versa).
+  void _removeStaleLegacyBrandingSibling(
+      String density, String keepExt, bool night, GenerationReport report) {
+    for (final e in const ['.png', '.webp']) {
+      if (e == keepExt) continue;
+      final f =
+          File(p.join(_legacyDensityDir(density, night), '$_legacyBranding$e'));
+      if (f.existsSync()) {
+        f.deleteSync();
+        report.removed.add('${night ? 'drawable-night' : 'drawable'}'
+            '-$density/$_legacyBranding$e (stale)');
+      }
+    }
+  }
+
+  /// Trims fully-transparent margins so the art can be scaled into the slot.
+  static img.Image _trimTransparent(img.Image src) {
+    final t = img.findTrim(src, mode: img.TrimMode.transparent);
+    if (t[2] <= 0 || t[3] <= 0) return src;
+    return img.copyCrop(src, x: t[0], y: t[1], width: t[2], height: t[3]);
+  }
+
+  /// True when [source] resolves to an `.svg` asset.
+  bool _isSvg(String source) =>
+      p.extension(loader.resolveAsset(source)).toLowerCase() == '.svg';
 
   /// Default branding-text colour: dark text on a light background, light text
   /// on a dark one.
@@ -933,8 +1125,8 @@ class AndroidSplash {
         b.element('item', nest: () {
           b.attribute('drawable', '@drawable/$iconRef', namespaceUri: _ns);
           b.attribute('gravity', splash.gravity, namespaceUri: _ns);
-          b.attribute('width', '192dp', namespaceUri: _ns);
-          b.attribute('height', '192dp', namespaceUri: _ns);
+          b.attribute('width', '${_legacyBoxDp}dp', namespaceUri: _ns);
+          b.attribute('height', '${_legacyBoxDp}dp', namespaceUri: _ns);
         });
       }
       if (brandingRef != null) {
@@ -964,4 +1156,19 @@ class _IconPlan {
 
   /// True when [slotRef] is a real AnimatedVectorDrawable (sets duration).
   final bool animated;
+}
+
+/// How resolved branding drawables should be wired into the splash. [slotRef]
+/// (a crisp vector for an SVG source) feeds the API 31+ branding slot; [layerRef]
+/// (always a raster) feeds the pre-31 windowBackground, where a vector can't
+/// paint on API 21–23. They share a name unless the source is an SVG. Both null
+/// means no branding.
+class _BrandingPlan {
+  const _BrandingPlan({required this.slotRef, required this.layerRef});
+
+  /// Drawable base name for `windowSplashScreenBrandingImage` (no `@`), or null.
+  final String? slotRef;
+
+  /// Drawable base name for the pre-31 layer-list branding item, or null.
+  final String? layerRef;
 }

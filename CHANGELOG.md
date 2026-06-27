@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.16.0
+
+### Pre-31 launch background — bulletproof on API 21–23
+
+- **SVG `branding:` now renders on the pre-31 launch screen on every API level.**
+  Previously an SVG branding was emitted as a VectorDrawable and referenced from
+  `windowBackground` — which can't inflate a vector on **API 21–23** (Android
+  5–6), so the branding silently failed to paint there (and risked dropping the
+  whole launch background). It's now rasterised to a per-density
+  `drawable-*/splash_branding_legacy` bitmap for the pre-31 layer, while the
+  crisp **vector** is kept for the Android 12+ branding slot. (Text and raster
+  branding were already bitmaps — unchanged.)
+- **SVG `background_image:` is rasterised too** (to `drawable-nodpi/splash_bg`),
+  for the same reason — it's only used on the pre-31 layer, where a vector can't
+  paint on API 21–23. So **every layer** of the pre-31 launch background is now a
+  bitmap: nothing in it can fail to inflate on old devices.
+- `image_format: png | webp` controls the encoding of these new rasters as well,
+  and `revert` cleans them up (along with text-branding density rasters, which it
+  previously missed).
+
+### `FasNativeSplash` — failsafe + double-preserve guard
+
+- `preserve(...)` gains an optional **`maxDuration`** failsafe: if `remove()`
+  isn't called within it, the splash auto-releases — so a forgotten `remove()`
+  or an exception during startup can no longer strand the app on a frozen splash
+  forever (the classic native-splash white-screen trap). It's opt-in; leaving it
+  null keeps the original behaviour. `flutter_native_splash` has no such guard.
+- `preserve(...)` called twice is now a **no-op** instead of double-deferring the
+  first frame (which would have needed two `remove()`s to clear). Added an
+  `isPreserved` getter. The `preserve`/`remove` signatures still match
+  `flutter_native_splash`, so it stays a drop-in swap.
+
 ## 0.15.0
 
 ### New `sync` command

@@ -90,17 +90,22 @@ class Reverter {
     for (final dir in ['drawable-night', 'drawable-night-v21']) {
       rm(p.join(paths.resDir, dir, 'launch_background.xml'));
     }
-    // Raster splash drawables (nodpi).
+    // Raster splash drawables (nodpi). The bg image can be PNG or WebP.
     for (final dir in ['drawable-nodpi', 'drawable-night-nodpi']) {
       rm(p.join(paths.resDir, dir, 'splash_icon.png'));
       rm(p.join(paths.resDir, dir, 'splash_branding.png'));
-      rm(p.join(paths.resDir, dir, 'splash_bg.png'));
+      for (final e in ['.png', '.webp']) {
+        rm(p.join(paths.resDir, dir, 'splash_bg$e'));
+      }
     }
-    // Pre-31 raster splash logo, per density (PNG or WebP, + night).
+    // Pre-31 raster splash logo + branding, per density (PNG or WebP, + night).
     for (final d in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
       for (final base in ['drawable', 'drawable-night']) {
         for (final e in ['.png', '.webp']) {
           rm(p.join(paths.resDir, '$base-$d', 'splash_icon_legacy$e'));
+          rm(p.join(paths.resDir, '$base-$d', 'splash_branding_legacy$e'));
+          // Text branding renders a per-density `splash_branding` raster too.
+          rm(p.join(paths.resDir, '$base-$d', 'splash_branding$e'));
         }
       }
     }

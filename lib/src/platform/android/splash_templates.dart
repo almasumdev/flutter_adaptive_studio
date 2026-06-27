@@ -280,7 +280,11 @@ flutter_adaptive_studio generated the **native** Android splash:
   not a VectorDrawable: `windowBackground` is inflated before AppCompat's vector
   support, so a vector logo silently fails to paint on API 21–23 (Android 5–6).
   A bitmap always renders. Choose the encoding with `image_format: png | webp`
-  under `splash:`.
+  under `splash:`. For the same reason, an **SVG `branding:`** is rasterised to a
+  per-density `drawable-*/splash_branding_legacy` sibling and an **SVG
+  `background_image:`** to a `drawable-nodpi/splash_bg` bitmap for this layer —
+  the crisp vectors are still used for the API 31+ slot. So everything in the
+  pre-31 launch background is a bitmap: bulletproof on API 21–23.
 
   **An `animated_icon` does NOT apply here — Android < 12 can't run an animation
   in a `windowBackground`.** It needs a *still* logo. So the pre-31 launch logo
@@ -346,6 +350,21 @@ that mounts the loader, then do the work behind it.
 Guardrails: guarantee `remove()` runs on every path (wrap init in `try/finally`),
 call it once, and keep the held time short — the native splash can't animate or
 show progress, so hand off to Flutter quickly for long loads.
+
+### Failsafe: `maxDuration` (recommended)
+As a belt-and-braces guard against a forgotten/failed `remove()` stranding the
+app on a frozen splash, pass a `maxDuration` to `preserve` — the splash releases
+itself after it, no matter what:
+
+```dart
+FasNativeSplash.preserve(
+  widgetsBinding: binding,
+  maxDuration: const Duration(seconds: 10), // auto-release escape hatch
+);
+```
+
+(`flutter_native_splash` has no such guard.) `preserve` is also a no-op if called
+twice, so it can never double-defer the first frame.
 
 ## Why the Flutter fallback?
 The native splash renders **before** your app code runs, so it can only follow

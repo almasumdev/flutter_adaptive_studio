@@ -83,14 +83,27 @@ flutter_adaptive_studio:
     // emitted into the framework v31 theme (it fails to link).
     expect(v31, isNot(contains('postSplashScreenTheme')));
 
-    // Pre-31 layer-list centres the icon and pins branding to the bottom. The
-    // centre logo is the RASTER (`splash_icon_legacy`), not the v31 vector — a
-    // VectorDrawable in windowBackground doesn't paint on API 21–23.
+    // Pre-31 layer-list centres the icon and pins branding to the bottom. BOTH
+    // the centre logo AND the branding are RASTERS (`splash_icon_legacy`,
+    // `splash_branding_legacy`), not the v31 vectors — a VectorDrawable in
+    // windowBackground doesn't paint on API 21–23.
     final launch =
         File(res('drawable/launch_background.xml')).readAsStringSync();
     expect(launch, contains('@drawable/splash_icon_legacy'));
-    expect(launch, contains('@drawable/splash_branding'));
+    expect(launch, contains('@drawable/splash_branding_legacy'));
+    // The crisp vector branding name must NOT be referenced from the pre-31
+    // layer (only the raster sibling is legacy-safe).
+    expect(launch, isNot(contains('@drawable/splash_branding"')));
     expect(launch, contains('bottom|center_horizontal'));
+
+    // The SVG branding is rasterised per density for the pre-31 launch, while
+    // the crisp v31 vector (splash_branding.xml) is kept for the API 31+ slot.
+    for (final d in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
+      expect(File(res('drawable-$d/splash_branding_legacy.png')).existsSync(),
+          isTrue,
+          reason: 'missing pre-31 branding raster for $d');
+    }
+    expect(File(res('drawable/splash_branding.xml')).existsSync(), isTrue);
 
     // CRUCIAL: the same launch background is also written to drawable-v21/.
     // On API 21+ Android resolves @drawable/launch_background to the -v21
@@ -161,11 +174,18 @@ flutter_adaptive_studio:
     // can't be exercised under `dart test`; this asserts its public shape).
     final src = File('lib/src/runtime/native_splash.dart').readAsStringSync();
     expect(src, contains('class FasNativeSplash'));
-    expect(src, contains('static void preserve({required WidgetsBinding'));
+    expect(src, contains('static void preserve('));
+    expect(src, contains('required WidgetsBinding widgetsBinding'));
     expect(src, contains('static void remove()'));
     expect(src, contains('deferFirstFrame'));
     expect(src, contains('allowFirstFrame'));
     expect(src, contains("import 'package:flutter/widgets.dart'"));
+    // Our robustness extras over flutter_native_splash: an optional failsafe
+    // timeout and a double-preserve guard.
+    expect(src, contains('Duration? maxDuration'));
+    expect(src, contains('Timer'));
+    expect(src, contains('static bool get isPreserved'));
+    expect(src, contains('if (_binding != null) return'));
   });
 
   test('themed branding: FasSplash swaps wordmark by app brightness', () {
@@ -257,6 +277,60 @@ flutter_adaptive_studio:
         .readAsStringSync();
     expect(glue, contains('Alignment.bottomRight'));
     expect(glue, contains('EdgeInsets.only(bottom: 24)'));
+  });
+
+  test(
+      'SVG branding: pre-31 raster sibling (+night, webp), vector kept for v31, '
+      'revert cleans it', () {
+    File(p.join(project.path, 'assets', 'wordmark_dark.svg')).writeAsStringSync(
+        '<svg viewBox="0 0 240 60"><rect x="0" y="10" width="240" '
+        'height="40" fill="#E6F2F4"/></svg>');
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      background_dark: "#0E1A1C"
+      image: assets/logo.svg
+      image_format: webp
+      branding: assets/wordmark.svg
+      branding_dark: assets/wordmark_dark.svg
+''');
+
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+
+    // Pre-31: a per-density WebP branding raster, light AND -night, plus NO
+    // stale .png sibling. The launch background references the raster name.
+    for (final d in ['mdpi', 'xxhdpi', 'xxxhdpi']) {
+      expect(File(res('drawable-$d/splash_branding_legacy.webp')).existsSync(),
+          isTrue,
+          reason: 'missing pre-31 branding webp for $d');
+      expect(File(res('drawable-$d/splash_branding_legacy.png')).existsSync(),
+          isFalse);
+    }
+    expect(
+        File(res('drawable-night-xxhdpi/splash_branding_legacy.webp'))
+            .existsSync(),
+        isTrue);
+    // The crisp vector is still emitted for the API 31+ slot.
+    expect(File(res('drawable/splash_branding.xml')).existsSync(), isTrue);
+    expect(File(res('values-v31/styles.xml')).readAsStringSync(),
+        contains('@drawable/splash_branding'));
+
+    // Revert removes the pre-31 branding rasters (both formats, + night).
+    Reverter(projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
+        .run();
+    expect(
+        File(res('drawable-xxhdpi/splash_branding_legacy.webp')).existsSync(),
+        isFalse);
+    expect(
+        File(res('drawable-night-xxhdpi/splash_branding_legacy.webp'))
+            .existsSync(),
+        isFalse);
   });
 
   test('animated splash: a ready-made AVD .xml is used verbatim', () {
