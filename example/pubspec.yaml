@@ -31,10 +31,11 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The package being demonstrated. AdaptiveSplash + FasSplashConfig come from
-  # here; the generated lib/fas_splash.g.dart imports it too.
-  flutter_adaptive_studio:
-    path: ../
+  # NOTE: there is intentionally NO dependency on flutter_adaptive_studio here.
+  # The in-app splash is the generated, self-contained lib/fas_splash.g.dart
+  # (it imports only package:flutter). The CLI is run from the package root
+  # (`dart run flutter_adaptive_studio generate -p example`) or via
+  # `dart pub global activate flutter_adaptive_studio`.
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

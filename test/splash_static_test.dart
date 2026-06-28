@@ -141,12 +141,10 @@ flutter_adaptive_studio:
     expect(cfg, contains('0xFF0E1A1C')); // dark bg baked in
     expect(cfg, contains('logo: _b64(')); // logo rasterised + embedded
     expect(cfg, contains('brandingLight: _b64(')); // SVG wordmark embedded
-    // It wires the package widget, not a hand-written one.
-    expect(
-        cfg,
-        contains(
-            "import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart'"));
-    expect(cfg, contains('AdaptiveSplash'));
+    // Self-contained: the widget is baked into the file; it does NOT import our
+    // package (that's what keeps the app conflict-free).
+    expect(cfg, isNot(contains('package:flutter_adaptive_studio')));
+    expect(cfg, contains('class AdaptiveSplash'));
     // Branding placement mirrors the native default (bottom-centre, 48dp). No
     // branding_dark here → no dark branding bytes.
     expect(cfg, contains('brandingAlignment: Alignment.bottomCenter'));
@@ -176,54 +174,40 @@ flutter_adaptive_studio:
     expect(cfg, contains('AdaptiveSplash(config: fasSplash'));
   });
 
-  test('the runtime library exposes AdaptiveSplash + FasNativeSplash', () {
-    // Source-level guard on the shipped runtime (it imports flutter, so it can't
-    // be exercised under `dart test`; this asserts its public shape + exports).
-    final lib = File('lib/flutter_adaptive_studio.dart').readAsStringSync();
-    expect(lib, contains("export 'src/runtime/adaptive_splash.dart'"));
-    expect(lib, contains("export 'src/runtime/native_splash.dart'"));
+  test('the generated file bakes in a self-contained runtime', () {
+    AdaptiveStudio(
+      projectRoot: project.path,
+      logger: Logger(level: LogLevel.quiet),
+    ).run();
+    final cfg = splashCfg();
 
-    final splash =
-        File('lib/src/runtime/adaptive_splash.dart').readAsStringSync();
-    expect(splash, contains('class AdaptiveSplash'));
-    expect(splash, contains('class FasSplashConfig'));
-    expect(splash, contains('this.force')); // per-call force-on-all override
-    expect(splash, contains('showOnAllVersions'));
-
-    final keep = File('lib/src/runtime/native_splash.dart').readAsStringSync();
-    expect(keep, contains('class FasNativeSplash'));
-    expect(keep, contains('static void preserve('));
-    expect(keep, contains('static void remove()'));
-    expect(keep, contains('deferFirstFrame'));
-    expect(keep, contains('allowFirstFrame'));
-    // Our robustness extras over flutter_native_splash: a failsafe timeout and a
+    // The config, the widget, and the native-splash keeper all live in the one
+    // generated file.
+    expect(cfg, contains('class FasSplashConfig'));
+    expect(cfg, contains('class AdaptiveSplash'));
+    expect(cfg, contains('this.force')); // per-call force-on-all override
+    expect(cfg, contains('class FasNativeSplash'));
+    expect(cfg, contains('static void preserve('));
+    expect(cfg, contains('static void remove()'));
+    expect(cfg, contains('deferFirstFrame'));
+    expect(cfg, contains('allowFirstFrame'));
+    // Robustness extras over flutter_native_splash: a failsafe timeout and a
     // double-preserve guard.
-    expect(keep, contains('Duration? maxDuration'));
-    expect(keep, contains('static bool get isPreserved'));
+    expect(cfg, contains('Duration? maxDuration'));
+    expect(cfg, contains('static bool get isPreserved'));
 
-    // The SDK gate is pure-Dart FFI — no plugin, no device_info_plus.
-    final sdk = File('lib/src/runtime/android_sdk.dart').readAsStringSync();
-    expect(sdk, contains('__system_property_get'));
-    expect(sdk, contains("import 'dart:ffi'"));
-  });
+    // The SDK gate is pure-Dart FFI using only core dart:ffi (no package:ffi),
+    // so the app needs no extra dependency.
+    expect(cfg, contains('__system_property_get'));
+    expect(cfg, contains("import 'dart:ffi'"));
 
-  test('the runtime library exposes the FasNativeSplash API', () {
-    // Source-level guard on the shipped runtime class (it imports flutter, so it
-    // can't be exercised under `dart test`; this asserts its public shape).
-    final src = File('lib/src/runtime/native_splash.dart').readAsStringSync();
-    expect(src, contains('class FasNativeSplash'));
-    expect(src, contains('static void preserve('));
-    expect(src, contains('required WidgetsBinding widgetsBinding'));
-    expect(src, contains('static void remove()'));
-    expect(src, contains('deferFirstFrame'));
-    expect(src, contains('allowFirstFrame'));
-    expect(src, contains("import 'package:flutter/widgets.dart'"));
-    // Our robustness extras over flutter_native_splash: an optional failsafe
-    // timeout and a double-preserve guard.
-    expect(src, contains('Duration? maxDuration'));
-    expect(src, contains('Timer'));
-    expect(src, contains('static bool get isPreserved'));
-    expect(src, contains('if (_binding != null) return'));
+    // It depends on nothing but package:flutter (no package:ffi, no us).
+    final packages = RegExp(r"import 'package:([^/']+)")
+        .allMatches(cfg)
+        .map((m) => m.group(1))
+        .toSet();
+    expect(packages, {'flutter'},
+        reason: 'generated file must import only package:flutter');
   });
 
   test('themed branding: config embeds light + dark wordmark bytes', () {

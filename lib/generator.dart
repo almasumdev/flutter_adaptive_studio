@@ -1,10 +1,10 @@
 /// flutter_adaptive_studio — generator (CLI) API.
 ///
 /// This is the programmatic surface behind the `flutter_adaptive_studio` command
-/// that writes native icon/splash files. It uses `dart:io` and is **not** meant
-/// to be imported by your app at runtime — for that, import the package's main
-/// library (`package:flutter_adaptive_studio/flutter_adaptive_studio.dart`),
-/// which exposes [FasNativeSplash] and [AdaptiveSplash].
+/// that writes native icon/splash files. It uses `dart:io`. This is a pure-Dart
+/// CLI: your app never depends on it. The in-app splash widget (`AdaptiveSplash`)
+/// is **generated** into a self-contained `fas_splash.g.dart` that imports only
+/// `package:flutter`.
 ///
 /// The entry point is [AdaptiveStudio] (run generation); the other classes back
 /// the individual CLI commands ([Initializer], [ConfigSync], [Doctor],

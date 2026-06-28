@@ -166,6 +166,9 @@ the in-app `AdaptiveSplash`.
   `android/app/build.gradle`. (The generator also prints this reminder.)
 - **iOS launch screens are static** — Apple has no animated launch API. Use the
   in-app `AdaptiveSplash` for motion/branding on iOS.
+- **The generated in-app splash targets Android + iOS** — its Android-API gate
+  uses `dart:ffi`, which isn't available on web. If your app also targets web,
+  guard the `AdaptiveSplash` usage (or it's a no-op there).
 - **Full-colour themed light/dark icons require an SVG source** (they're skipped
   with a log line for raster sources). The Android 13 **monochrome** themed icon
   is always supported.
@@ -213,33 +216,29 @@ below.
 
 ## Installation
 
-```bash
-flutter pub add flutter_adaptive_studio
-```
-
-Keep it in `dependencies` if you use the runtime widgets (`AdaptiveSplash` /
-`FasNativeSplash`). If you only run the generator CLI, a dev dependency is
-enough:
+This is a **pure-Dart command-line tool**. Install it globally and run it from
+any Flutter project — your app gets **no dependency on this package**:
 
 ```bash
-flutter pub add dev:flutter_adaptive_studio
+dart pub global activate flutter_adaptive_studio
 ```
+
+> Global activation keeps the generator's build-time deps (`image`, `xml`, …)
+> out of your app's resolution entirely, so they can **never conflict** with your
+> app's packages. (You *can* add it as a `dev_dependency` and use `dart run
+> flutter_adaptive_studio …` instead, but then those deps participate in your
+> app's resolution.)
 
 ## Quick start
 
 ```sh
-dart run flutter_adaptive_studio init       # write a fully-commented starter config
+fas init        # write a fully-commented starter config
 # edit flutter_adaptive_studio.yaml, drop your art in assets/, then:
-dart run flutter_adaptive_studio generate
+fas generate    # writes native icons + splash, plus lib/fas_splash.g.dart
 ```
 
-Prefer a shorter command? Activate it once and call `fas` from anywhere:
-
-```sh
-dart pub global activate flutter_adaptive_studio
-fas init
-fas generate
-```
+(`fas` is the short alias from `dart pub global activate`; the full name
+`flutter_adaptive_studio` works too.)
 
 ## Configuration
 
@@ -296,16 +295,17 @@ for a complete config + assets.
 
 ## In-app splash (AdaptiveSplash)
 
-Running `generate` writes `lib/fas_splash.g.dart` — a generated `fasSplash`
-config with your colours, the rasterised logo bytes, branding, and timing all
-baked in. Wrap your app once and the package does the rest: it paints a splash
+Running `generate` writes `lib/fas_splash.g.dart` — a **self-contained** file
+holding the `fasSplash` config (colours, rasterised logo bytes, branding, timing)
+**and** the `AdaptiveSplash` widget itself. It imports only `package:flutter`, so
+your app depends on nothing from us. Wrap your app once and it paints a splash
 that **matches the native one**, holds briefly while your first screen settles,
 then **fades out**.
 
 ```dart
 import 'package:flutter/material.dart';
-import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
-import 'fas_splash.g.dart'; // generated — provides `fasSplash`
+
+import 'fas_splash.g.dart'; // self-contained — provides fasSplash + AdaptiveSplash
 
 void main() {
   runApp(AdaptiveSplash(config: fasSplash, child: const MyApp()));
@@ -333,10 +333,11 @@ logo / size); on Android it matches the Android splash, including branding.
 
 `FasNativeSplash` is the `flutter_native_splash`-style `preserve`/`remove`, so
 the native splash stays on screen until your app is ready — no white flash
-before your first frame. Pure Flutter framework; works on every platform.
+before your first frame. It's generated **into `fas_splash.g.dart`** alongside
+the splash, so it's there once you've run `generate` — nothing extra to add.
 
 ```dart
-import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
+import 'fas_splash.g.dart'; // FasNativeSplash is generated alongside AdaptiveSplash
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -349,14 +350,14 @@ Future<void> main() async {
 }
 ```
 
-Migrating from `flutter_native_splash`? The signatures match — swap the import
-and the class name.
+Migrating from `flutter_native_splash`? The `preserve`/`remove` signatures match
+— point the import at the generated `fas_splash.g.dart` and rename the class.
 
 ## Commands
 
 ```sh
-dart run flutter_adaptive_studio <command> [options]   # local dev dependency
-fas <command> [options]                                # after `dart pub global activate`
+fas <command> [options]                                # after global activate
+dart run flutter_adaptive_studio <command> [options]   # as a dev dependency
 ```
 
 | Command    | What it does                                          |

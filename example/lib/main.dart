@@ -1,11 +1,11 @@
 // Demo for flutter_adaptive_studio's in-app splash.
 //
-// The whole integration is the `AdaptiveSplash` wrapper around your app — the
-// matching splash, the timing, the fade, and the cleanup are all handled by the
-// package. `fasSplash` is the generated config (run
-// `dart run flutter_adaptive_studio generate` to (re)create lib/fas_splash.g.dart).
+// Note: this app depends on NOTHING from flutter_adaptive_studio. Everything —
+// `AdaptiveSplash`, `FasSplashConfig`, and the `fasSplash` config — is generated
+// into the self-contained `fas_splash.g.dart`, which imports only
+// `package:flutter`. Regenerate it with the CLI (`fas generate`, or from the
+// package root `dart run flutter_adaptive_studio generate -p example`).
 import 'package:flutter/material.dart';
-import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
 
 import 'fas_splash.g.dart';
 

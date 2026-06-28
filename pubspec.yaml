@@ -2,7 +2,7 @@ name: flutter_adaptive_studio
 description: >-
   Vector-native, theme-aware, mask-correct launcher icons and animated splash
   screens for Flutter — done the way native tooling does it, per platform.
-version: 0.17.0
+version: 0.18.0
 repository: https://github.com/almasumdev/flutter_adaptive_studio
 issue_tracker: https://github.com/almasumdev/flutter_adaptive_studio/issues
 
@@ -13,34 +13,25 @@ topics:
   - adaptive-icons
   - cli
 
-# This tool targets Android and iOS projects.
-platforms:
-  android:
-  ios:
+# A pure-Dart command-line generator — install it with `dart pub global activate
+# flutter_adaptive_studio` and run `fas generate`. It writes native icon/splash
+# files into your android/ and ios/ folders, plus a self-contained
+# `lib/fas_splash.g.dart` for the in-app splash that imports only package:flutter.
+# Your app therefore depends on NOTHING from this package, so its build-time
+# dependencies (image, xml, …) can never conflict with your app's.
 
 environment:
   sdk: ^3.6.0
-  flutter: ">=1.17.0"
 
 executables:
   flutter_adaptive_studio: flutter_adaptive_studio
   fas: flutter_adaptive_studio
 
 dependencies:
-  flutter:
-    sdk: flutter
   args: ^2.6.0
-  collection: ^1.19.0
-  # Pure-Dart Android SDK-level probe for AdaptiveSplash (read via dart:ffi,
-  # so the package stays a plain Flutter package — no plugin, no native build).
-  ffi: ^2.1.0
   image: ^4.9.1
   meta: ^1.16.0
   path: ^1.9.0
-  # 7.x for the namespace-aware XmlBuilder / XmlName.parts APIs the generator
-  # uses (and required transitively by image >=4.9). Note: this prevents adding
-  # the package alongside a dependency that pins xml 6.x (e.g.
-  # flutter_local_notifications on Windows).
   xml: ^7.0.1
   yaml: ^3.1.2
 

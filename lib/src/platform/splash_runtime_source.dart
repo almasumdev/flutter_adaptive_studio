@@ -1,34 +1,23 @@
-/// In-app Flutter splash that mirrors the native one and removes itself.
+/// The self-contained runtime that the CLI bakes into the user's
+/// `fas_splash.g.dart` (see [splashConfigDart]). It's a single raw string of
+/// Dart so the generated file depends on **nothing but `package:flutter`** — no
+/// `flutter_adaptive_studio`, no `image`/`xml`, no `package:ffi` — which is what
+/// lets the app stay conflict-free.
 ///
-/// You wrap your app once — `runApp(AdaptiveSplash(config: fasSplash, child:
-/// MyApp()))` — and the package does the rest: it paints a splash that matches
-/// the native one (background, centred logo, branding), holds it briefly while
-/// your first screen settles, then fades to your app. Everything (colours, the
-/// rasterised logo bytes, branding, timing) comes from the generated
-/// [FasSplashConfig] in `fas_splash.g.dart`, so there's nothing to wire up and
-/// no extra dependency to add.
-///
-/// By default it shows only **where there's no native animated splash** — i.e.
-/// Android API < 31 (on API 31+ the system `SplashScreen` already covers
-/// startup). Set [FasSplashConfig.showOnAllVersions] (or pass [force]) to show
-/// it on every version.
+/// Kept as a string (not a real library) on purpose: the published package is a
+/// pure-Dart CLI with no Flutter dependency, so this Flutter code can't live in
+/// `lib/` as analysed source. The `generated splash widget compiles` test
+/// generates a file from this and analyses it, so breakage is still caught.
 library;
 
-import 'dart:typed_data';
-
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform;
-import 'package:flutter/widgets.dart';
-
-import 'android_sdk.dart';
-
-/// Generated splash configuration. Emitted by the CLI into `fas_splash.g.dart` —
-/// you never write this by hand. All colours are 0xAARRGGBB ints; all artwork is
-/// pre-rasterised PNG bytes baked into the generated file.
+/// The class/function bodies emitted after the config object. Imports and the
+/// `fasSplash` instance are written separately by [splashConfigDart]; the
+/// `_b64` helper is appended only when there are embedded bytes.
+const String splashRuntimeSource = r'''
+/// Immutable splash configuration consumed by [AdaptiveSplash]. Generated — all
+/// colours are 0xAARRGGBB ints and all artwork is pre-rasterised PNG bytes.
 @immutable
 class FasSplashConfig {
-  /// Creates a splash configuration. The CLI emits this into `fas_splash.g.dart`
-  /// — you never construct it by hand.
   const FasSplashConfig({
     required this.backgroundLight,
     required this.backgroundDark,
@@ -54,74 +43,45 @@ class FasSplashConfig {
     this.showOnAllVersions = false,
   });
 
-  /// Splash background colour (0xAARRGGBB) for light appearance.
+  /// Splash background colour (0xAARRGGBB), light and dark (system) appearance.
   final int backgroundLight;
-
-  /// Splash background colour (0xAARRGGBB) for dark (system) appearance.
   final int backgroundDark;
 
-  /// Centre logo PNG bytes (already rasterised), or null for a colour-only splash.
+  /// Centre logo PNG bytes (already rasterised), or null for a colour-only
+  /// splash; [logoDark] is the optional dark-appearance variant.
   final Uint8List? logo;
-
-  /// Optional dark-appearance variant of [logo].
   final Uint8List? logoDark;
 
-  /// Bottom branding image PNG bytes (light). Null when branding is text
-  /// (see [brandingText]) or absent.
+  /// Bottom branding image PNG bytes (light / dark), or null.
   final Uint8List? brandingLight;
-
-  /// Dark-appearance variant of [brandingLight].
   final Uint8List? brandingDark;
 
-  /// Text wordmark, used when no branding image is configured.
+  /// Text wordmark used when no branding image is configured, and its colours.
   final String? brandingText;
-
-  /// Colour (0xAARRGGBB) of [brandingText] in light appearance.
   final int brandingTextColorLight;
-
-  /// Colour (0xAARRGGBB) of [brandingText] in dark appearance.
   final int brandingTextColorDark;
 
-  /// Branding placement within the splash.
+  /// Branding placement + distance from the bottom edge (logical px).
   final Alignment brandingAlignment;
-
-  /// Branding distance from the bottom edge (logical px).
   final double brandingBottomPadding;
 
-  /// Full-bleed background image PNG bytes (light), drawn behind the logo.
+  /// Full-bleed background image PNG bytes (light / dark), drawn behind the logo.
   final Uint8List? backgroundImageLight;
-
-  /// Dark-appearance variant of [backgroundImageLight].
   final Uint8List? backgroundImageDark;
 
   /// Centre-logo edge length (logical px).
   final double logoSize;
 
-  /// **iOS overrides.** On iOS the splash matches the iOS `LaunchScreen` instead
-  /// of the Android one: these supply the iOS-specific background/logo/size when
-  /// they differ. Each is null when there's nothing iOS-specific to apply (the
-  /// widget then falls back to the Android values above). Branding is never drawn
-  /// on iOS — the iOS launch screen has none. This is the light-appearance
-  /// background override.
+  /// iOS overrides — used on iOS to match the iOS LaunchScreen (null = reuse the
+  /// values above). Branding is never drawn on iOS.
   final int? iosBackgroundLight;
-
-  /// iOS dark-appearance background override (0xAARRGGBB), or null to reuse the
-  /// Android value.
   final int? iosBackgroundDark;
-
-  /// iOS centre-logo PNG bytes override, or null to reuse [logo].
   final Uint8List? iosLogo;
-
-  /// iOS dark-appearance logo override, or null.
   final Uint8List? iosLogoDark;
-
-  /// iOS centre-logo edge length (logical px) override, or null to reuse [logoSize].
   final double? iosLogoSize;
 
-  /// How long the splash is held before it begins to fade out.
+  /// How long the splash is held before it fades, and the fade length.
   final Duration duration;
-
-  /// How long the fade-out animation runs.
   final Duration fadeDuration;
 
   /// When true the splash shows on every OS version; when false (default) only
@@ -130,7 +90,8 @@ class FasSplashConfig {
 }
 
 /// Wraps your app and shows the matching Flutter splash over it until startup
-/// settles, then fades out. See [FasSplashConfig].
+/// settles, then fades out. Wrap once: `runApp(AdaptiveSplash(config: fasSplash,
+/// child: const MyApp()))`.
 class AdaptiveSplash extends StatefulWidget {
   const AdaptiveSplash({
     super.key,
@@ -140,19 +101,17 @@ class AdaptiveSplash extends StatefulWidget {
     this.force,
   });
 
-  /// The generated configuration (`fasSplash` from `fas_splash.g.dart`).
+  /// The generated configuration (`fasSplash`).
   final FasSplashConfig config;
 
   /// Your app — typically the `MaterialApp`. It builds underneath the splash.
   final Widget child;
 
-  /// Optional readiness signal: when given, the splash is held until BOTH this
-  /// future completes AND [FasSplashConfig.duration] has elapsed. Use it to keep
-  /// the splash up until your async startup is done.
+  /// Optional readiness signal: the splash is held until BOTH this future
+  /// completes AND [FasSplashConfig.duration] has elapsed.
   final Future<void>? ready;
 
-  /// Overrides [FasSplashConfig.showOnAllVersions] when set: `true` forces the
-  /// splash on every version, `false` restricts it to API < 31.
+  /// Overrides [FasSplashConfig.showOnAllVersions] when set.
   final bool? force;
 
   @override
@@ -176,10 +135,6 @@ class _AdaptiveSplashState extends State<AdaptiveSplash>
 
   Future<void> _drive() async {
     final showOnAll = widget.force ?? widget.config.showOnAllVersions;
-    // Hold the splash only where there's no native animated splash to follow:
-    // forced, non-Android, or Android API < 31. On API 31+ the system splash
-    // already covered startup, so we fade out immediately (the matched image
-    // makes that frame seamless).
     final hold = showOnAll || _noNativeAnimatedSplash();
     if (hold) {
       await Future.wait<void>([
@@ -195,7 +150,7 @@ class _AdaptiveSplashState extends State<AdaptiveSplash>
   /// True when the platform has no Android-12 `SplashScreen` to hand off from —
   /// any non-Android target, or Android below API 31.
   static bool _noNativeAnimatedSplash() {
-    final sdk = androidSdkInt();
+    final sdk = _androidSdkInt();
     return sdk == null || sdk < 31;
   }
 
@@ -225,8 +180,7 @@ class _AdaptiveSplashState extends State<AdaptiveSplash>
 }
 
 /// The splash visual: background (colour + optional image), centred logo, and
-/// bottom branding (image or text). Theme-aware via the **system** brightness,
-/// matching the native `-night` resources.
+/// bottom branding. Theme-aware via the system brightness.
 class _SplashView extends StatelessWidget {
   const _SplashView({required this.config});
 
@@ -237,8 +191,6 @@ class _SplashView extends StatelessWidget {
     final dark =
         WidgetsBinding.instance.platformDispatcher.platformBrightness ==
             Brightness.dark;
-    // On iOS the splash matches the iOS LaunchScreen (its own background/logo,
-    // no branding); elsewhere it matches the Android splash.
     final isIos = defaultTargetPlatform == TargetPlatform.iOS;
 
     final bgLight =
@@ -307,3 +259,93 @@ class _SplashView extends StatelessWidget {
     );
   }
 }
+
+/// Keeps the **native** splash on screen while your app finishes starting up
+/// (no white flash). Pure Flutter framework — defers the first frame until you
+/// call [remove]. Drop-in for `flutter_native_splash`'s `preserve`/`remove`.
+class FasNativeSplash {
+  FasNativeSplash._();
+
+  static WidgetsBinding? _binding;
+  static Timer? _failsafe;
+
+  /// Whether the first frame is currently being held back.
+  static bool get isPreserved => _binding != null;
+
+  /// Call right after `WidgetsFlutterBinding.ensureInitialized()`, before
+  /// `runApp()`, to hold the native splash during startup. [maxDuration] is an
+  /// optional failsafe that releases it automatically if [remove] is never
+  /// called. Calling it twice is a no-op.
+  static void preserve({
+    required WidgetsBinding widgetsBinding,
+    Duration? maxDuration,
+  }) {
+    if (_binding != null) return;
+    _binding = widgetsBinding..deferFirstFrame();
+    if (maxDuration != null) {
+      _failsafe = Timer(maxDuration, () {
+        if (_binding != null) {
+          debugPrint('FasNativeSplash: maxDuration elapsed before remove() — '
+              'releasing the splash as a failsafe.');
+          remove();
+        }
+      });
+    }
+  }
+
+  /// Lets Flutter paint its first frame. Call once your app is ready —
+  /// idempotent, and a no-op if [preserve] was never called.
+  static void remove() {
+    _failsafe?.cancel();
+    _failsafe = null;
+    _binding?.allowFirstFrame();
+    _binding = null;
+  }
+}
+
+// Android API level via libc's __system_property_get, using only core dart:ffi
+// (no package:ffi) so the app needs no extra dependency. Returns null off
+// Android or on any failure — the splash then just shows (harmless). dart:ffi
+// is unavailable on web, so the generated splash targets Android + iOS.
+typedef _PropGetC = Int32 Function(Pointer<Uint8>, Pointer<Uint8>);
+typedef _PropGetDart = int Function(Pointer<Uint8>, Pointer<Uint8>);
+typedef _MallocC = Pointer<Uint8> Function(IntPtr);
+typedef _MallocDart = Pointer<Uint8> Function(int);
+typedef _FreeC = Void Function(Pointer<Uint8>);
+typedef _FreeDart = void Function(Pointer<Uint8>);
+
+int? _sdkCache;
+bool _sdkResolved = false;
+
+int? _androidSdkInt() {
+  if (_sdkResolved) return _sdkCache;
+  _sdkResolved = true;
+  if (defaultTargetPlatform != TargetPlatform.android) return _sdkCache = null;
+  try {
+    final libc = DynamicLibrary.open('libc.so');
+    final malloc = libc.lookupFunction<_MallocC, _MallocDart>('malloc');
+    final free = libc.lookupFunction<_FreeC, _FreeDart>('free');
+    final getProp =
+        libc.lookupFunction<_PropGetC, _PropGetDart>('__system_property_get');
+    const key = 'ro.build.version.sdk';
+    final keyPtr = malloc(key.length + 1);
+    final valPtr = malloc(92); // Android PROP_VALUE_MAX.
+    try {
+      final keyBytes = keyPtr.asTypedList(key.length + 1);
+      for (var i = 0; i < key.length; i++) {
+        keyBytes[i] = key.codeUnitAt(i);
+      }
+      keyBytes[key.length] = 0;
+      final len = getProp(keyPtr, valPtr);
+      if (len <= 0) return _sdkCache = null;
+      final valBytes = valPtr.asTypedList(len);
+      return _sdkCache = int.tryParse(String.fromCharCodes(valBytes));
+    } finally {
+      free(keyPtr);
+      free(valPtr);
+    }
+  } on Object {
+    return _sdkCache = null;
+  }
+}
+''';

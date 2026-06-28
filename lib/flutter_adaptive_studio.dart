@@ -1,24 +1,10 @@
-/// flutter_adaptive_studio — vector-native, theme-aware launcher icons and a
-/// genuinely animated splash for Flutter (Android + iOS).
+/// flutter_adaptive_studio — the programmatic API for the icon/splash generator.
 ///
-/// This main library is the **runtime** API your app imports. The headline is
-/// [AdaptiveSplash] — wrap your app once and the in-app splash that matches the
-/// native one is handled for you (no extra dependency, nothing to wire up).
-/// After importing this library and the generated `fas_splash.g.dart`:
-///
-/// ```dart
-/// void main() {
-///   runApp(AdaptiveSplash(config: fasSplash, child: const MyApp()));
-/// }
-/// ```
-///
-/// For low-level control there's also [FasNativeSplash] (hold the *native*
-/// splash through pre-`runApp` startup, like `flutter_native_splash`).
-///
-/// The icon/splash **generator** (the `flutter_adaptive_studio` CLI) lives in a
-/// separate library — import `package:flutter_adaptive_studio/generator.dart` if
-/// you need it programmatically.
+/// This is a pure-Dart command-line tool; most users run the `fas` command
+/// rather than import it. Import this only to drive generation from Dart — the
+/// entry point is [AdaptiveStudio]. The in-app splash widget is **generated**
+/// into a self-contained `fas_splash.g.dart` (it imports only `package:flutter`),
+/// so your app never depends on this package.
 library;
 
-export 'src/runtime/adaptive_splash.dart';
-export 'src/runtime/native_splash.dart';
+export 'generator.dart';

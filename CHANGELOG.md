@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.18.0
+
+### Zero-dependency in-app splash (no more conflicts)
+
+The package is now a **pure-Dart CLI** — install it with `dart pub global
+activate flutter_adaptive_studio` and run `fas generate`. The in-app splash is
+no longer a shipped library; it's **generated** into a self-contained
+`lib/fas_splash.g.dart` that imports **only `package:flutter`**.
+
+```dart
+import 'fas_splash.g.dart'; // self-contained: config + AdaptiveSplash + FasNativeSplash
+
+void main() => runApp(AdaptiveSplash(config: fasSplash, child: const MyApp()));
+```
+
+- **Your app depends on nothing from us**, so the generator's build-time deps
+  (`image`, `xml`, …) can never conflict with your app's (e.g. an app using
+  `flutter_local_notifications`, which pins `xml` 6.x). webp is kept.
+- The generated file bakes in `AdaptiveSplash`, `FasNativeSplash`, and the
+  config. The Android-API-level gate uses **core `dart:ffi`** (no `package:ffi`),
+  so the app needs no extra dependency. (Generated splash targets Android + iOS;
+  `dart:ffi` is unavailable on web.)
+- **Breaking:** the package no longer exports a runtime library
+  (`AdaptiveSplash`/`FasNativeSplash` are generated, not imported from the
+  package). Re-run `generate` and import `fas_splash.g.dart` directly. The CLI
+  and all generated native icon/splash output are unchanged.
+
 ## 0.17.0
 
 ### In-app splash — just wrap your app (no more glue folder)
