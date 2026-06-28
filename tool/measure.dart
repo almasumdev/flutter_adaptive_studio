@@ -11,7 +11,8 @@ void bbox(String path) {
       final r = p.r.toInt(), g = p.g.toInt(), b = p.b.toInt();
       final chroma = [r, g, b].reduce((a, c) => a > c ? a : c) -
           [r, g, b].reduce((a, c) => a < c ? a : c);
-      if (chroma < 30) continue; // skip white tile + gray shadow; keep teal logo
+      if (chroma < 30)
+        continue; // skip white tile + gray shadow; keep teal logo
       if (x < minX) minX = x;
       if (x > maxX) maxX = x;
       if (y < minY) minY = y;

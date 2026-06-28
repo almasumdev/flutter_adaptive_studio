@@ -20,7 +20,8 @@ void main() {
     final fit = 1 - pad / 100;
     final innerImg = const SvgRasterizer()
         .rasterize(doc, inner, backgroundArgb: 0xFFFFFFFF, fitFraction: fit);
-    final out = '${outDir.path}/square_pad_${pad.toString().padLeft(2, '0')}.png';
+    final out =
+        '${outDir.path}/square_pad_${pad.toString().padLeft(2, '0')}.png';
     ImageRasterizer.shapeIconImage(
       inner: innerImg,
       sizePx: size,

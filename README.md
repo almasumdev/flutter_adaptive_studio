@@ -5,6 +5,7 @@
   <a href="https://github.com/almasumdev/flutter_adaptive_studio/stargazers"><img src="https://badgen.net/github/stars/almasumdev/flutter_adaptive_studio?icon=github" alt="GitHub stars"></a>
   <a href="https://github.com/almasumdev/flutter_adaptive_studio/network/members"><img src="https://badgen.net/github/forks/almasumdev/flutter_adaptive_studio?icon=github" alt="GitHub forks"></a>
   <a href="https://github.com/almasumdev/flutter_adaptive_studio/issues"><img src="https://badgen.net/github/open-issues/almasumdev/flutter_adaptive_studio?icon=github" alt="GitHub issues"></a>
+  <a href="https://github.com/almasumdev/flutter_adaptive_studio/actions/workflows/ci.yml"><img src="https://github.com/almasumdev/flutter_adaptive_studio/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
   <a href="https://github.com/almasumdev/flutter_adaptive_studio/commits/main"><img src="https://badgen.net/github/last-commit/almasumdev/flutter_adaptive_studio?icon=github" alt="Last commit"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://dart.dev"><img src="https://img.shields.io/badge/Dart-3.6+-0175C2?logo=dart" alt="Dart"></a>

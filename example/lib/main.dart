@@ -65,8 +65,10 @@ class _Home extends StatelessWidget {
             children: [
               const Icon(Icons.bolt, size: 56),
               const SizedBox(height: 16),
-              Text('Your app is running.',
-                  style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                'Your app is running.',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: 8),
               const Text(
                 'The splash you just saw was AdaptiveSplash — it matched the '

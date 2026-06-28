@@ -4,6 +4,8 @@ analyzer:
   exclude:
     - reference/** # vendored incumbent packages, study-only
     - example/** # generated/sample project
+    - example_2/** # full dogfood app (not published)
+    - tool/** # dev-only scripts (not published)
   language:
     strict-casts: true
     strict-raw-types: true
