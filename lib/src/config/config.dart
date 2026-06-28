@@ -143,17 +143,20 @@ class AndroidIconConfig {
   /// default); `elevate` adds the classic Material drop shadow + sheen.
   final LegacyEffect effect;
 
-  /// Explicit full-icon source for legacy mipmaps + the Play Store PNG. If
-  /// absent, those are composed from the adaptive foreground + background.
+  /// Source for the legacy mipmaps + the Play Store PNG. If absent, they're
+  /// composed from the adaptive foreground + background. Either way the art is
+  /// inset to match the adaptive foreground and iOS icon (see [legacyPadding]);
+  /// pass `legacy_padding: 0` to use a finished icon edge-to-edge.
   final String? image;
 
   /// Emit pre-API-26 mipmap PNGs. `null` ⇒ decide from `minSdk` (Phase 3).
   final bool? legacy;
 
-  /// Percent the composed legacy/store art is inset from the icon edge,
-  /// overriding the adaptive safe zone for the raster outputs only. `null` ⇒
-  /// follow `adaptive.safe_zone`/`padding`. Ignored when a finished [image] is
-  /// supplied (that keeps its own framing).
+  /// Percent the legacy/store art is inset from the icon edge, overriding the
+  /// adaptive safe zone for the raster outputs only. `null` ⇒ follow
+  /// `adaptive.safe_zone`/`padding`. Applies whether the art comes from the
+  /// adaptive foreground or an explicit [image]; set `0` to keep a finished
+  /// [image] edge-to-edge.
   final int? legacyPadding;
 
   /// Emit `ic_launcher_round` and wire `android:roundIcon`.

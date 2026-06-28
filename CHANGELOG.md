@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.19.0
+
+### Consistent icon padding (mipmap + Play Store match the rest)
+
+A finished `icon.image` is now inset by the same `safe_zone` / `legacy_padding`
+as the adaptive foreground — so the **legacy mipmaps** and the **Play Store
+PNG** share one framing with the adaptive icon and the iOS icon, instead of
+being used edge-to-edge.
+
+- The inset follows `legacy_padding` if set, else the adaptive `safe_zone`, else
+  the package default — the same rule every other generated icon uses.
+- **Breaking:** a finished `icon.image` that was previously emitted as-is is now
+  inset. Set **`legacy_padding: 0`** to keep an already-framed icon
+  edge-to-edge. (A pure `icon.image` config with no adaptive safe zone and no
+  `legacy_padding` is still used full-bleed.)
+
 ## 0.18.0
 
 ### Zero-dependency in-app splash (no more conflicts)

@@ -169,10 +169,12 @@ class AndroidLegacyIcons {
   }
 
   /// Resolves the icon source into a [_Source] that can produce a solid square
-  /// at any size. The source is an explicit `icon.image` (a finished icon) or,
-  /// failing that, the adaptive foreground. SVG defers to a direct per-size
-  /// render (sharpest, grid-free); raster composes a high-res master once.
-  /// Returns null — with a clear skip — when no source can be used.
+  /// at any size. The source is an explicit `icon.image`, or failing that the
+  /// adaptive foreground; either way the art is inset to match the adaptive
+  /// foreground (see [_composePadding]) so every generated icon shares one
+  /// framing. SVG defers to a direct per-size render (sharpest, grid-free);
+  /// raster composes a high-res master once. Returns null — with a clear skip —
+  /// when no source can be used.
   _Source? _prepareSource(GenerationReport report) {
     final String rel;
     final bool fullIcon;
@@ -201,18 +203,24 @@ class AndroidLegacyIcons {
     final bgArgb = SvgColor.parse(bg).argb;
     final ext = p.extension(abs).toLowerCase();
 
-    // Padding for the *composed* (foreground) art. An explicit `legacy_padding`
-    // wins and tunes the legacy/store tile independently; otherwise it follows
-    // the adaptive safe zone so the two icon styles line up.
-    final composeFill = 1 - _composePadding();
+    // Inset the legacy/store art by the same amount as every other generated
+    // icon, so the launcher mipmaps + Play Store PNG line up with the adaptive
+    // foreground and the iOS icon. An explicit `legacy_padding` wins, else the
+    // adaptive `safe_zone`, else the package default. A genuinely finished
+    // `icon.image` with no inset intent (no adaptive safe zone and no
+    // `legacy_padding`) is still used full-bleed — set `legacy_padding: 0` to
+    // force that explicitly.
+    final insetArt =
+        !fullIcon || adaptive != null || iconConfig.legacyPadding != null;
+    final composeFill = insetArt ? 1 - _composePadding() : 1.0;
 
     // SVG → render directly at each target size (no resample → no grid, sharpest
-    // result). A foreground logo is fit to fill; a finished `image:` icon keeps
-    // its own framing.
+    // result). A null fit fraction fills the canvas (a finished icon kept
+    // full-bleed); otherwise the art is fit into the inset.
     if (ext == '.svg') {
       try {
         final doc = SvgDocument.parse(File(abs).readAsStringSync());
-        return _Source.svg(doc, bgArgb, fullIcon ? null : composeFill);
+        return _Source.svg(doc, bgArgb, insetArt ? composeFill : null);
       } on Exception {
         logger.skip('legacy/store: could not parse SVG "$rel"');
         report.skipped.add('legacy/store (SVG parse failed)');
@@ -224,19 +232,18 @@ class AndroidLegacyIcons {
     if (ImageRasterizer().supports(ext)) {
       final tmpDir = Directory.systemTemp.createTempSync('fas_legacy_');
       final master = p.join(tmpDir.path, 'master.png');
-      final ok = fullIcon
-          ? const ImageRasterizer().renderFlattenedPng(
-              sourcePath: abs,
-              sizePx: 1024,
-              outPath: master,
-              backgroundArgb: bgArgb)
-          : const ImageRasterizer().composeIconPng(
+      final ok = insetArt
+          ? const ImageRasterizer().composeIconPng(
               foregroundPath: abs,
               backgroundArgb: bgArgb,
               sizePx: 1024,
-              fillFraction:
-                  iconConfig.legacyPadding != null ? composeFill : 0.85,
-              outPath: master);
+              fillFraction: composeFill,
+              outPath: master)
+          : const ImageRasterizer().renderFlattenedPng(
+              sourcePath: abs,
+              sizePx: 1024,
+              outPath: master,
+              backgroundArgb: bgArgb);
       if (!ok) {
         tmpDir.deleteSync(recursive: true);
         report.skipped.add('legacy/store (compose failed)');
