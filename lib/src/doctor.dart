@@ -13,14 +13,23 @@ import 'logger.dart';
 import 'platform/android/android_paths.dart';
 import 'raster/rasterizer_factory.dart';
 
+/// Validates config and environment, reporting issues without writing anything.
 class Doctor {
+  /// Creates a doctor for [projectRoot], optionally scoped to [configPath]/[flavor].
   Doctor(
       {required this.projectRoot, this.configPath, this.flavor, Logger? logger})
       : logger = logger ?? Logger();
 
+  /// Absolute path to the Flutter project being checked.
   final String projectRoot;
+
+  /// Explicit config file path, or null to auto-discover.
   final String? configPath;
+
+  /// Flavor/source-set to check, or null for `main`.
   final String? flavor;
+
+  /// Sink for diagnostic output.
   final Logger logger;
 
   /// Returns true if no blocking problems were found.

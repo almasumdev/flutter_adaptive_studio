@@ -10,6 +10,9 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:flutter_adaptive_studio/generator.dart';
+// Internal libraries used only by the `preview` command (not public API).
+import 'package:flutter_adaptive_studio/src/config/config_loader.dart';
+import 'package:flutter_adaptive_studio/src/preview/preview_generator.dart';
 import 'package:path/path.dart' as p;
 
 const _commands = {'init', 'sync', 'generate', 'doctor', 'preview', 'revert'};

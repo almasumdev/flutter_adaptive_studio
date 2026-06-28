@@ -27,6 +27,8 @@ import 'android_sdk.dart';
 /// pre-rasterised PNG bytes baked into the generated file.
 @immutable
 class FasSplashConfig {
+  /// Creates a splash configuration. The CLI emits this into `fas_splash.g.dart`
+  /// — you never construct it by hand.
   const FasSplashConfig({
     required this.backgroundLight,
     required this.backgroundDark,
@@ -52,31 +54,44 @@ class FasSplashConfig {
     this.showOnAllVersions = false,
   });
 
-  /// Splash background colour (0xAARRGGBB), light and dark (system) appearance.
+  /// Splash background colour (0xAARRGGBB) for light appearance.
   final int backgroundLight;
+
+  /// Splash background colour (0xAARRGGBB) for dark (system) appearance.
   final int backgroundDark;
 
-  /// Centre logo PNG bytes (already rasterised), or null for a colour-only
-  /// splash. [logoDark] is the optional dark-appearance variant.
+  /// Centre logo PNG bytes (already rasterised), or null for a colour-only splash.
   final Uint8List? logo;
+
+  /// Optional dark-appearance variant of [logo].
   final Uint8List? logoDark;
 
-  /// Bottom branding image PNG bytes (light / dark). Null when branding is text
+  /// Bottom branding image PNG bytes (light). Null when branding is text
   /// (see [brandingText]) or absent.
   final Uint8List? brandingLight;
+
+  /// Dark-appearance variant of [brandingLight].
   final Uint8List? brandingDark;
 
   /// Text wordmark, used when no branding image is configured.
   final String? brandingText;
+
+  /// Colour (0xAARRGGBB) of [brandingText] in light appearance.
   final int brandingTextColorLight;
+
+  /// Colour (0xAARRGGBB) of [brandingText] in dark appearance.
   final int brandingTextColorDark;
 
-  /// Branding placement + distance from the bottom edge (logical px).
+  /// Branding placement within the splash.
   final Alignment brandingAlignment;
+
+  /// Branding distance from the bottom edge (logical px).
   final double brandingBottomPadding;
 
-  /// Full-bleed background image PNG bytes (light / dark), drawn behind the logo.
+  /// Full-bleed background image PNG bytes (light), drawn behind the logo.
   final Uint8List? backgroundImageLight;
+
+  /// Dark-appearance variant of [backgroundImageLight].
   final Uint8List? backgroundImageDark;
 
   /// Centre-logo edge length (logical px).
@@ -86,15 +101,27 @@ class FasSplashConfig {
   /// of the Android one: these supply the iOS-specific background/logo/size when
   /// they differ. Each is null when there's nothing iOS-specific to apply (the
   /// widget then falls back to the Android values above). Branding is never drawn
-  /// on iOS — the iOS launch screen has none.
+  /// on iOS — the iOS launch screen has none. This is the light-appearance
+  /// background override.
   final int? iosBackgroundLight;
+
+  /// iOS dark-appearance background override (0xAARRGGBB), or null to reuse the
+  /// Android value.
   final int? iosBackgroundDark;
+
+  /// iOS centre-logo PNG bytes override, or null to reuse [logo].
   final Uint8List? iosLogo;
+
+  /// iOS dark-appearance logo override, or null.
   final Uint8List? iosLogoDark;
+
+  /// iOS centre-logo edge length (logical px) override, or null to reuse [logoSize].
   final double? iosLogoSize;
 
-  /// How long the splash is held before it fades, and the fade length.
+  /// How long the splash is held before it begins to fade out.
   final Duration duration;
+
+  /// How long the fade-out animation runs.
   final Duration fadeDuration;
 
   /// When true the splash shows on every OS version; when false (default) only

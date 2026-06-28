@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_adaptive_studio/generator.dart';
+import 'package:flutter_adaptive_studio/src/config/config_loader.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 

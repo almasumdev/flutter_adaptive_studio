@@ -15,14 +15,21 @@ import 'package:path/path.dart' as p;
 import 'initializer.dart';
 import 'logger.dart';
 
+/// Non-destructively fills a config with missing options as commented
+/// placeholders.
 class ConfigSync {
+  /// Creates a sync rooted at [projectRoot], with optional config path and
+  /// logger.
   ConfigSync({required this.projectRoot, this.configPath, Logger? logger})
       : logger = logger ?? Logger();
 
+  /// The project root holding the config file to sync.
   final String projectRoot;
 
   /// Explicit config file; otherwise `flutter_adaptive_studio.yaml` in the root.
   final String? configPath;
+
+  /// Sink for progress and result messages.
   final Logger logger;
 
   /// A key line (active or commented) in a config file, with its dotted path.

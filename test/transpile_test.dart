@@ -1,6 +1,9 @@
-import 'package:flutter_adaptive_studio/generator.dart';
+import 'package:flutter_adaptive_studio/src/config/config.dart';
+import 'package:flutter_adaptive_studio/src/geometry/adaptive_geometry.dart';
 import 'package:flutter_adaptive_studio/src/graphic/bounds.dart';
 import 'package:flutter_adaptive_studio/src/graphic/svg_color.dart';
+import 'package:flutter_adaptive_studio/src/graphic/svg_document.dart';
+import 'package:flutter_adaptive_studio/src/vector/vector_drawable_writer.dart';
 import 'package:test/test.dart';
 import 'package:xml/xml.dart';
 

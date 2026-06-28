@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_adaptive_studio/generator.dart';
+import 'package:flutter_adaptive_studio/src/graphic/svg_document.dart';
 import 'package:flutter_adaptive_studio/src/raster/svg_rasterizer.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;

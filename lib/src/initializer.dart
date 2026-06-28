@@ -9,11 +9,16 @@ import 'package:path/path.dart' as p;
 
 import 'logger.dart';
 
+/// Writes a commented starter `flutter_adaptive_studio.yaml` into a project.
 class Initializer {
+  /// Creates an initializer rooted at [projectRoot], with an optional logger.
   Initializer({required this.projectRoot, Logger? logger})
       : logger = logger ?? Logger();
 
+  /// The project root the starter config is written into.
   final String projectRoot;
+
+  /// Sink for progress and result messages.
   final Logger logger;
 
   /// The fully-commented starter config — every supported option. Exposed so

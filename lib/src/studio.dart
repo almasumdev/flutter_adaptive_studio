@@ -8,7 +8,10 @@ import 'platform/ios/ios_generator.dart';
 import 'platform/platform_generator.dart';
 import 'platform/splash_config_writer.dart';
 
+/// Top-level entry point: loads config and runs the configured generators.
 class AdaptiveStudio {
+  /// Creates a studio rooted at [projectRoot], with optional config path,
+  /// flavor, and logger.
   AdaptiveStudio({
     required this.projectRoot,
     this.configPath,
@@ -16,12 +19,18 @@ class AdaptiveStudio {
     Logger? logger,
   }) : logger = logger ?? Logger();
 
+  /// The project root directory to generate resources into.
   final String projectRoot;
+
+  /// Explicit config file path; otherwise the loader searches the default
+  /// locations.
   final String? configPath;
 
   /// Optional build flavor — merges the `flavors.<flavor>` config overrides and
   /// writes resources into the `src/<flavor>/res` overlay.
   final String? flavor;
+
+  /// Sink for progress, skip, and error messages.
   final Logger logger;
 
   /// Runs generation for every configured platform. Returns the combined report,

@@ -18,18 +18,26 @@ import 'platform/ios/ios_paths.dart';
 import 'platform/ios/pbxproj_editor.dart';
 import 'platform/ios/xcode_scheme.dart';
 
+/// Removes the files flutter_adaptive_studio fully owns, leaving shared edits to VCS.
 class Reverter {
+  /// Creates a reverter for [projectRoot], optionally scoped to [configPath]/[flavor].
   Reverter(
       {required this.projectRoot, this.configPath, this.flavor, Logger? logger})
       : logger = logger ?? Logger();
 
+  /// Absolute path to the Flutter project being reverted.
   final String projectRoot;
+
+  /// Explicit config file path, or null to auto-discover.
   final String? configPath;
 
   /// Revert the `src/<flavor>/res` overlay instead of `main`.
   final String? flavor;
+
+  /// Sink for diagnostic output.
   final Logger logger;
 
+  /// Deletes owned generated files and returns the number of items removed.
   int run() {
     final loader = ConfigLoader(projectRoot);
     final config = loader.load(explicitPath: configPath, flavor: flavor);
