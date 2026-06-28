@@ -34,13 +34,14 @@ dependencies:
   # Pure-Dart Android SDK-level probe for AdaptiveSplash (read via dart:ffi,
   # so the package stays a plain Flutter package — no plugin, no native build).
   ffi: ^2.1.0
-  image: ^4.5.4
+  image: ^4.9.1
   meta: ^1.16.0
   path: ^1.9.0
-  # Widened so apps can add this package even when another dependency pins xml
-  # 6.x (e.g. flutter_local_notifications). The generator dev-resolves to 7.x;
-  # the runtime (FasNativeSplash) never touches xml, so the app is unaffected.
-  xml: ">=6.5.0 <8.0.0"
+  # 7.x for the namespace-aware XmlBuilder / XmlName.parts APIs the generator
+  # uses (and required transitively by image >=4.9). Note: this prevents adding
+  # the package alongside a dependency that pins xml 6.x (e.g.
+  # flutter_local_notifications on Windows).
+  xml: ^7.0.1
   yaml: ^3.1.2
 
 dev_dependencies:
