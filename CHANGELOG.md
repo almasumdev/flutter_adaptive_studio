@@ -41,6 +41,12 @@ void main() => runApp(AdaptiveSplash(config: fasSplash, child: const MyApp()));
 - **README rewritten** around the new in-app splash flow, with a platform-support
   matrix, a **Requirements & limitations** section (compileSdk 34, iOS static
   launch, themed-icon SVG source), and an FAQ.
+- **Dependencies:** now requires `xml ^7.0.1` and `image ^4.9.1`. ⚠️ This means
+  the package can no longer be added alongside a dependency that pins `xml` 6.x
+  (e.g. `flutter_local_notifications` on Windows).
+- **`generator.dart` API narrowed** to the real programmatic surface
+  (`AdaptiveStudio`, the CLI-command classes, `Logger`, `GenerationReport`).
+  Internal config/SVG/vector types are no longer exported.
 
 > Migration: delete the old `flutter_adaptive_studio/splash/` folder, drop the
 > manual `device_info_plus`/`flutter_svg` deps you added for it, re-run
