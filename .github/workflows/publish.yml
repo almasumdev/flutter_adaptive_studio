@@ -1,74 +1,26 @@
-name: Release & Publish
+name: Publish
 
-# On a push to main, this tags the commit `v<pubspec version>` (using RELEASE_PAT
-# so the tag push triggers this same workflow again — a default GITHUB_TOKEN push
-# would not). The tag push then publishes to pub.dev via OIDC automated
-# publishing — configure the package's "Automated publishing" on pub.dev to trust
-# this workflow first; no pub token is stored in the repo.
+# Publishes to pub.dev when a version tag (v1.2.3) is pushed. Uses pub.dev's
+# OIDC automated-publishing flow, so no token/secret is stored in the repo —
+# configure the package's "Automated publishing" on pub.dev to trust this
+# workflow first. Tag a release that matches pubspec.yaml's version:
+#   git tag v0.17.0 && git push origin v0.17.0
 on:
   push:
-    branches: [main]
     tags: ['v*']
 
 jobs:
-  gate:
-    name: Release gate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-
-      - run: flutter pub get
-      - run: dart format --output=none --set-exit-if-changed bin lib test example/lib
-      - run: dart analyze
-      - run: dart test
-      - run: flutter pub publish --dry-run
-
-  # Branch push → create & push the version tag (which triggers the publish job).
-  tag:
-    name: Tag release
-    needs: gate
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.RELEASE_PAT }}
-          fetch-depth: 0
-
-      - name: Read version
-        id: v
-        run: echo "version=$(grep '^version:' pubspec.yaml | awk '{print $2}')" >> "$GITHUB_OUTPUT"
-
-      - name: Create & push tag (if new)
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          TAG="v${{ steps.v.outputs.version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "$TAG already exists — nothing to release."
-          else
-            git tag "$TAG"
-            git push origin "$TAG"
-          fi
-
-  # Tag push → publish to pub.dev via OIDC.
   publish:
     name: Publish to pub.dev
-    needs: gate
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write # pub.dev OIDC automated publishing
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
+      # pub resolves example/ too, which needs the Flutter SDK — a Dart-only
+      # setup fails here. flutter ships dart as well.
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
