@@ -6,6 +6,7 @@ import 'logger.dart';
 import 'platform/android/android_generator.dart';
 import 'platform/ios/ios_generator.dart';
 import 'platform/platform_generator.dart';
+import 'platform/splash_config_writer.dart';
 
 class AdaptiveStudio {
   AdaptiveStudio({
@@ -57,6 +58,12 @@ class AdaptiveStudio {
     } else {
       logger.skip('ios: not configured');
     }
+
+    // In-app splash config (the package's AdaptiveSplash). Platform-agnostic, so
+    // it's written once for whichever platform(s) configured a splash — including
+    // an iOS-only project.
+    SplashConfigWriter(config: config, loader: loader, logger: logger)
+        .write(report);
 
     return report;
   }

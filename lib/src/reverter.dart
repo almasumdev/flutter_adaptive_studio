@@ -169,7 +169,18 @@ class Reverter {
       removed++;
     }
 
-    // Glue + preview folder.
+    // In-app splash config (current location, lib/ or project root) + the
+    // legacy `flutter_adaptive_studio/` glue folder older versions generated.
+    for (final f in [
+      File(p.join(projectRoot, 'lib', 'fas_splash.g.dart')),
+      File(p.join(projectRoot, 'fas_splash.g.dart')),
+    ]) {
+      if (f.existsSync()) {
+        f.deleteSync();
+        removed++;
+        logger.detail('removed ${p.relative(f.path, from: projectRoot)}');
+      }
+    }
     final glue = Directory(p.join(projectRoot, 'flutter_adaptive_studio'));
     if (glue.existsSync()) {
       glue.deleteSync(recursive: true);

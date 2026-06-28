@@ -9,6 +9,14 @@ void main() {
   String res(String rel) =>
       p.join(project.path, 'android', 'app', 'src', 'main', 'res', rel);
 
+  /// The generated in-app splash config (`lib/fas_splash.g.dart`, or the project
+  /// root when there's no `lib/`).
+  String splashCfg() {
+    final lib = File(p.join(project.path, 'lib', 'fas_splash.g.dart'));
+    final root = File(p.join(project.path, 'fas_splash.g.dart'));
+    return (lib.existsSync() ? lib : root).readAsStringSync();
+  }
+
   setUp(() {
     project = Directory.systemTemp.createTempSync('fas_splash_static_');
     Directory(p.join(project.path, 'android', 'app', 'src', 'main'))
@@ -127,46 +135,76 @@ flutter_adaptive_studio:
     final nightColors = File(res('values-night/colors.xml')).readAsStringSync();
     expect(nightColors, contains('#0E1A1C'));
 
-    // Flutter fallback drop-in generated with baked colours.
-    final glue = File(p.join(project.path, 'flutter_adaptive_studio', 'splash',
-            'fas_splash.dart'))
-        .readAsStringSync();
-    expect(glue, contains('class FasSplash'));
-    expect(glue, contains('0xFF0E1A1C')); // dark bg baked in
-    expect(glue, contains('sdkInt < 31'));
-    // kDebugMode is used to force the splash in debug — foundation MUST be
-    // imported for it to compile (material doesn't re-export the k* constants).
-    expect(glue, contains('kDebugMode'));
-    expect(glue, contains("import 'package:flutter/foundation.dart'"));
-    // The fallback mirrors native branding: bottom-centre, same 48dp inset,
-    // pointing at the wordmark. No branding_dark here → single (un-themed) asset.
-    expect(glue, contains('Alignment.bottomCenter'));
-    expect(glue, contains('EdgeInsets.only(bottom: 48)'));
-    expect(glue, contains('assets/wordmark.svg'));
-    expect(glue, isNot(contains('wordmark_dark')));
+    // In-app splash config generated with baked colours + embedded logo bytes.
+    final cfg = splashCfg();
+    expect(cfg, contains('FasSplashConfig'));
+    expect(cfg, contains('0xFF0E1A1C')); // dark bg baked in
+    expect(cfg, contains('logo: _b64(')); // logo rasterised + embedded
+    expect(cfg, contains('brandingLight: _b64(')); // SVG wordmark embedded
+    // It wires the package widget, not a hand-written one.
+    expect(
+        cfg,
+        contains(
+            "import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart'"));
+    expect(cfg, contains('AdaptiveSplash'));
+    // Branding placement mirrors the native default (bottom-centre, 48dp). No
+    // branding_dark here → no dark branding bytes.
+    expect(cfg, contains('brandingAlignment: Alignment.bottomCenter'));
+    expect(cfg, contains('brandingBottomPadding: 48'));
+    expect(cfg, contains('brandingDark: null'));
+    // Gated to API < 31 by default.
+    expect(cfg, contains('showOnAllVersions: false'));
   });
 
-  test('FasNativeSplash ships in the package, not generated as a drop-in', () {
+  test('the in-app splash is a single generated config, not a folder/widget',
+      () {
     AdaptiveStudio(
       projectRoot: project.path,
       logger: Logger(level: LogLevel.quiet),
     ).run();
 
-    // The keeper now ships as `package:flutter_adaptive_studio/...` — generating
-    // it too would collide with the imported class, so it must NOT be written.
-    final keeper = File(p.join(project.path, 'flutter_adaptive_studio',
-        'splash', 'fas_native_splash.dart'));
-    expect(keeper.existsSync(), isFalse);
-
-    // The guide points users at the package import instead.
-    final guide = File(p.join(
-            project.path, 'flutter_adaptive_studio', 'splash', 'SPLASH.md'))
-        .readAsStringSync();
+    // No generated folder, widget, guide, or keeper drop-in anymore — the widget
+    // (AdaptiveSplash) and keeper (FasNativeSplash) both ship in the package.
     expect(
-        guide,
-        contains(
-            "import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart'"));
-    expect(guide, contains('FasNativeSplash.preserve'));
+        Directory(p.join(project.path, 'flutter_adaptive_studio')).existsSync(),
+        isFalse);
+
+    // Just one generated data file the user imports + wraps.
+    final cfg = splashCfg();
+    expect(cfg, contains('final FasSplashConfig fasSplash'));
+    expect(cfg, contains('runApp('));
+    expect(cfg, contains('AdaptiveSplash(config: fasSplash'));
+  });
+
+  test('the runtime library exposes AdaptiveSplash + FasNativeSplash', () {
+    // Source-level guard on the shipped runtime (it imports flutter, so it can't
+    // be exercised under `dart test`; this asserts its public shape + exports).
+    final lib = File('lib/flutter_adaptive_studio.dart').readAsStringSync();
+    expect(lib, contains("export 'src/runtime/adaptive_splash.dart'"));
+    expect(lib, contains("export 'src/runtime/native_splash.dart'"));
+
+    final splash =
+        File('lib/src/runtime/adaptive_splash.dart').readAsStringSync();
+    expect(splash, contains('class AdaptiveSplash'));
+    expect(splash, contains('class FasSplashConfig'));
+    expect(splash, contains('this.force')); // per-call force-on-all override
+    expect(splash, contains('showOnAllVersions'));
+
+    final keep = File('lib/src/runtime/native_splash.dart').readAsStringSync();
+    expect(keep, contains('class FasNativeSplash'));
+    expect(keep, contains('static void preserve('));
+    expect(keep, contains('static void remove()'));
+    expect(keep, contains('deferFirstFrame'));
+    expect(keep, contains('allowFirstFrame'));
+    // Our robustness extras over flutter_native_splash: a failsafe timeout and a
+    // double-preserve guard.
+    expect(keep, contains('Duration? maxDuration'));
+    expect(keep, contains('static bool get isPreserved'));
+
+    // The SDK gate is pure-Dart FFI — no plugin, no device_info_plus.
+    final sdk = File('lib/src/runtime/android_sdk.dart').readAsStringSync();
+    expect(sdk, contains('__system_property_get'));
+    expect(sdk, contains("import 'dart:ffi'"));
   });
 
   test('the runtime library exposes the FasNativeSplash API', () {
@@ -188,7 +226,7 @@ flutter_adaptive_studio:
     expect(src, contains('if (_binding != null) return'));
   });
 
-  test('themed branding: FasSplash swaps wordmark by app brightness', () {
+  test('themed branding: config embeds light + dark wordmark bytes', () {
     File(p.join(project.path, 'assets', 'wordmark_dark.svg')).writeAsStringSync(
         '<svg viewBox="0 0 240 60"><rect x="0" y="10" width="240" '
         'height="40" fill="#E6F2F4"/></svg>');
@@ -213,13 +251,12 @@ flutter_adaptive_studio:
     expect(
         File(res('drawable-night/splash_branding.xml')).existsSync(), isTrue);
 
-    // Fallback: branding is chosen by the active theme brightness.
-    final glue = File(p.join(project.path, 'flutter_adaptive_studio', 'splash',
-            'fas_splash.dart'))
-        .readAsStringSync();
-    expect(glue, contains('dark ?'));
-    expect(glue, contains('assets/wordmark_dark.svg'));
-    expect(glue, contains('assets/wordmark.svg'));
+    // In-app config: BOTH light and dark wordmark bytes are embedded, so the
+    // widget can swap by system brightness (no asset, no flutter_svg).
+    final cfg = splashCfg();
+    expect(cfg, contains('brandingLight: _b64('));
+    expect(cfg, contains('brandingDark: _b64('));
+    expect(cfg, isNot(contains('brandingDark: null')));
   });
 
   test(
@@ -271,12 +308,10 @@ flutter_adaptive_studio:
     expect(launch, contains('android:gravity="bottom|right"'));
     expect(launch, contains('android:bottom="24dp"'));
 
-    // Fallback mirrors the branding placement.
-    final glue = File(p.join(project.path, 'flutter_adaptive_studio', 'splash',
-            'fas_splash.dart'))
-        .readAsStringSync();
-    expect(glue, contains('Alignment.bottomRight'));
-    expect(glue, contains('EdgeInsets.only(bottom: 24)'));
+    // In-app config mirrors the branding placement.
+    final cfg = splashCfg();
+    expect(cfg, contains('brandingAlignment: Alignment.bottomRight'));
+    expect(cfg, contains('brandingBottomPadding: 24'));
   });
 
   test(
@@ -436,12 +471,12 @@ flutter_adaptive_studio:
     expect(File(res('values-v31/styles.xml')).readAsStringSync(),
         contains('windowSplashScreenBrandingImage'));
 
-    // Flutter fallback renders a crisp Text widget with the configured colour.
-    final glue = File(p.join(project.path, 'flutter_adaptive_studio', 'splash',
-            'fas_splash.dart'))
-        .readAsStringSync();
-    expect(glue, contains("Text('ListKin'"));
-    expect(glue, contains('0xFF1F5560'));
+    // In-app config carries the text + colour (the widget renders a crisp Text);
+    // no branding image bytes are embedded for a text wordmark.
+    final cfg = splashCfg();
+    expect(cfg, contains("brandingText: 'ListKin'"));
+    expect(cfg, contains('brandingTextColorLight: 0xFF1F5560'));
+    expect(cfg, contains('brandingLight: null'));
   });
 
   test('animated-only splash falls back to the app logo for the pre-31 launch',

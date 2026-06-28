@@ -111,6 +111,9 @@ flutter_adaptive_studio:
     #   branding_text_color_dark: "#E6F2F4"
     #   branding_mode: bottom                     # bottom | bottom_left | bottom_right (pre-31 + fallback)
     #   branding_bottom_padding: 48               # branding distance from bottom edge, dp
+    #   # --- in-app Flutter splash (AdaptiveSplash) ---
+    #   flutter_splash_all_versions: false        # show the in-app splash on every OS version
+    #                                             #   (default: only where there's no native one, API < 31)
     #   # --- animated centre icon, instead of the static `image` above ---
     #   animated_icon: assets/logo_anim.xml       # ready-made AnimatedVectorDrawable (.xml), used as-is
     #   animated_icon_dark: assets/logo_anim_dark.xml

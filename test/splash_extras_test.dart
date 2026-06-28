@@ -53,12 +53,12 @@ flutter_adaptive_studio:
     // The API 31+ theme takes a colour only — it must NOT reference the image.
     expect(File(res('values-v31/styles.xml')).readAsStringSync(),
         isNot(contains('splash_bg')));
-    // The Flutter fallback draws it full-bleed.
-    final glue = File(p.join(project.path, 'flutter_adaptive_studio', 'splash',
-            'fas_splash.dart'))
-        .readAsStringSync();
-    expect(glue, contains('Positioned.fill'));
-    expect(glue, contains('BoxFit.cover'));
+    // The in-app config embeds the background image bytes (the widget draws it
+    // full-bleed); no asset or flutter_svg needed.
+    final root = File(p.join(project.path, 'fas_splash.g.dart'));
+    final lib = File(p.join(project.path, 'lib', 'fas_splash.g.dart'));
+    final cfg = (root.existsSync() ? root : lib).readAsStringSync();
+    expect(cfg, contains('backgroundImageLight: _b64('));
   });
 
   test('screen_orientation locks the launcher activity in the main manifest',

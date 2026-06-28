@@ -107,7 +107,8 @@ class AndroidThemedIcons {
       String name, String variant, String source, GenerationReport report) {
     final abs = loader.resolveAsset(source);
     if (p.extension(abs).toLowerCase() != '.svg') {
-      logger.skip('themed $variant "$source": only SVG supported in Phase 4');
+      logger.skip('themed $variant "$source": full-colour themed icons '
+          'currently require an SVG source');
       report.skipped.add('themed $variant (non-SVG)');
       return false;
     }

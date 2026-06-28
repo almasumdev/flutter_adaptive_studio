@@ -34,6 +34,10 @@ flutter_adaptive_studio:
       animated_icon_dark: assets/avd_listkin_dark.xml
       branding: assets/wordmark.svg
       branding_dark: assets/wordmark_dark.svg
+      duration: 1200                                # in-app splash hold (ms)
+      flutter_splash_all_versions: true             # show AdaptiveSplash on every
+                                                    #   version so the demo is visible
+                                                    #   on a modern emulator too
 
   ios:
     icon:

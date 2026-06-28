@@ -30,7 +30,6 @@ import '../platform_generator.dart';
 import 'android_manifest_editor.dart';
 import 'android_paths.dart';
 import 'android_styles_editor.dart';
-import 'splash_templates.dart';
 
 class AndroidSplash {
   AndroidSplash({
@@ -172,9 +171,6 @@ class AndroidSplash {
     report.written.addAll(launchFiles);
     logger.step('pre-31 classic splash written (drawable/ + drawable-v21/)');
 
-    // ---- Flutter fallback drop-in (for Android < 12 / app-theme splash) ----
-    _writeFallbackGlue(branding.slotRef, bgImageRef, report);
-
     // ---- Optional: lock orientation on the launcher activity (main manifest) ----
     if (splash.screenOrientation != null) {
       final changed = AndroidManifestEditor(paths.manifest)
@@ -188,49 +184,6 @@ class AndroidSplash {
     }
 
     return report;
-  }
-
-  /// Emits the `FasSplash` Flutter widget + SDK gate + guide so devices without
-  /// the native SplashScreen API can show an app-themed splash that matches.
-  void _writeFallbackGlue(
-      String? brandingRef, String? bgImageRef, GenerationReport report) {
-    final bgLight = SvgColor.parse(splash.background ?? '#FFFFFF').argb;
-    final bgDark =
-        SvgColor.parse(splash.backgroundDark ?? splash.background ?? '#000000')
-            .argb;
-    final dir = p.join(loader.projectRoot, 'flutter_adaptive_studio', 'splash');
-    writer.writeText(
-        p.join(dir, 'fas_splash.dart'),
-        splashFallbackDart(
-          bgLightArgb: bgLight,
-          bgDarkArgb: bgDark,
-          // The splash `image:` (NOT the app icon) is the Flutter logo source.
-          logoAsset: splash.image,
-          brandingAsset: brandingRef == null ? null : splash.branding,
-          // Themed bottom branding, mirroring the native `-night` drawable.
-          brandingDarkAsset: brandingRef == null ? null : splash.brandingDark,
-          // Text branding (used when no branding image is given): a crisp Text
-          // widget in the fallback, mirroring the native rasterised wordmark.
-          brandingText: splash.branding == null ? splash.brandingText : null,
-          brandingTextColorLight: SvgColor.parse(
-                  splash.brandingTextColor ?? _defaultBrandingTextColor(false))
-              .argb,
-          brandingTextColorDark: SvgColor.parse(splash.brandingTextColorDark ??
-                  splash.brandingTextColor ??
-                  _defaultBrandingTextColor(true))
-              .argb,
-          brandingAlignment: _brandingAlignment,
-          brandingBottomDp: splash.brandingBottomPadding,
-          backgroundImageAsset:
-              bgImageRef == null ? null : splash.backgroundImage,
-          backgroundImageDarkAsset:
-              bgImageRef == null ? null : splash.backgroundImageDark,
-        ));
-    // The native-splash keeper (FasNativeSplash.preserve/remove) now ships in
-    // the package itself — import it, don't generate it. See SPLASH.md.
-    writer.writeText(p.join(dir, 'SPLASH.md'), splashGuide);
-    report.written.add('flutter_adaptive_studio/splash/ (FasSplash + guide)');
-    logger.step('Flutter fallback splash → flutter_adaptive_studio/splash/');
   }
 
   // --------------------------------------------------------------- centre icon
@@ -1067,13 +1020,6 @@ class AndroidSplash {
         BrandingMode.bottomLeft => 'bottom|left',
         BrandingMode.bottomRight => 'bottom|right',
         BrandingMode.bottom => 'bottom|center_horizontal',
-      };
-
-  /// Flutter `Alignment` for the fallback branding, per [BrandingMode].
-  String get _brandingAlignment => switch (splash.brandingMode) {
-        BrandingMode.bottomLeft => 'Alignment.bottomLeft',
-        BrandingMode.bottomRight => 'Alignment.bottomRight',
-        BrandingMode.bottom => 'Alignment.bottomCenter',
       };
 
   /// Writes `launch_background.xml` to **every** drawable bucket the OS could

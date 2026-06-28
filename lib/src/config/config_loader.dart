@@ -245,6 +245,8 @@ class ConfigLoader {
           _barBrightness(raw['navigation_bar_icon_brightness']),
       navigationBarIconBrightnessDark:
           _barBrightness(raw['navigation_bar_icon_brightness_dark']),
+      flutterSplashAllVersions:
+          _bool(raw['flutter_splash_all_versions']) ?? false,
     );
   }
 

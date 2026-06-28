@@ -292,6 +292,7 @@ class AndroidSplashConfig {
     this.navigationBarColorDark,
     this.navigationBarIconBrightness,
     this.navigationBarIconBrightnessDark,
+    this.flutterSplashAllVersions = false,
   });
 
   final String? background;
@@ -385,6 +386,13 @@ class AndroidSplashConfig {
   /// vector silently fails to paint on API 21–23. PNG is the safe default; WebP
   /// (lossless) is smaller and resolves identically on API 18+.
   final ImageFormat imageFormat;
+
+  /// Force the in-app [AdaptiveSplash] (the generated `fas_splash.g.dart`) to
+  /// show on **every** OS version. Default false: it shows only where there's no
+  /// native animated splash (Android API < 31); on API 31+ the system
+  /// `SplashScreen` already covers startup. Baked into the config as
+  /// `showOnAllVersions` (also overridable per-call with `AdaptiveSplash(force:)`).
+  final bool flutterSplashAllVersions;
 
   /// True when there is any centre logo to render (animated or static).
   bool get hasIcon => animatedIcon != null || image != null;

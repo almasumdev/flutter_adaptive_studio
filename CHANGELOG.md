@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.17.0
+
+### In-app splash — just wrap your app (no more glue folder)
+
+The old `flutter_adaptive_studio/splash/` drop-in (a `FasSplash` widget you had
+to read, wire into `main()`, plus `device_info_plus` and `flutter_svg` to add and
+assets to declare) is **gone**. The splash widget now ships **in the package** —
+you wrap your app once and everything is handled:
+
+```dart
+import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
+import 'fas_splash.g.dart'; // the only generated file
+
+void main() => runApp(AdaptiveSplash(config: fasSplash, child: const MyApp()));
+```
+
+- **`AdaptiveSplash`** (shipped) paints a splash that matches the native one
+  (background, centred logo, branding — light/dark by system brightness), holds
+  briefly while your first screen settles, then fades to your app.
+- The generator now emits a **single** `lib/fas_splash.g.dart` — colours, timing,
+  and the logo/branding/background **rasterised to PNG and base64-embedded**. So
+  the app needs **no assets, no `flutter_svg`, and no `device_info_plus`**.
+- By default the in-app splash shows only **where there's no native animated
+  splash** (Android API < 31; on 31+ the system `SplashScreen` covers startup).
+  Force it on every version with `AdaptiveSplash(force: true, …)` or
+  `flutter_splash_all_versions: true` under `splash:`.
+- The "API < 31" check reads `Build.VERSION.SDK_INT` via **`dart:ffi`** (libc
+  `__system_property_get`) — so the package stays a plain Flutter package (no
+  plugin, no Gradle/podspec) and can't conflict with your other dependencies.
+- **Android + iOS, fully.** `fas_splash.g.dart` is now generated whenever *either*
+  platform configures a splash (so an **iOS-only** project gets it too — it used
+  to be Android-only and would leave the import dangling). The config also bakes
+  **iOS overrides** (`iosBackground*` / `iosLogo*`): on iOS `AdaptiveSplash`
+  matches the iOS `LaunchScreen` (its own background/logo, no branding), and on
+  Android it matches the Android splash — automatically, from one wrap.
+- `revert` removes `lib/fas_splash.g.dart` (and the old glue folder).
+- Added a **runnable `example/` app** demonstrating `AdaptiveSplash` (with a
+  "Replay splash" button).
+- **README rewritten** around the new in-app splash flow, with a platform-support
+  matrix, a **Requirements & limitations** section (compileSdk 34, iOS static
+  launch, themed-icon SVG source), and an FAQ.
+
+> Migration: delete the old `flutter_adaptive_studio/splash/` folder, drop the
+> manual `device_info_plus`/`flutter_svg` deps you added for it, re-run
+> `generate`, and wrap your app with `AdaptiveSplash` as above. `FasNativeSplash`
+> (the native-splash keeper) is unchanged and still available.
+
 ## 0.16.0
 
 ### Pre-31 launch background — bulletproof on API 21–23
