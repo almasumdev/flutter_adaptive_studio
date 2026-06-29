@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.21.0
+
+### In-app splash: closer native match + split timing
+
+- **Consistent logo size.** The in-app logo is now a fixed **288 dp** box,
+  transparent over the splash background, regardless of `icon_background` (it no
+  longer shrinks to 240). One predictable size; `logo_padding` insets it.
+- **Branding matches the native slot.** The in-app wordmark now fills the same
+  **200×80 dp** slot the Android-12 splash reserves for branding (it was a fixed
+  40 dp height), so it's the same size as the system splash.
+- **Separate durations.** New **`flutter_splash_duration`** controls how long the
+  in-app splash holds, independent of **`duration`** — which now only drives the
+  native animated-icon playback (`windowSplashScreenAnimationDuration`, API 31+).
+  `flutter_splash_duration` falls back to `duration` when unset, so existing
+  configs are unchanged.
+
 ## 0.20.0
 
 ### In-app splash: native-matched logo + clearer timing

@@ -62,7 +62,9 @@ flutter_adaptive_studio:
     expect(cfg, contains('logoSize: 288'));
   });
 
-  test('an icon_background switches the canvas to 240 dp (⌀160 keyline)', () {
+  test('icon_background does NOT change the in-app logo size (stays 288)', () {
+    // The in-app logo is transparent over the background (no icon circle), so
+    // it's a consistent 288 box regardless of icon_background.
     final cfg = generate('''
 flutter_adaptive_studio:
   android:
@@ -71,7 +73,48 @@ flutter_adaptive_studio:
       icon_background: "#FFFFFF"
       image: assets/logo.svg
 ''');
-    expect(cfg, contains('logoSize: 240'));
+    expect(cfg, contains('logoSize: 288'));
+  });
+
+  test('flutter_splash_duration sets the in-app hold, separate from duration',
+      () {
+    final cfg = generate('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      image: assets/logo.svg
+      duration: 700                 # native animated-icon only
+      flutter_splash_duration: 2500 # the in-app hold
+''');
+    expect(cfg, contains('duration: const Duration(milliseconds: 2500)'));
+  });
+
+  test('in-app duration falls back to duration when not set', () {
+    final cfg = generate('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      image: assets/logo.svg
+      duration: 1800
+''');
+    expect(cfg, contains('duration: const Duration(milliseconds: 1800)'));
+  });
+
+  test('the baked-in branding uses the native 200x80 slot, not a fixed height',
+      () {
+    final cfg = generate('''
+flutter_adaptive_studio:
+  android:
+    splash:
+      background: "#FFFFFF"
+      image: assets/logo.svg
+      branding_text: "ACME"
+''');
+    expect(cfg, contains('width: 200'));
+    expect(cfg, contains('height: 80'));
+    expect(cfg, isNot(contains('height: 40')));
   });
 
   test('logo_padding insets the embedded logo art (less art than 0)', () {

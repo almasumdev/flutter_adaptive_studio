@@ -221,6 +221,7 @@ class ConfigLoader {
       animatedIcon: _str(raw['animated_icon']),
       animatedIconDark: _str(raw['animated_icon_dark']),
       durationMs: _int(raw['duration']) ?? 1000,
+      flutterSplashDuration: _int(raw['flutter_splash_duration']),
       iconBackground: _str(raw['icon_background']),
       iconBackgroundDark: _str(raw['icon_background_dark']),
       branding: _str(raw['branding']),

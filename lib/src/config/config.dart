@@ -275,6 +275,7 @@ class AndroidSplashConfig {
     this.animatedIcon,
     this.animatedIconDark,
     this.durationMs = 1000,
+    this.flutterSplashDuration,
     this.iconBackground,
     this.iconBackgroundDark,
     this.branding,
@@ -326,7 +327,15 @@ class AndroidSplashConfig {
 
   final String? animatedIcon;
   final String? animatedIconDark;
+
+  /// Native API 31+ animated-icon playback length (ms) — the
+  /// `windowSplashScreenAnimationDuration`. Only applies with an [animatedIcon].
   final int durationMs;
+
+  /// How long the **in-app** [AdaptiveSplash] holds before fading (ms). Separate
+  /// from [durationMs]; `null` ⇒ fall back to [durationMs], then a default.
+  final int? flutterSplashDuration;
+
   final String? iconBackground;
 
   /// Dark-mode variant of [iconBackground] (the API 31+ icon circle colour).

@@ -244,18 +244,32 @@ class _SplashView extends StatelessWidget {
               alignment: config.brandingAlignment,
               child: Padding(
                 padding: EdgeInsets.only(bottom: config.brandingBottomPadding),
-                child: branding != null
-                    ? Image.memory(branding, height: 40, gaplessPlayback: true)
-                    : Text(
-                        config.brandingText!,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Color(dark
-                              ? config.brandingTextColorDark
-                              : config.brandingTextColorLight),
-                        ),
-                      ),
+                // Match the native 200×80dp branding slot (art fit with a ~0.9
+                // margin) so the wordmark is the same size as the system splash,
+                // rather than a fixed height.
+                child: SizedBox(
+                  width: 200,
+                  height: 80,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    child: branding != null
+                        ? Image.memory(branding,
+                            fit: BoxFit.contain, gaplessPlayback: true)
+                        : FittedBox(
+                            child: Text(
+                              config.brandingText!,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Color(dark
+                                    ? config.brandingTextColorDark
+                                    : config.brandingTextColorLight),
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
               ),
             ),
         ],

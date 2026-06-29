@@ -119,11 +119,12 @@ flutter_adaptive_studio:
     #   # --- in-app Flutter splash (AdaptiveSplash) ---
     #   flutter_splash_all_versions: false        # show the in-app splash on every OS version
     #                                             #   (default: only where there's no native one, API < 31)
+    #   flutter_splash_duration: 1000             # how long the in-app splash holds, ms (falls back to `duration`)
     #   logo_padding: 0                           # extra % the in-app logo is inset (0 = match the native icon)
     #   # --- animated centre icon, instead of the static `image` above ---
     #   animated_icon: assets/logo_anim.xml       # ready-made AnimatedVectorDrawable (.xml), used as-is
     #   animated_icon_dark: assets/logo_anim_dark.xml
-    #   duration: 1000                            # animated-icon duration, ms
+    #   duration: 1000                            # NATIVE animated-icon playback, ms (API 31+, with animated_icon)
 
   # --- iOS app icon (single-size 1024², opaque; same source as Android) ------
   # One source drives every size. iOS icons can't be transparent, so the art is

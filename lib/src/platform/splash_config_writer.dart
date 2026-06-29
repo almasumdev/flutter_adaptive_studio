@@ -55,12 +55,12 @@ class SplashConfigWriter {
     final iSplash = config.ios?.splash;
     if (aSplash == null && iSplash == null) return;
 
-    // The in-app logo matches the native splash icon's Android-12 keyline: the
-    // art's bounding box is inscribed in the 2/3 safe circle of a 288dp canvas
-    // (240dp / ⌀160 when an icon background is set). `logo_padding` shrinks it
-    // further. The displayed logo box equals that canvas, so the on-screen art
-    // ends up the same size as the native splash icon.
-    final logoCanvasDp = aSplash?.iconBackground != null ? 240.0 : 288.0;
+    // The in-app logo is transparent over the splash background (no icon-circle)
+    // at a consistent 288dp box — the art's bounding box inscribed in the 2/3
+    // safe circle (⌀192), matching the Android-12 keyline. `logo_padding`
+    // insets it further. A fixed 288 (rather than 240 with an icon background)
+    // keeps the in-app logo one predictable size.
+    const logoCanvasDp = 288.0;
     final logoPadFrac = ((aSplash?.logoPadding ?? 0).clamp(0, 95)) / 100;
     final logoSafeDp = logoCanvasDp * 2 / 3 * (1 - logoPadFrac);
 
@@ -153,7 +153,9 @@ class SplashConfigWriter {
       iosLogoB64: iosLogoB64,
       iosLogoDarkB64: iosLogoDarkB64,
       iosLogoSizeDp: iosLogoSize,
-      durationMs: aSplash?.durationMs ?? 800,
+      // In-app hold: its own knob, falling back to `duration` (which otherwise
+      // only drives the native animated-icon playback), then a default.
+      durationMs: aSplash?.flutterSplashDuration ?? aSplash?.durationMs ?? 1000,
       showOnAllVersions: aSplash?.flutterSplashAllVersions ?? false,
     );
 
