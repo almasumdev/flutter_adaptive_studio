@@ -40,8 +40,8 @@ class SplashConfigWriter {
   final ConfigLoader loader;
   final Logger logger;
 
-  /// Centre-logo raster size (4× the 192dp logical box → crisp on high-DPI).
-  static const _logoPx = 768;
+  /// Default in-app logo box (logical dp) — the baseline an iOS `logo_size`
+  /// override is compared against.
   static const _logoSizeDp = 192;
 
   /// App-logo fallback when a splash has no `image:` of its own (the app icon
@@ -54,6 +54,15 @@ class SplashConfigWriter {
     final aSplash = config.android?.splash;
     final iSplash = config.ios?.splash;
     if (aSplash == null && iSplash == null) return;
+
+    // The in-app logo matches the native splash icon's Android-12 keyline: the
+    // art's bounding box is inscribed in the 2/3 safe circle of a 288dp canvas
+    // (240dp / ⌀160 when an icon background is set). `logo_padding` shrinks it
+    // further. The displayed logo box equals that canvas, so the on-screen art
+    // ends up the same size as the native splash icon.
+    final logoCanvasDp = aSplash?.iconBackground != null ? 240.0 : 288.0;
+    final logoPadFrac = ((aSplash?.logoPadding ?? 0).clamp(0, 95)) / 100;
+    final logoSafeDp = logoCanvasDp * 2 / 3 * (1 - logoPadFrac);
 
     // ---- Base (Android-primary; falls back to iOS for an iOS-only project) ----
     final bgLightSrc = aSplash?.background ?? iSplash?.background ?? '#FFFFFF';
@@ -102,11 +111,13 @@ class SplashConfigWriter {
       }
       final iLogo = iSplash.image ?? aSplash.image ?? _fallbackLogo;
       if (iLogo != null && iLogo != logoSrc) {
-        iosLogoB64 = _b64(_logoPng(iLogo));
+        iosLogoB64 =
+            _b64(_logoPng(iLogo, canvasDp: logoCanvasDp, safeDp: logoSafeDp));
       }
       final iLogoDark = iSplash.imageDark ?? aSplash.imageDark;
       if (iLogoDark != null && iLogoDark != logoDarkSrc) {
-        iosLogoDarkB64 = _b64(_logoPng(iLogoDark));
+        iosLogoDarkB64 = _b64(
+            _logoPng(iLogoDark, canvasDp: logoCanvasDp, safeDp: logoSafeDp));
       }
       if (iSplash.logoSizePt != _logoSizeDp) iosLogoSize = iSplash.logoSizePt;
     }
@@ -114,8 +125,13 @@ class SplashConfigWriter {
     final out = splashConfigDart(
       bgLightArgb: SvgColor.parse(bgLightSrc).argb,
       bgDarkArgb: SvgColor.parse(bgDarkSrc).argb,
-      logoB64: logoSrc == null ? null : _b64(_logoPng(logoSrc)),
-      logoDarkB64: logoDarkSrc == null ? null : _b64(_logoPng(logoDarkSrc)),
+      logoB64: logoSrc == null
+          ? null
+          : _b64(_logoPng(logoSrc, canvasDp: logoCanvasDp, safeDp: logoSafeDp)),
+      logoDarkB64: logoDarkSrc == null
+          ? null
+          : _b64(_logoPng(logoDarkSrc,
+              canvasDp: logoCanvasDp, safeDp: logoSafeDp)),
       brandingLightB64: brandingLightB64,
       brandingDarkB64: brandingDarkB64,
       brandingText: brandingText,
@@ -131,7 +147,7 @@ class SplashConfigWriter {
       brandingBottomDp: aSplash?.brandingBottomPadding ?? 48,
       bgImageLightB64: bgImgLightB64,
       bgImageDarkB64: bgImgDarkB64,
-      logoSizeDp: _logoSizeDp,
+      logoSizeDp: logoCanvasDp.round(),
       iosBgLightArgb: iosBgLight,
       iosBgDarkArgb: iosBgDark,
       iosLogoB64: iosLogoB64,
@@ -181,33 +197,53 @@ class SplashConfigWriter {
 
   // --------------------------------------------------------------- rasterising
 
-  /// PNG bytes of the centre logo at [_logoPx]² (transparent), or null.
-  Uint8List? _logoPng(String source) {
+  /// PNG bytes of the centre logo, transparent, with the art's bounding box
+  /// inscribed in the [safeDp] safe circle of a [canvasDp]² box — the same
+  /// Android-12 keyline the native splash icon uses, so the in-app logo matches
+  /// it when displayed at a [canvasDp] box. Null when the source is missing.
+  Uint8List? _logoPng(String source,
+      {required double canvasDp, required double safeDp}) {
     final abs = loader.resolveAsset(source);
     if (!File(abs).existsSync()) return null;
     final ext = p.extension(abs).toLowerCase();
-    const px = _logoPx;
+    final px = (canvasDp * 4).round(); // 4× the box → crisp on high-DPI
     if (ext == '.svg') {
       final doc = _parse(abs);
       if (doc == null) return null;
-      // Fit the art into ~85% of the box, centred — a comfortable splash logo.
-      return img.encodePng(
-          const SvgRasterizer().rasterize(doc, px, fitFraction: 0.85));
+      final art = doc.artBounds();
+      final w = (art?.width ?? doc.viewportWidth).abs();
+      final h = (art?.height ?? doc.viewportHeight).abs();
+      return img.encodePng(const SvgRasterizer().rasterize(doc, px,
+          fitFraction: _keylineFit(w, h, canvasDp, safeDp)));
     }
     if (_isRaster(ext)) {
       final src = img.decodeImage(File(abs).readAsBytesSync());
       if (src == null) return null;
+      final tight = _trim(src); // ignore the source's own transparent margin
+      final fit = _keylineFit(
+          tight.width.toDouble(), tight.height.toDouble(), canvasDp, safeDp);
       final canvas = img.Image(width: px, height: px, numChannels: 4);
-      final box = px * 0.7;
-      final s = math.min(box / src.width, box / src.height);
-      final w = (src.width * s).round().clamp(1, px);
-      final h = (src.height * s).round().clamp(1, px);
-      final scaled = ImageRasterizer.resizeSmart(src, w, h);
+      final longest = math.max(tight.width, tight.height);
+      final s = longest == 0 ? 1.0 : (px * fit) / longest;
+      final w = (tight.width * s).round().clamp(1, px);
+      final h = (tight.height * s).round().clamp(1, px);
+      final scaled = ImageRasterizer.resizeSmart(tight, w, h);
       img.compositeImage(canvas, scaled,
           dstX: ((px - w) / 2).round(), dstY: ((px - h) / 2).round());
       return img.encodePng(canvas);
     }
     return null;
+  }
+
+  /// Longest-side fill fraction that inscribes an art bounding box [w]×[h]'s
+  /// diagonal in the [safeDp] safe circle of a [canvasDp]² box — the native
+  /// splash keyline (mirrors the API 31+ icon geometry).
+  static double _keylineFit(
+      double w, double h, double canvasDp, double safeDp) {
+    final longest = math.max(w, h);
+    final diagonal = math.sqrt(w * w + h * h);
+    if (longest == 0 || diagonal == 0) return 0.6;
+    return (longest / diagonal) * (safeDp / canvasDp);
   }
 
   /// Tight wordmark PNG bytes for an image branding (aspect-preserved), or null.

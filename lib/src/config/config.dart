@@ -271,6 +271,7 @@ class AndroidSplashConfig {
     this.backgroundImageDark,
     this.image,
     this.imageDark,
+    this.logoPadding,
     this.animatedIcon,
     this.animatedIconDark,
     this.durationMs = 1000,
@@ -316,6 +317,12 @@ class AndroidSplashConfig {
   /// Dark-mode variant of [image], emitted to `-night` so it shows in system
   /// dark mode (API 31+ and pre-31 alike).
   final String? imageDark;
+
+  /// Extra percent (0–95) the **in-app** splash logo is inset beyond the native
+  /// keyline, for more breathing room. `null`/`0` ⇒ match the native splash
+  /// icon size exactly. (The native splash icon is unaffected — it already
+  /// follows the Android-12 keyline.)
+  final int? logoPadding;
 
   final String? animatedIcon;
   final String? animatedIconDark;

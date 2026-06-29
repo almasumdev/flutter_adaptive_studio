@@ -217,6 +217,7 @@ class ConfigLoader {
       backgroundImageDark: _str(raw['background_image_dark']),
       image: _str(raw['image']),
       imageDark: _str(raw['image_dark']),
+      logoPadding: _int(raw['logo_padding']),
       animatedIcon: _str(raw['animated_icon']),
       animatedIconDark: _str(raw['animated_icon_dark']),
       durationMs: _int(raw['duration']) ?? 1000,

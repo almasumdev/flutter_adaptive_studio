@@ -147,11 +147,15 @@ class _AdaptiveSplashState extends State<AdaptiveSplash>
     if (mounted) setState(() => _show = false);
   }
 
-  /// True when the platform has no Android-12 `SplashScreen` to hand off from —
-  /// any non-Android target, or Android below API 31.
+  /// True only on Android **below API 31** — the one launch with no native
+  /// splash to hand off from. iOS (a static `LaunchScreen`) and Android 12+
+  /// (the system `SplashScreen`) already cover the launch, so the in-app splash
+  /// stays off there by default; opt in everywhere with `force` /
+  /// `showOnAllVersions`. A failed SDK probe (null) counts as "has native", so
+  /// a modern device is never double-splashed.
   static bool _noNativeAnimatedSplash() {
     final sdk = _androidSdkInt();
-    return sdk == null || sdk < 31;
+    return sdk != null && sdk < 31;
   }
 
   @override

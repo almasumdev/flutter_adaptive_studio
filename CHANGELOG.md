@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.20.0
+
+### In-app splash: native-matched logo + clearer timing
+
+**Logo size now matches the native splash icon.** The in-app `AdaptiveSplash`
+logo is sized to the Android-12 keyline — the art's bounding box inscribed in
+the 2/3 safe circle of a 288 dp canvas (240 dp / ⌀160 when `icon_background` is
+set) — so it no longer looks larger than the system splash. New
+**`logo_padding`** (percent) insets it further for extra breathing room.
+
+**Timing is now predictable.** The in-app splash holds for the full `duration`
+**only where there's no native splash to hand off from** — Android < 31. iOS (a
+static `LaunchScreen`) and Android 12+ (the system `SplashScreen`) are **off by
+default** to avoid a double-splash; opt in everywhere with
+`flutter_splash_all_versions: true` or `AdaptiveSplash(force: true, …)`.
+
+- **Breaking:** iOS no longer shows the in-app splash by default (it has its own
+  native launch screen) — enable it with `flutter_splash_all_versions` / `force`
+  if you want it.
+- **Breaking:** the in-app logo default size changed (now matches the native
+  icon instead of a fixed 192 dp box) — set `logo_padding` to fine-tune.
+
 ## 0.19.0
 
 ### Consistent icon padding (mipmap + Play Store match the rest)

@@ -119,6 +119,7 @@ flutter_adaptive_studio:
     #   # --- in-app Flutter splash (AdaptiveSplash) ---
     #   flutter_splash_all_versions: false        # show the in-app splash on every OS version
     #                                             #   (default: only where there's no native one, API < 31)
+    #   logo_padding: 0                           # extra % the in-app logo is inset (0 = match the native icon)
     #   # --- animated centre icon, instead of the static `image` above ---
     #   animated_icon: assets/logo_anim.xml       # ready-made AnimatedVectorDrawable (.xml), used as-is
     #   animated_icon_dark: assets/logo_anim_dark.xml
