@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.22.1
+
+### Packaging
+
+- The logo now ships as a pub.dev `screenshots:` entry, so it shows as the listing
+  thumbnail beside search results instead of being embedded in the README header.
+  `images/logo.webp` is included in the package for pub.dev to read.
+
 ## 0.22.0
 
 ### iOS splash: full-bleed background image
@@ -21,9 +29,6 @@
 - The `example/` app is trimmed to a single icon source (one `app_icon.webp` drives
   every launcher icon and a static splash), so the sample reads at a glance. No change
   to generated output.
-- The logo moved from the README header to a pub.dev `screenshots:` entry, so it
-  shows as the listing thumbnail in search results; `images/logo.webp` now ships in
-  the package.
 
 ## 0.21.1
 
