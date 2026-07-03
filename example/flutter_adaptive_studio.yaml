@@ -5,35 +5,29 @@
 #   dart run flutter_adaptive_studio generate --flavor dev
 # (or, after `dart pub global activate flutter_adaptive_studio`, just `fas generate`)
 #
-# It produces Android adaptive icons + a native (AnimatedVectorDrawable) splash
-# with a Flutter fallback, and iOS app icons + a launch screen — light & dark,
-# all from the same SVG sources. See `dart run flutter_adaptive_studio init` for
-# a fully-commented reference of every option.
+# It produces Android adaptive icons + a native splash with a Flutter fallback,
+# and iOS app icons + a launch screen, light & dark.
+# See `dart run flutter_adaptive_studio init` for a fully-commented reference of
+# every option.
 
 flutter_adaptive_studio:
-  source: assets/listkin_logo.svg
+  source: assets/app_icon.webp
 
   android:
     icon:
       adaptive:
-        foreground: assets/listkin_logo.svg
-        background: "#fbfaf5"
-        monochrome: assets/listkin_logo_mono.svg   # Android 13 themed icon
-        safe_zone: fit
+        foreground: assets/app_icon.webp            # the app icon mark (lossless WebP, alpha)
+        background: "#141a3a"                        # navy the mark sits on
+        safe_zone: fit                               # centre the mark in the safe zone
       round: true
       play_store: true
-      image: assets/icon.png                        # finished icon for legacy + store
 
     splash:
-      background: "#fbfaf5"
-      background_dark: "#0E1A1C"
-      icon_background: "#fbfaf5"
-      icon_background_dark: "#0E1A1C"
-      image: assets/listkin_logo.svg                # static logo → Flutter fallback + pre-31
-      animated_icon: assets/avd_listkin_light.xml   # API 31+ native animation
-      animated_icon_dark: assets/avd_listkin_dark.xml
-      branding: assets/wordmark.svg
-      branding_dark: assets/wordmark_dark.svg
+      background: "#141a3a"                          # navy, matching the app icon
+      background_dark: "#0b0f1c"
+      icon_background: "#141a3a"
+      icon_background_dark: "#0b0f1c"
+      image: assets/app_icon.webp                   # static centre logo (native + in-app)
       duration: 1200                                # in-app splash hold (ms)
       flutter_splash_all_versions: true             # show AdaptiveSplash on every
                                                     #   version so the demo is visible
@@ -41,18 +35,14 @@ flutter_adaptive_studio:
 
   ios:
     icon:
-      image: assets/listkin_logo.svg
-      background: "#fbfaf5"
-      dark: assets/listkin_logo_dark.svg            # iOS 18 dark appearance
-      background_dark: "#0E1A1C"
-      tinted: assets/listkin_logo_mono.svg          # iOS 18 tinted appearance
+      image: assets/app_icon.webp                   # same finished icon on iOS
+      background: "#141a3a"
     splash:
-      background: "#fbfaf5"
-      background_dark: "#0E1A1C"
-      image: assets/listkin_logo.svg
-      image_dark: assets/listkin_logo_dark.svg
+      background: "#141a3a"
+      background_dark: "#0b0f1c"
+      image: assets/app_icon.webp
 
-  # Per-flavor overrides deep-merge over the base — set only what differs.
+  # Per-flavor overrides deep-merge over the base, so set only what differs.
   flavors:
     dev:
       android:

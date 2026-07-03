@@ -41,7 +41,7 @@ class IosConfig {
   final IosSplashConfig? splash;
 }
 
-/// iOS launch-screen configuration. iOS has no SplashScreen API — this drives a
+/// iOS launch-screen configuration. iOS has no SplashScreen API. This drives a
 /// `LaunchScreen.storyboard` via a centred-logo imageset + a background colour
 /// set (both light/dark). Unset values fall back to the Android splash / root
 /// source, so one config can cover both platforms.
@@ -50,6 +50,8 @@ class IosSplashConfig {
   const IosSplashConfig({
     this.background,
     this.backgroundDark,
+    this.backgroundImage,
+    this.backgroundImageDark,
     this.image,
     this.imageDark,
     this.logoSizePt = 192,
@@ -57,6 +59,12 @@ class IosSplashConfig {
 
   final String? background;
   final String? backgroundDark;
+
+  /// Full-bleed image (SVG or raster) painted behind the logo, scaled to fill
+  /// the launch screen. Optional; the solid [background] shows through when
+  /// unset. Falls back to the Android splash `background_image`.
+  final String? backgroundImage;
+  final String? backgroundImageDark;
 
   /// Centred logo (SVG or raster), shown transparent over the background.
   final String? image;
@@ -67,7 +75,7 @@ class IosSplashConfig {
 }
 
 /// iOS app-icon configuration. iOS icons are a single square drawn as-is (the
-/// system rounds the corners) and **must be opaque** — so a [background] is
+/// system rounds the corners) and **must be opaque**, so a [background] is
 /// composited under any transparency. One [image] (SVG or raster) drives every
 /// size; [dark] and [tinted] add the iOS 18 appearance variants.
 @immutable
@@ -94,7 +102,7 @@ class IosIconConfig {
   /// Opaque fill for the dark variant.
   final String backgroundDark;
 
-  /// iOS 18 tinted-appearance source — a grayscale mark the system tints
+  /// iOS 18 tinted-appearance source: a grayscale mark the system tints
   /// (optional; flattened on black).
   final String? tinted;
 
@@ -182,7 +190,7 @@ class AdaptiveConfig {
     this.safeZone = const SafeZone.fit(),
   });
 
-  /// Foreground source (SVG/vector or — later — raster).
+  /// Foreground source (SVG/vector or, later, raster).
   final String? foreground;
 
   /// Either a hex colour (`#RRGGBB`) or a path to an SVG/image.
@@ -309,7 +317,7 @@ class AndroidSplashConfig {
   final String? backgroundImage;
   final String? backgroundImageDark;
 
-  /// Static centre logo (SVG or raster). Used when no [animatedIcon] is given —
+  /// Static centre logo (SVG or raster). Used when no [animatedIcon] is given:
   /// the common "logo in the middle" splash. Wired to the API 31+
   /// `windowSplashScreenAnimatedIcon` slot (which also accepts a still drawable)
   /// and the centred layer of the pre-31 splash.
@@ -319,16 +327,16 @@ class AndroidSplashConfig {
   /// dark mode (API 31+ and pre-31 alike).
   final String? imageDark;
 
-  /// Extra percent (0–95) the **in-app** splash logo is inset beyond the native
+  /// Extra percent (0-95) the **in-app** splash logo is inset beyond the native
   /// keyline, for more breathing room. `null`/`0` ⇒ match the native splash
-  /// icon size exactly. (The native splash icon is unaffected — it already
+  /// icon size exactly. (The native splash icon is unaffected: it already
   /// follows the Android-12 keyline.)
   final int? logoPadding;
 
   final String? animatedIcon;
   final String? animatedIconDark;
 
-  /// Native API 31+ animated-icon playback length (ms) — the
+  /// Native API 31+ animated-icon playback length (ms): the
   /// `windowSplashScreenAnimationDuration`. Only applies with an [animatedIcon].
   final int durationMs;
 
@@ -346,7 +354,7 @@ class AndroidSplashConfig {
   final String? branding;
   final String? brandingDark;
 
-  /// Text branding shown when no [branding] image is given — rendered to a
+  /// Text branding shown when no [branding] image is given, rendered to a
   /// bottom wordmark (rasterised with a built-in font for the native splash, a
   /// crisp `Text` widget in the Flutter fallback). Ignored if [branding] is set.
   final String? brandingText;
@@ -400,9 +408,9 @@ class AndroidSplashConfig {
   final SystemBarIconBrightness? navigationBarIconBrightnessDark;
 
   /// Encoding for the pre-31 raster splash logo (`drawable-*/splash_icon_legacy`).
-  /// The centre logo is rasterised — not a VectorDrawable — because
+  /// The centre logo is rasterised, not a VectorDrawable, because
   /// `windowBackground` is inflated before AppCompat's vector support and a
-  /// vector silently fails to paint on API 21–23. PNG is the safe default; WebP
+  /// vector silently fails to paint on API 21-23. PNG is the safe default; WebP
   /// (lossless) is smaller and resolves identically on API 18+.
   final ImageFormat imageFormat;
 

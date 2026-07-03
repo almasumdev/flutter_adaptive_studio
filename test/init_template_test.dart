@@ -7,7 +7,7 @@ import 'package:yaml/yaml.dart';
 
 /// Every documented config **option**, as a nested tree mirroring the YAML (the
 /// top-level `flutter_adaptive_studio:` wrapper and the `flavors:` override
-/// mechanism are structural, not options — the loader-key backstop test below
+/// mechanism are structural, not options: the loader-key backstop test below
 /// covers those). This is the contract: every key here must be documented in the
 /// `init` starter **under its correct parent**. A leaf value of `null` just marks
 /// "this is a documented option"; the structure (the nesting) is what's asserted.
@@ -120,7 +120,7 @@ Map<dynamic, dynamic> _starterTree(String projectRoot) {
     // with no leading marker (already-active YAML) pass through untouched.
     final m = RegExp(r'^(\s*)#\s?(.*)$').firstMatch(line);
     final candidate = m == null ? line : '${m.group(1)}${m.group(2)}';
-    // Keep only real key lines; drop prose ("This starter lists…"), banners and
+    // Keep only real key lines; drop prose ("This starter lists..."), banners and
     // "# --- section ---" rules, which aren't valid YAML.
     if (keyLine.hasMatch(candidate)) yaml.writeln(candidate);
   }
@@ -137,7 +137,7 @@ void main() {
   test('init starter documents every config key under its correct parent', () {
     // Structural guard: parse the tree the starter documents and assert every
     // schema path is present at the right place. This is what catches a key
-    // that's documented in one section but missing from another — the exact
+    // that's documented in one section but missing from another, the exact
     // "ios.icon.background_dark was absent" bug.
     final documented = _paths(_starterTree(project.path));
     final expected = _paths(_schema);
@@ -149,8 +149,8 @@ void main() {
   test('init starter mentions every key the loader parses (new-key backstop)',
       () {
     // Auto-derived backstop: scrape every `['snake_case']` the loader reads from
-    // its own source and assert the starter mentions each. Needs no maintenance
-    // — it flags a brand-new option wired into the loader but never documented,
+    // its own source and assert the starter mentions each. Needs no maintenance:
+    // it flags a brand-new option wired into the loader but never documented,
     // even before it's added to _schema above.
     Initializer(
             projectRoot: project.path, logger: Logger(level: LogLevel.quiet))

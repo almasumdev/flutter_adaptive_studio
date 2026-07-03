@@ -1,8 +1,8 @@
 /// Pure-Dart SVG → PNG rasteriser.
 ///
-/// Renders the subset of SVG that [SvgDocument] models — groups, transforms,
+/// Renders the subset of SVG that [SvgDocument] models: groups, transforms,
 /// `<path>` and the basic shapes (all normalised to path data), solid fills and
-/// strokes — with no Flutter engine and no system tools. This is what lets a
+/// strokes, with no Flutter engine and no system tools. This is what lets a
 /// single SVG drive *every* output: the adaptive layers go out as vector
 /// (VectorDrawable), while the legacy mipmaps and the 512² store icon are
 /// rasterised here.
@@ -55,7 +55,7 @@ class SvgRasterizer implements Rasterizer {
   ///
   /// [fitFraction] controls framing: `null` maps the whole viewBox onto the
   /// canvas (use for finished, full-bleed icons); a value like `0.95` instead
-  /// scales the *art's bounding box* to that fraction of the canvas, centred —
+  /// scales the *art's bounding box* to that fraction of the canvas, centred,
   /// so a logo with generous internal margins fills the icon properly (more
   /// pixels per feature = crisp, not a small soft logo lost in padding).
   ///

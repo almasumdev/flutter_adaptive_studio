@@ -25,7 +25,7 @@ class Logger {
   LogLevel level;
 
   /// Per the design principle, a missing optional asset is a *skip*, not a
-  /// failure — surfaced via [skip] so the user always knows what was omitted.
+  /// failure, surfaced via [skip] so the user always knows what was omitted.
   void skip(String message) => _line(stdout, '  ~ skip: $message');
 
   /// Logs a top-level pipeline step to stdout.

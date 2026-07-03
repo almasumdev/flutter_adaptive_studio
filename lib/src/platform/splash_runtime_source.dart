@@ -1,7 +1,7 @@
 /// The self-contained runtime that the CLI bakes into the user's
 /// `fas_splash.g.dart` (see [splashConfigDart]). It's a single raw string of
-/// Dart so the generated file depends on **nothing but `package:flutter`** — no
-/// `flutter_adaptive_studio`, no `image`/`xml`, no `package:ffi` — which is what
+/// Dart so the generated file depends on **nothing but `package:flutter`** (no
+/// `flutter_adaptive_studio`, no `image`/`xml`, no `package:ffi`), which is what
 /// lets the app stay conflict-free.
 ///
 /// Kept as a string (not a real library) on purpose: the published package is a
@@ -14,7 +14,7 @@ library;
 /// `fasSplash` instance are written separately by [splashConfigDart]; the
 /// `_b64` helper is appended only when there are embedded bytes.
 const String splashRuntimeSource = r'''
-/// Immutable splash configuration consumed by [AdaptiveSplash]. Generated — all
+/// Immutable splash configuration consumed by [AdaptiveSplash]. Generated: all
 /// colours are 0xAARRGGBB ints and all artwork is pre-rasterised PNG bytes.
 @immutable
 class FasSplashConfig {
@@ -72,7 +72,7 @@ class FasSplashConfig {
   /// Centre-logo edge length (logical px).
   final double logoSize;
 
-  /// iOS overrides — used on iOS to match the iOS LaunchScreen (null = reuse the
+  /// iOS overrides, used on iOS to match the iOS LaunchScreen (null = reuse the
   /// values above). Branding is never drawn on iOS.
   final int? iosBackgroundLight;
   final int? iosBackgroundDark;
@@ -104,7 +104,7 @@ class AdaptiveSplash extends StatefulWidget {
   /// The generated configuration (`fasSplash`).
   final FasSplashConfig config;
 
-  /// Your app — typically the `MaterialApp`. It builds underneath the splash.
+  /// Your app, typically the `MaterialApp`. It builds underneath the splash.
   final Widget child;
 
   /// Optional readiness signal: the splash is held until BOTH this future
@@ -147,7 +147,7 @@ class _AdaptiveSplashState extends State<AdaptiveSplash>
     if (mounted) setState(() => _show = false);
   }
 
-  /// True only on Android **below API 31** — the one launch with no native
+  /// True only on Android **below API 31**, the one launch with no native
   /// splash to hand off from. iOS (a static `LaunchScreen`) and Android 12+
   /// (the system `SplashScreen`) already cover the launch, so the in-app splash
   /// stays off there by default; opt in everywhere with `force` /
@@ -279,7 +279,7 @@ class _SplashView extends StatelessWidget {
 }
 
 /// Keeps the **native** splash on screen while your app finishes starting up
-/// (no white flash). Pure Flutter framework — defers the first frame until you
+/// (no white flash). Pure Flutter framework that defers the first frame until you
 /// call [remove]. Drop-in for `flutter_native_splash`'s `preserve`/`remove`.
 class FasNativeSplash {
   FasNativeSplash._();
@@ -303,7 +303,7 @@ class FasNativeSplash {
     if (maxDuration != null) {
       _failsafe = Timer(maxDuration, () {
         if (_binding != null) {
-          debugPrint('FasNativeSplash: maxDuration elapsed before remove() — '
+          debugPrint('FasNativeSplash: maxDuration elapsed before remove(); '
               'releasing the splash as a failsafe.');
           remove();
         }
@@ -311,7 +311,7 @@ class FasNativeSplash {
     }
   }
 
-  /// Lets Flutter paint its first frame. Call once your app is ready —
+  /// Lets Flutter paint its first frame. Call once your app is ready. It is
   /// idempotent, and a no-op if [preserve] was never called.
   static void remove() {
     _failsafe?.cancel();
@@ -323,7 +323,7 @@ class FasNativeSplash {
 
 // Android API level via libc's __system_property_get, using only core dart:ffi
 // (no package:ffi) so the app needs no extra dependency. Returns null off
-// Android or on any failure — the splash then just shows (harmless). dart:ffi
+// Android or on any failure, and the splash then just shows (harmless). dart:ffi
 // is unavailable on web, so the generated splash targets Android + iOS.
 typedef _PropGetC = Int32 Function(Pointer<Uint8>, Pointer<Uint8>);
 typedef _PropGetDart = int Function(Pointer<Uint8>, Pointer<Uint8>);

@@ -1,4 +1,4 @@
-/// Generates an HTML "OEM mask preview" sheet — the composed adaptive icon
+/// Generates an HTML "OEM mask preview" sheet: the composed adaptive icon
 /// rendered under the common launcher mask shapes (circle, squircle, rounded
 /// square, square), plus the monochrome themed-icon preview. This brings the
 /// Android-Studio "preview across masks" experience to the CLI so a dev can
@@ -94,7 +94,7 @@ class PreviewGenerator {
 
     return '''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<title>flutter_adaptive_studio — icon preview</title>
+<title>flutter_adaptive_studio icon preview</title>
 <style>
   body { font-family: system-ui, sans-serif; background:#fafafa; color:#222;
          margin:32px; }
@@ -107,7 +107,7 @@ class PreviewGenerator {
   p.note { color:#888; font-size:12px; max-width:640px; }
 </style></head>
 <body>
-  <h1>Adaptive icon — launcher mask preview</h1>
+  <h1>Adaptive icon: launcher mask preview</h1>
   <p class="note">The same 108dp adaptive icon under common OEM masks. If the
   artwork is clipped in any tile, tighten <code>safe_zone</code>.</p>
   <div class="row">

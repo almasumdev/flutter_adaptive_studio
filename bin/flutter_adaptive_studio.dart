@@ -42,13 +42,13 @@ void main(List<String> args) {
   }
 
   if (opts['help'] as bool) {
-    stdout.writeln('flutter_adaptive_studio — Android & iOS icons & splash\n');
+    stdout.writeln('flutter_adaptive_studio: Android & iOS icons & splash\n');
     stdout.writeln(
         'Usage: dart run flutter_adaptive_studio <command> [options]\n'
         '   or: fas <command> [options]   (after `dart pub global activate`)\n');
     stdout.writeln('Commands:');
     stdout.writeln('  init       Write a starter config into the project');
-    stdout.writeln('  sync       Add new config options (commented) — keeps '
+    stdout.writeln('  sync       Add new config options (commented), keeping '
         'your values');
     stdout.writeln('  generate   Generate icons + splash (default)');
     stdout.writeln('  doctor     Validate config + environment');

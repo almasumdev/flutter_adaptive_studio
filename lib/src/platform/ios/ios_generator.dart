@@ -39,7 +39,7 @@ class IosGenerator extends PlatformGenerator {
 
     final paths = IosPaths(loader.projectRoot);
     if (!paths.exists) {
-      logger.warn('No ios/ folder at ${loader.projectRoot} — skipping.');
+      logger.warn('No ios/ folder at ${loader.projectRoot}; skipping.');
       report.skipped.add('ios (no ios/ folder)');
       return report;
     }

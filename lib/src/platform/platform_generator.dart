@@ -1,5 +1,5 @@
 /// Platform abstraction. Implementing a new platform (iOS, web, macOS, windows)
-/// is "add a [PlatformGenerator]" — nothing in the Android path hard-codes a
+/// is "add a [PlatformGenerator]": nothing in the Android path hard-codes a
 /// platform assumption, which keeps the other gates open by design.
 library;
 

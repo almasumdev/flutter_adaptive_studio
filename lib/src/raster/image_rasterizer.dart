@@ -1,9 +1,9 @@
 /// Pure-Dart raster backend (the `image` package). Handles raster sources
-/// (PNG/JPG/WebP/…) only — it cannot read SVG. Always available, no system
+/// (PNG/JPG/WebP/...) only. It cannot read SVG. Always available, no system
 /// dependency.
 ///
 /// Resampling beats the incumbents: box-average on downscale (sharp, no moiré),
-/// cubic on upscale — vs flutter_launcher_icons, which avoids cubic entirely.
+/// cubic on upscale (vs flutter_launcher_icons, which avoids cubic entirely).
 library;
 
 import 'dart:io';
@@ -81,7 +81,7 @@ class ImageRasterizer implements Rasterizer {
 
   /// Renders [sourcePath] into a transparent [canvasPx]² PNG, scaled (aspect
   /// preserved) so its longest side fills [fillFraction] of the canvas and
-  /// centred — i.e. an adaptive-icon layer with the source fit into the safe
+  /// centred, i.e. an adaptive-icon layer with the source fit into the safe
   /// zone. Works for any raster source; no system tool needed.
   bool renderFittedPng({
     required String sourcePath,
@@ -144,7 +144,7 @@ class ImageRasterizer implements Rasterizer {
     return true;
   }
 
-  /// Applies a rounded-square alpha mask to a PNG in place — gives the legacy
+  /// Applies a rounded-square alpha mask to a PNG in place. Gives the legacy
   /// `ic_launcher` the standard launcher icon shape instead of a hard square.
   static void maskRoundedRectInPlace(String path,
       {double radiusFraction = 0.2}) {
@@ -154,7 +154,7 @@ class ImageRasterizer implements Rasterizer {
         .writeAsBytesSync(img.encodePng(_maskRounded(src, radiusFraction)));
   }
 
-  /// Applies a circular alpha mask to a PNG in place — used for the legacy
+  /// Applies a circular alpha mask to a PNG in place, used for the legacy
   /// `ic_launcher_round` so pre-API-26 launchers get a real round icon.
   static void maskCircleInPlace(String path) {
     final src = img.decodeImage(File(path).readAsBytesSync());
@@ -167,7 +167,7 @@ class ImageRasterizer implements Rasterizer {
   /// [sizePx]² canvas at [inset], and optionally adds the elevate effect.
   ///
   /// The caller renders [inner] at *exactly* the inner size. For SVG that's a
-  /// direct rasterisation (no resampling) — which avoids the box-average grid
+  /// direct rasterisation (no resampling), which avoids the box-average grid
   /// `copyResize` leaves on flat fills at non-integer downscale ratios.
   static bool shapeIconImage({
     required img.Image inner,
@@ -222,7 +222,7 @@ class ImageRasterizer implements Rasterizer {
   }
 
   /// Multiplies each pixel's alpha by its coverage of [inside], estimated with
-  /// 8×8 supersampling (64 levels) — this is what gives the mask smooth,
+  /// 8×8 supersampling (64 levels). This is what gives the mask smooth,
   /// anti-aliased edges instead of stair-stepped ones. Only edge pixels pay the
   /// cost; fully-inside pixels are skipped.
   static void _applyCoverage(
@@ -236,14 +236,14 @@ class ImageRasterizer implements Rasterizer {
           if (inside(pixel.x + (i + 0.5) / n, pixel.y + (j + 0.5) / n)) hits++;
         }
       }
-      if (hits == n * n) continue; // fully inside — leave as-is
+      if (hits == n * n) continue; // fully inside, leave as-is
       pixel.a = (pixel.a * hits / (n * n)).round();
     }
   }
 
   /// Quality resize. Enlarging uses cubic; shrinking **halves repeatedly**
   /// (never more than 2× per step) before the final step. This is Android Asset
-  /// Studio's `drawImageScaled` technique — a single large box-average leaves an
+  /// Studio's `drawImageScaled` technique: a single large box-average leaves an
   /// aliasing grid on flat fills, while stepped halving stays clean.
   static img.Image resizeSmart(img.Image src, int w, int h) {
     if (w >= src.width && h >= src.height) {

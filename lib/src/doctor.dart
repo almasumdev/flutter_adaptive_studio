@@ -1,4 +1,4 @@
-/// `doctor` — validates config + environment before generating. Reports what's
+/// `doctor` validates config + environment before generating. Reports what's
 /// configured, whether referenced sources exist, and which rasteriser backend
 /// is available, without writing anything.
 library;

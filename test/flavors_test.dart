@@ -46,11 +46,11 @@ flutter_adaptive_studio:
       logger: Logger(level: LogLevel.quiet),
     ).run();
 
-    // Output lands in src/dev/res with the OVERRIDDEN background colour…
+    // Output lands in src/dev/res with the OVERRIDDEN background colour...
     final devColors = File(res('dev', 'values/colors.xml'));
     expect(devColors.existsSync(), isTrue);
     expect(devColors.readAsStringSync(), contains('#00C853'));
-    // …and the base foreground is still inherited (adaptive xml written).
+    // ...and the base foreground is still inherited (adaptive xml written).
     expect(File(res('dev', 'mipmap-anydpi-v26/ic_launcher.xml')).existsSync(),
         isTrue);
     // The dev run does not touch main/res.
@@ -67,7 +67,7 @@ flutter_adaptive_studio:
   });
 
   test(
-      'a flavor accepts the full root schema — can add a section the base lacks',
+      'a flavor accepts the full root schema: can add a section the base lacks',
       () {
     // Base has only an icon; the flavor introduces a whole splash block.
     File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
@@ -91,9 +91,9 @@ flutter_adaptive_studio:
       logger: Logger(level: LogLevel.quiet),
     ).run();
 
-    // The flavor-added splash is generated…
+    // The flavor-added splash is generated...
     expect(File(res('full', 'values-v31/styles.xml')).existsSync(), isTrue);
-    // …and the inherited base icon is still generated for that flavor.
+    // ...and the inherited base icon is still generated for that flavor.
     expect(File(res('full', 'mipmap-anydpi-v26/ic_launcher.xml')).existsSync(),
         isTrue);
   });

@@ -4,7 +4,7 @@
 /// "safe zone" that survives every launcher mask. Our quality win over the
 /// incumbents (which paste the full image and lean on a blind XML `<inset>`) is
 /// to **measure the real art bounding box and scale it to fit the safe zone**,
-/// centred — so circular, squircle, and rounded-square masks all look right.
+/// centred, so circular, squircle, and rounded-square masks all look right.
 library;
 
 import '../config/config.dart';
@@ -52,12 +52,12 @@ class AdaptiveGeometry {
       };
 
   /// Padding (0..1) the foreground is inset by inside the safe zone. The user
-  /// picks any percentage 0–100; 0 = flush to the masked edge, 100 = vanishing.
+  /// picks any percentage 0-100; 0 = flush to the masked edge, 100 = vanishing.
   static double paddingFraction(SafeZone zone) => zone.mode == SafeZoneMode.none
       ? 0
       : (zone.insetPercent / 100).clamp(0, 1).toDouble();
 
-  /// Foreground target as a fraction of the full 108dp canvas — used by raster
+  /// Foreground target as a fraction of the full 108dp canvas, used by raster
   /// layers that fit a source into the layer bitmap rather than a `<group>`.
   static double canvasFillFraction(SafeZone zone) => _targetSide(zone) / canvas;
 }

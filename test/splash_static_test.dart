@@ -79,22 +79,22 @@ flutter_adaptive_studio:
     expect(bScale, isNotNull);
     expect(double.parse(bScale!.group(1)!), closeTo(0.75, 0.001));
 
-    // API 31+ theme wires both the icon slot and the branding image, and —
-    // because this is a *static* logo — omits the animation duration.
+    // API 31+ theme wires both the icon slot and the branding image, and
+    // (because this is a *static* logo) omits the animation duration.
     final v31 = File(res('values-v31/styles.xml')).readAsStringSync();
     expect(v31, contains('windowSplashScreenAnimatedIcon'));
     expect(v31, contains('@drawable/splash_icon'));
     expect(v31, contains('windowSplashScreenBrandingImage'));
     expect(v31, contains('@drawable/splash_branding'));
     expect(v31, isNot(contains('windowSplashScreenAnimationDuration')));
-    // postSplashScreenTheme is a compat-library-only attr — must never be
+    // postSplashScreenTheme is a compat-library-only attr. Must never be
     // emitted into the framework v31 theme (it fails to link).
     expect(v31, isNot(contains('postSplashScreenTheme')));
 
     // Pre-31 layer-list centres the icon and pins branding to the bottom. BOTH
     // the centre logo AND the branding are RASTERS (`splash_icon_legacy`,
-    // `splash_branding_legacy`), not the v31 vectors — a VectorDrawable in
-    // windowBackground doesn't paint on API 21–23.
+    // `splash_branding_legacy`), not the v31 vectors: a VectorDrawable in
+    // windowBackground doesn't paint on API 21-23.
     final launch =
         File(res('drawable/launch_background.xml')).readAsStringSync();
     expect(launch, contains('@drawable/splash_icon_legacy'));
@@ -158,7 +158,7 @@ flutter_adaptive_studio:
       logger: Logger(level: LogLevel.quiet),
     ).run();
 
-    // No generated folder, widget, guide, or keeper drop-in anymore — the widget
+    // No generated folder, widget, guide, or keeper drop-in anymore. The widget
     // (AdaptiveSplash) and keeper (FasNativeSplash) both ship in the package.
     expect(
         Directory(p.join(project.path, 'flutter_adaptive_studio')).existsSync(),

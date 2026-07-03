@@ -5,7 +5,7 @@
 /// foreground-over-background SVG. Rasterisation goes through the pluggable
 /// [RasterizerFactory] (pure-Dart for raster sources, a detected system tool for
 /// SVG). If no backend can handle the source, the outputs are skipped with a
-/// clear message — never a hard failure.
+/// clear message, never a hard failure.
 library;
 
 import 'dart:io';
@@ -67,7 +67,7 @@ class AndroidLegacyIcons {
     if (emitLegacy) {
       _mipmap.forEach((density, px) {
         // Each density is rendered straight at its target size (SVG: a direct
-        // rasterisation — no resample, no grid). Geometry matches Android
+        // rasterisation, no resample, no grid). Geometry matches Android
         // Studio / Asset Studio's square target (5,5,38,38 in 48dp): ~10.4%
         // inset, ~8% corner radius.
         _shapeDensity(prepared, px, density, '$name$ext', report,
@@ -85,12 +85,12 @@ class AndroidLegacyIcons {
               format: fmt);
         }
         // A same-name PNG from a previous (png) run would shadow a new webp
-        // resource of the same name — drop any stale sibling.
+        // resource of the same name. Drop any stale sibling.
         _removeStaleMipmap(density, name, ext, report);
       });
       logger.step(
-          'legacy mipmaps (48–192px${iconConfig.round ? ' + round' : ''}, '
-          '${fmt.name}) — pure Dart');
+          'legacy mipmaps (48-192px${iconConfig.round ? ' + round' : ''}, '
+          '${fmt.name}), pure Dart');
     }
 
     if (emitPlayStore) {
@@ -173,7 +173,7 @@ class AndroidLegacyIcons {
   /// adaptive foreground; either way the art is inset to match the adaptive
   /// foreground (see [_composePadding]) so every generated icon shares one
   /// framing. SVG defers to a direct per-size render (sharpest, grid-free);
-  /// raster composes a high-res master once. Returns null — with a clear skip —
+  /// raster composes a high-res master once. Returns null (with a clear skip)
   /// when no source can be used.
   _Source? _prepareSource(GenerationReport report) {
     final String rel;
@@ -208,7 +208,7 @@ class AndroidLegacyIcons {
     // foreground and the iOS icon. An explicit `legacy_padding` wins, else the
     // adaptive `safe_zone`, else the package default. A genuinely finished
     // `icon.image` with no inset intent (no adaptive safe zone and no
-    // `legacy_padding`) is still used full-bleed — set `legacy_padding: 0` to
+    // `legacy_padding`) is still used full-bleed. Set `legacy_padding: 0` to
     // force that explicitly.
     final insetArt =
         !fullIcon || adaptive != null || iconConfig.legacyPadding != null;
@@ -258,7 +258,7 @@ class AndroidLegacyIcons {
   }
 
   /// Fraction (0..1) the composed legacy/store art is inset from the tile edge.
-  /// An explicit `legacy_padding` (percent, clamped 0–95) wins; otherwise it
+  /// An explicit `legacy_padding` (percent, clamped 0-95) wins; otherwise it
   /// follows the adaptive safe zone, then the package default.
   double _composePadding() {
     final lp = iconConfig.legacyPadding;
@@ -270,7 +270,7 @@ class AndroidLegacyIcons {
 }
 
 /// Produces a background-filled square icon image at any size. SVG renders
-/// directly at the requested size (no resampling — avoids the box-average grid
+/// directly at the requested size (no resampling, avoids the box-average grid
 /// on flat fills); a raster source resizes from a once-composed master.
 class _Source {
   _Source.svg(this._doc, this._bgArgb, this._fit)

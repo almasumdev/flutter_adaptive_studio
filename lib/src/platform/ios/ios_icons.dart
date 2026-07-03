@@ -1,7 +1,7 @@
 /// Generates the iOS app icon into `AppIcon.appiconset`.
 ///
 /// iOS draws the icon square as-is (the system rounds the corners), and the App
-/// Store rejects transparency — so every variant is composited onto an opaque
+/// Store rejects transparency, so every variant is composited onto an opaque
 /// [IosIconConfig.background]. One source (SVG or raster) drives a modern
 /// **single-size 1024²** set; optional `dark`/`tinted` add the iOS 18 appearance
 /// variants. The same SVG that drives the Android icon can drive this one.
@@ -72,7 +72,7 @@ class IosIcons {
         ? (1 - iconConfig.padding / 100).clamp(0.1, 1.0).toDouble()
         : null;
 
-    // Standard (light) appearance — required.
+    // Standard (light) appearance. Required.
     if (!_render(abs, SvgColor.parse(iconConfig.background).argb, fit,
         p.join(dir, 'Icon-1024.png'))) {
       report.skipped.add('ios icon (render failed)');
@@ -82,7 +82,7 @@ class IosIcons {
 
     final hasDark = _variant(iconConfig.dark, iconConfig.backgroundDark, fit,
         'Icon-1024-dark.png', 'dark', report);
-    // Tinted is a grayscale mark the system tints — flattened on black.
+    // Tinted is a grayscale mark the system tints, flattened on black.
     final hasTinted = _variant(iconConfig.tinted, '#000000', fit,
         'Icon-1024-tinted.png', 'tinted', report);
 
@@ -120,7 +120,7 @@ class IosIcons {
     } else {
       logger.warn('Flavor "$flavor": no matching iOS build configs found '
           '(checked $flavor.xcscheme and the `*-$flavor` convention). The iOS '
-          'flavor isn\'t set up in Xcode yet — create its scheme/configs (e.g. '
+          'flavor isn\'t set up in Xcode yet. Create its scheme/configs (e.g. '
           'with flutter_flavorizr), then re-run and this wires automatically. '
           'Until then set ASSETCATALOG_COMPILER_APPICON_NAME = $iconName by hand.');
     }
@@ -182,8 +182,8 @@ class IosIcons {
               fillFraction: fit,
               outPath: outPath);
     }
-    logger.skip(
-        'ios icon: unsupported source ($ext) — use SVG or a raster image');
+    logger
+        .skip('ios icon: unsupported source ($ext). Use SVG or a raster image');
     return false;
   }
 

@@ -1,4 +1,4 @@
-/// flutter_adaptive_studio — generator (CLI) API.
+/// The flutter_adaptive_studio generator (CLI) API.
 ///
 /// This is the programmatic surface behind the `flutter_adaptive_studio` command
 /// that writes native icon/splash files. It uses `dart:io`. This is a pure-Dart

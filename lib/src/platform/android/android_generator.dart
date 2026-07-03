@@ -39,7 +39,7 @@ class AndroidGenerator extends PlatformGenerator {
 
     final paths = AndroidPaths(loader.projectRoot, sourceSet: flavor ?? 'main');
     if (!paths.exists) {
-      logger.warn('No android/ folder at ${loader.projectRoot} — skipping.');
+      logger.warn('No android/ folder at ${loader.projectRoot}; skipping.');
       report.skipped.add('android (no android/ folder)');
       return report;
     }

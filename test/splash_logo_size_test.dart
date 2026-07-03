@@ -37,7 +37,7 @@ void main() {
     return (lib.existsSync() ? lib : root).readAsStringSync();
   }
 
-  /// Non-transparent pixel count of the embedded `logo: _b64('…')` art.
+  /// Non-transparent pixel count of the embedded `logo: _b64('...')` art.
   int logoArtPixels(String cfg) {
     final m = RegExp(r"logo: _b64\('([^']*)'\)").firstMatch(cfg);
     expect(m, isNotNull, reason: 'expected an embedded logo');
@@ -51,7 +51,7 @@ void main() {
     return n;
   }
 
-  test('logo box matches the native keyline canvas — 288 dp by default', () {
+  test('logo box matches the native keyline canvas, 288 dp by default', () {
     final cfg = generate('''
 flutter_adaptive_studio:
   android:

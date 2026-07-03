@@ -2,7 +2,7 @@
 ///
 /// Loads an existing file (preserving every other style/item) or creates a
 /// Flutter-shaped one, then lets callers ensure a `<style>` and upsert its
-/// `<item>`s. Re-serialised via the XML DOM — no string surgery.
+/// `<item>`s. Re-serialised via the XML DOM, no string surgery.
 library;
 
 import 'dart:io';

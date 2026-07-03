@@ -1,4 +1,4 @@
-/// `sync` — fills a user's `flutter_adaptive_studio.yaml` with any options it
+/// `sync` fills a user's `flutter_adaptive_studio.yaml` with any options it
 /// doesn't yet mention, added as **commented** placeholders in the right
 /// section, without touching a single existing line.
 ///
@@ -37,7 +37,7 @@ class ConfigSync {
   /// indents commented keys past the `#`.
   static final _keyRe = RegExp(r'^(\s*)(#\s*)?([A-Za-z_][\w]*)\s*:');
 
-  /// Peels a single `# ` so a commented key reads at its uncommented column —
+  /// Peels a single `# ` so a commented key reads at its uncommented column,
   /// matching the starter's convention (and the init template test).
   static final _commentRe = RegExp(r'^(\s*)#\s?(.*)$');
 
@@ -46,7 +46,7 @@ class ConfigSync {
   int run() {
     final file = _locate();
     if (file == null) {
-      logger.warn('No flutter_adaptive_studio.yaml found in $projectRoot — '
+      logger.warn('No flutter_adaptive_studio.yaml found in $projectRoot; '
           'run `init` first.');
       return -1;
     }
@@ -73,7 +73,7 @@ class ConfigSync {
     }
 
     if (inserts.isEmpty) {
-      logger.success('Config already lists every option — nothing to add.');
+      logger.success('Config already lists every option; nothing to add.');
       return 0;
     }
 
@@ -82,7 +82,7 @@ class ConfigSync {
 
     logger.success('Added ${addedKeys.length} option(s) to '
         '${p.relative(file.path, from: projectRoot)} as commented '
-        'placeholders — uncomment what you need.');
+        'placeholders; uncomment what you need.');
     logger.detail('added: ${addedKeys.join(', ')}');
     logger.info('Existing values and formatting were left untouched.');
     return addedKeys.length;
@@ -101,7 +101,7 @@ class ConfigSync {
   /// Parses [lines] into key entries with their dotted path (e.g.
   /// `flutter_adaptive_studio.android.splash.image`), tracking nesting by the
   /// **logical** indent (a commented `#   key:` counts at its uncommented
-  /// column). Prose comments (`# --- … ---`) are ignored.
+  /// column). Prose comments (`# --- ... ---`) are ignored.
   List<_Entry> _parse(List<String> lines) {
     final out = <_Entry>[];
     final stack = <_Entry>[];
@@ -175,7 +175,7 @@ class ConfigSync {
   }
 
   /// Index just past the last line of [header]'s section (trailing blanks
-  /// trimmed) — where new children should go.
+  /// trimmed), where new children should go.
   int _sectionEnd(List<String> lines, List<_Entry> entries, _Entry header) {
     var end = lines.length;
     for (final e in entries) {

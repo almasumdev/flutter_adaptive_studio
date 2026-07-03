@@ -28,11 +28,11 @@ void main() {
         reason: 'run tests from the package root; expected ${exampleDir.path}');
   });
 
-  group('example/lib/fas_splash.g.dart — committed generated splash', () {
+  group('example/lib/fas_splash.g.dart: committed generated splash', () {
     late String src;
     setUp(() {
       expect(committedFile.existsSync(), isTrue,
-          reason: 'the example must ship a generated splash — run '
+          reason: 'the example must ship a generated splash: run '
               '`dart run flutter_adaptive_studio generate -p example`');
       src = committedFile.readAsStringSync();
     });
@@ -50,7 +50,7 @@ void main() {
       expect(src, isNot(contains('package:flutter_adaptive_studio')));
     });
 
-    test('bakes in the whole runtime — config + widget + native-splash keeper',
+    test('bakes in the whole runtime: config + widget + native-splash keeper',
         () {
       expect(src, contains('final FasSplashConfig fasSplash'));
       expect(src, contains('class FasSplashConfig'));
@@ -58,14 +58,13 @@ void main() {
       expect(src, contains('class FasNativeSplash'));
     });
 
-    test('mirrors the example config — colours, timing, themed branding', () {
-      expect(src, contains('backgroundLight: 0xFFFBFAF5')); // #fbfaf5
-      expect(src, contains('backgroundDark: 0xFF0E1A1C')); // #0E1A1C
+    test('mirrors the example config: colours, timing, logo', () {
+      expect(src, contains('backgroundLight: 0xFF141A3A')); // #141a3a
+      expect(src, contains('backgroundDark: 0xFF0B0F1C')); // #0b0f1c
       expect(src, contains('duration: const Duration(milliseconds: 1200)'));
-      expect(src, contains('showOnAllVersions: true')); // flutter_splash_all_…
-      expect(src, contains('brandingLight: _b64(')); // wordmark.svg
-      expect(src, contains('brandingDark: _b64(')); // wordmark_dark.svg
-      expect(src, contains('iosLogoDark: _b64(')); // ios.splash.image_dark
+      expect(src,
+          contains('showOnAllVersions: true')); // flutter_splash_all_versions
+      expect(src, contains('logo: _b64(')); // app_icon.webp baked in
     });
   });
 
@@ -74,7 +73,7 @@ void main() {
       final pubspec =
           File(p.join(exampleDir.path, 'pubspec.yaml')).readAsStringSync();
       expect(pubspec, isNot(contains('flutter_adaptive_studio:')),
-          reason: 'the example must not depend on us — that is exactly the '
+          reason: 'the example must not depend on us. That is exactly the '
               'guarantee the self-contained generated splash exists to make');
     });
 
@@ -90,7 +89,7 @@ void main() {
   test('regenerating the example reproduces lib/fas_splash.g.dart (not stale)',
       () {
     // Faithful end-to-end: copy the example, regenerate into the copy, and
-    // confirm the checked-in file still matches — config AND baked-in runtime.
+    // confirm the checked-in file still matches: config AND baked-in runtime.
     // Comparison is structural: the embedded artwork bytes are normalised out
     // (PNG/WebP encoders aren't byte-stable across image-package versions) and
     // formatting is normalised (the committed file is `dart format`ted, the
@@ -114,7 +113,7 @@ void main() {
     expect(
       _canon(regenFile.readAsStringSync()),
       _canon(committedFile.readAsStringSync()),
-      reason: 'example/lib/fas_splash.g.dart is stale — re-run '
+      reason: 'example/lib/fas_splash.g.dart is stale: re-run '
           '`dart run flutter_adaptive_studio generate -p example` and commit it',
     );
   });
@@ -123,7 +122,7 @@ void main() {
 /// Format-insensitive structural form of a generated splash, so the committed
 /// (`dart format`ted) file and the raw generator output compare equal while any
 /// real change still shows. In order: drop the base64 artwork payloads
-/// (`_b64('…')`), collapse whitespace, tighten the space `dart format` puts
+/// (`_b64('...')`), collapse whitespace, tighten the space `dart format` puts
 /// around delimiters, and drop the trailing commas it inserts before closers.
 String _canon(String s) => s
     .replaceAll(RegExp(r'_b64\([^)]*\)'), '_b64(B)')

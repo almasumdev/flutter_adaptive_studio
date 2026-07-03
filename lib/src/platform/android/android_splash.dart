@@ -1,4 +1,4 @@
-/// Generates the Android splash — the headline feature.
+/// Generates the Android splash, the headline feature.
 ///
 /// API 31+ gets the real `SplashScreen` API wiring: a centre icon (a *static*
 /// drawable generated from `image`, or a ready-made `AnimatedVectorDrawable`
@@ -64,7 +64,7 @@ class AndroidSplash {
 
   /// Pre-31 branding raster, kept distinct from the v31 vector [_branding] (same
   /// reason as [_legacyName]): a VectorDrawable can't paint in `windowBackground`
-  /// on API 21–23, so an SVG branding gets a per-density raster sibling for the
+  /// on API 21-23, so an SVG branding gets a per-density raster sibling for the
   /// launch layer-list while the crisp vector stays in the API 31+ slot.
   static const _legacyBranding = 'splash_branding_legacy';
   static const _bgImage = 'splash_bg';
@@ -72,12 +72,12 @@ class AndroidSplash {
 
   /// Centre-logo box size (dp) in the pre-31 layer-list. The rasters are
   /// rendered at this size per density so the logo is a consistent dp on every
-  /// device — including API 21–22, where the item's `width`/`height` is ignored
+  /// device, including API 21-22, where the item's `width`/`height` is ignored
   /// and the drawable's intrinsic size is used instead.
   static const _legacyBoxDp = 192;
 
   /// Raster (non-SVG) logos have no measurable art bounds, so they fill this
-  /// fraction of the square — a comfortable, mask-free size on the pre-31 splash.
+  /// fraction of the square: a comfortable, mask-free size on the pre-31 splash.
   static const _legacyRasterFill = 0.7;
 
   static const _legacyDensities = {
@@ -122,7 +122,7 @@ class AndroidSplash {
     // ---- Bottom branding image ----
     // Two refs: the crisp vector (slotRef) for the API 31+ branding slot, and a
     // raster (layerRef) for the pre-31 windowBackground (where a vector can't
-    // paint on API 21–23). They're the same name unless the source is an SVG.
+    // paint on API 21-23). They're the same name unless the source is an SVG.
     final branding = _resolveBranding(report);
 
     // ---- API 31+ SplashScreen theme ----
@@ -178,8 +178,9 @@ class AndroidSplash {
       if (changed) {
         report.written.add('AndroidManifest.xml (screenOrientation)');
         logger.step('screenOrientation=${splash.screenOrientation} → manifest');
-        logger.warn('screen_orientation is app-wide and on the shared manifest '
-            '— `revert` will NOT undo it (use version control).');
+        logger
+            .warn('screen_orientation is app-wide and on the shared manifest. '
+                '`revert` will NOT undo it (use version control).');
       }
     }
 
@@ -191,13 +192,13 @@ class AndroidSplash {
   /// Resolves the centre icon into drawables and returns how to wire it: an
   /// `animated_icon` (a ready-made AnimatedVectorDrawable `.xml`, used verbatim)
   /// takes priority; otherwise a static `image`. Animated icons are used **as
-  /// authored** — never keyline-reshaped, since that would break the animation.
+  /// authored**, never keyline-reshaped, since that would break the animation.
   _IconPlan _resolveIcon(GenerationReport report) {
     // The pre-31 windowBackground centre logo is ALWAYS a raster. A
     // VectorDrawable (or AVD) referenced from `windowBackground` is inflated by
     // the platform before AppCompat's vector compat layer is active, so it
-    // silently fails to paint on API 21–23 (you'd see the colour but no logo).
-    // Rasterise the static `image:` instead — a bitmap always renders. (The
+    // silently fails to paint on API 21-23 (you'd see the colour but no logo).
+    // Rasterise the static `image:` instead. A bitmap always renders. (The
     // API 31+ slot below still uses the crisp vector / AVD.)
     final legacyRef = _emitLegacyIcon(report);
 
@@ -207,7 +208,7 @@ class AndroidSplash {
         if (legacyRef == null) {
           logger.warn('pre-31 splash: an animated_icon cannot be a '
               'windowBackground drawable, and no static `image:` (or app logo) '
-              'was available — Android < 12 will show the background colour '
+              'was available. Android < 12 will show the background colour '
               'only. Add a static `image:` for a resting logo there.');
         } else if (splash.image == null) {
           logger.detail('pre-31 splash: using the app logo as the static '
@@ -241,7 +242,7 @@ class AndroidSplash {
 
   /// Rasterises the static centre logo into per-density PNG/WebP under
   /// `drawable-<density>/` (+ `-night`) for the pre-31 windowBackground, and
-  /// returns its resource base name — or null when there's no static `image:`
+  /// returns its resource base name, or null when there's no static `image:`
   /// (an animated-only or background-only splash).
   String? _emitLegacyIcon(GenerationReport report) {
     // Prefer the splash `image:`; otherwise fall back to the app logo so an
@@ -289,7 +290,7 @@ class AndroidSplash {
       var any = false;
       _legacyDensities.forEach((density, mult) {
         final sizePx = (_legacyBoxDp * mult).round();
-        // Transparent canvas (no backgroundArgb) — the layer-list paints the
+        // Transparent canvas (no backgroundArgb). The layer-list paints the
         // colour behind it.
         final image =
             const SvgRasterizer().rasterize(doc, sizePx, fitFraction: fit);
@@ -328,8 +329,8 @@ class AndroidSplash {
       return any;
     }
 
-    logger.skip('pre-31 splash logo "$source": unsupported ($ext) — '
-        'use SVG or a raster image');
+    logger.skip('pre-31 splash logo "$source": unsupported ($ext). '
+        'Use SVG or a raster image');
     report.skipped.add('pre-31 splash logo (unsupported $ext)');
     return false;
   }
@@ -379,8 +380,8 @@ class AndroidSplash {
   /// pre-31 splash; the API 31+ splash takes a colour only (see generate()).
   ///
   /// Because the background image is used ONLY on the pre-31 windowBackground
-  /// (where a VectorDrawable can't paint on API 21–23), an SVG source is
-  /// rasterised to a `drawable[-night]-nodpi` bitmap — a raster always inflates,
+  /// (where a VectorDrawable can't paint on API 21-23), an SVG source is
+  /// rasterised to a `drawable[-night]-nodpi` bitmap: a raster always inflates,
   /// so it can never break the launch background on old devices.
   String? _resolveBackgroundImage(GenerationReport report) {
     final src = splash.backgroundImage;
@@ -418,7 +419,7 @@ class AndroidSplash {
 
   /// Rasterises an SVG fill background to a single `drawable[-night]-nodpi`
   /// bitmap (the layer-list stretches it to the window), so it inflates on API
-  /// 21–23. Rendered at the viewBox aspect (longest side 1024) and cropped to it,
+  /// 21-23. Rendered at the viewBox aspect (longest side 1024) and cropped to it,
   /// so the no-gravity stretch fills full-bleed instead of letterboxing.
   bool _rasterizeFillImage(String source, GenerationReport report,
       {required bool night}) {
@@ -479,7 +480,7 @@ class AndroidSplash {
   /// Emits the bottom branding drawables and returns a [_BrandingPlan] of how to
   /// wire them: `slotRef` feeds the API 31+ branding slot (a crisp vector for an
   /// SVG source), `layerRef` feeds the pre-31 windowBackground (always a raster,
-  /// since a vector can't paint there on API 21–23). A `branding:` image wins;
+  /// since a vector can't paint there on API 21-23). A `branding:` image wins;
   /// otherwise `branding_text:` is rendered to a wordmark. An empty plan
   /// (`slotRef == null`) means no branding was configured/usable.
   _BrandingPlan _resolveBranding(GenerationReport report) {
@@ -560,7 +561,7 @@ class AndroidSplash {
     _legacyDensities.forEach((density, mult) {
       final canvasW = (slotW * mult).round();
       final canvasH = (slotH * mult).round();
-      // Render the art tightly to a square, trim, then letterbox into the slot —
+      // Render the art tightly to a square, trim, then letterbox into the slot,
       // so its aspect matches the slot and the layer can't distort it.
       final rendered = const SvgRasterizer()
           .rasterize(doc, math.max(canvasW, canvasH), fitFraction: 0.95);
@@ -734,8 +735,8 @@ class AndroidSplash {
       return true;
     }
 
-    logger.skip(
-        '$role "$source": unsupported ($ext) — use SVG or a raster image');
+    logger
+        .skip('$role "$source": unsupported ($ext). Use SVG or a raster image');
     report.skipped.add('$role (unsupported $ext)');
     return false;
   }
@@ -743,7 +744,7 @@ class AndroidSplash {
   /// Builds the centre-icon VectorDrawable to the Android 12 SplashScreen
   /// keyline spec so the launcher's circular mask never clips it.
   ///
-  /// The system masks the icon to a centred circle of **2/3 the canvas** —
+  /// The system masks the icon to a centred circle of **2/3 the canvas**:
   /// 288dp canvas / ⌀192dp safe circle (no icon background), or 240/⌀160 (with
   /// one). We **inscribe the art's bounding box in that circle** (diagonal ≤
   /// diameter) so even a square logo's corners stay inside the mask.
@@ -773,7 +774,7 @@ class AndroidSplash {
   /// a tightly-trimmed wide/short wordmark (e.g. ~6:1) gets stretched vertically
   /// to the 2.5:1 slot. By emitting the drawable AT the slot size with the art
   /// scaled-to-fit (aspect preserved) and centred, the drawable's own aspect
-  /// matches the slot — filling it can no longer distort the art.
+  /// matches the slot. Filling it can no longer distort the art.
   String _brandingVd(SvgDocument doc) {
     const slotW = 200.0; // Android branding image slot (dp)
     const slotH = 80.0;
@@ -819,7 +820,7 @@ class AndroidSplash {
   /// `<animated-vector>` (inline base vector + animators via `aapt:attr`);
   /// external `@drawable`/`@anim` references must be added by the developer.
   /// Author it in any AVD tool (e.g. Shapeshifter → "Export → Animated Vector
-  /// Drawable") — we don't transform it, so nothing is lost in conversion.
+  /// Drawable"). We don't transform it, so nothing is lost in conversion.
   bool _copyAvd(String source, String? darkSource, GenerationReport report) {
     final abs = loader.resolveAsset(source);
     final ext = p.extension(abs).toLowerCase();
@@ -859,8 +860,8 @@ class AndroidSplash {
 
   void _warnAnimatedKeyline() {
     logger.warn('Animated splash icons are masked to the 2/3 keyline circle '
-        'too — design the animation inside the ⌀192dp (no icon background) or '
-        '⌀160dp safe circle so it is not clipped. (Used as authored — not '
+        'too. Design the animation inside the ⌀192dp (no icon background) or '
+        '⌀160dp safe circle so it is not clipped. (Used as authored, not '
         'reshaped, to preserve the animation.)');
   }
 
@@ -891,7 +892,7 @@ class AndroidSplash {
     }
     _applyFullscreen(editor, launch);
     _applySystemBars(editor, launch, night: night);
-    // No `postSplashScreenTheme` — that attribute exists only in the androidx
+    // No `postSplashScreenTheme`: that attribute exists only in the androidx
     // core-splashscreen *compat* library, not the Android framework (it fails
     // to link). Flutter hands off to the normal theme via the
     // `io.flutter.embedding.android.NormalTheme` <meta-data> in the manifest.
@@ -1025,7 +1026,7 @@ class AndroidSplash {
   /// Writes `launch_background.xml` to **every** drawable bucket the OS could
   /// resolve `@drawable/launch_background` from. A stock Flutter project ships
   /// `drawable-v21/launch_background.xml`, and on API 21+ (i.e. essentially every
-  /// device) the `-v21` qualifier WINS over plain `drawable/` — so writing only
+  /// device) the `-v21` qualifier WINS over plain `drawable/`, so writing only
   /// `drawable/` leaves the stale white default in `-v21` shadowing our splash.
   /// We always write `drawable/` + `drawable-v21/`, and overwrite any `-night`
   /// variants the project shipped (night has higher qualifier precedence than
@@ -1040,7 +1041,7 @@ class AndroidSplash {
       writer.writeText(p.join(paths.resDir, dir, 'launch_background.xml'), xml);
       written.add('$dir/launch_background.xml');
     }
-    // Only overwrite night variants that already exist — don't create new ones
+    // Only overwrite night variants that already exist. Don't create new ones
     // (the colour/icon refs resolve their own `-night` flavours at runtime).
     for (final dir in const ['drawable-night', 'drawable-night-v21']) {
       final f = File(p.join(paths.resDir, dir, 'launch_background.xml'));
@@ -1056,7 +1057,7 @@ class AndroidSplash {
       {String? iconRef, String? brandingRef, String? bgImageRef}) {
     final b = XmlBuilder();
     b.processing('xml', 'version="1.0" encoding="utf-8"');
-    b.comment(' Generated by flutter_adaptive_studio — do not edit. ');
+    b.comment(' Generated by flutter_adaptive_studio. Do not edit. ');
     b.element('layer-list', namespaceUris: {'android': _ns}, nest: () {
       b.element('item', nest: () {
         b.attribute('drawable', '@color/splash_background', namespaceUri: _ns);
@@ -1107,7 +1108,7 @@ class _IconPlan {
 /// How resolved branding drawables should be wired into the splash. [slotRef]
 /// (a crisp vector for an SVG source) feeds the API 31+ branding slot; [layerRef]
 /// (always a raster) feeds the pre-31 windowBackground, where a vector can't
-/// paint on API 21–23. They share a name unless the source is an SVG. Both null
+/// paint on API 21-23. They share a name unless the source is an SVG. Both null
 /// means no branding.
 class _BrandingPlan {
   const _BrandingPlan({required this.slotRef, required this.layerRef});

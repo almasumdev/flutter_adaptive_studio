@@ -49,7 +49,7 @@ flutter_adaptive_studio:
     expect(File(iconSet('Icon-1024-dark.png')).existsSync(), isTrue);
     expect(File(iconSet('Icon-1024-tinted.png')).existsSync(), isTrue);
 
-    // 1024² and fully OPAQUE (App Store rejects alpha) — check a transparent
+    // 1024² and fully OPAQUE (App Store rejects alpha). Check a transparent
     // corner of the source circle got filled by the background.
     final decoded = img.decodeImage(std.readAsBytesSync())!;
     expect(decoded.width, 1024);

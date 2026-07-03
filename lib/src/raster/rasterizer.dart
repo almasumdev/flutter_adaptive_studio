@@ -2,8 +2,8 @@
 /// 512² Play Store icon). Vector outputs never touch this.
 ///
 /// Backends (selected by [RasterizerFactory]):
-///   - [ImageRasterizer] — pure Dart, raster sources (PNG/JPG/WebP/…)
-///   - [SvgRasterizer]   — pure Dart, SVG sources (flattens + scan-fills paths)
+///   - [ImageRasterizer]: pure Dart, raster sources (PNG/JPG/WebP/...)
+///   - [SvgRasterizer]:   pure Dart, SVG sources (flattens + scan-fills paths)
 ///
 /// Both are always available, so an SVG icon needs no system tool. The only
 /// time a source is skipped is a genuinely unsupported extension.

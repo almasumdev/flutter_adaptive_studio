@@ -129,7 +129,7 @@ flutter_adaptive_studio:
     expect(File(p.join(main, 'ic_launcher-playstore.png')).existsSync(), isTrue,
         reason: 'Play Store icon lives in src/main');
 
-    // Regression: the flat teal interior must stay flat — no box-average grid
+    // Regression: the flat teal interior must stay flat. No box-average grid
     // (rendering per-density directly instead of resizing a master). A 16×16
     // interior patch of a solid fill should be a single colour.
     final colors = <String>{};

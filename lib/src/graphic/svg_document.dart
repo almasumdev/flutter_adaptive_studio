@@ -2,7 +2,7 @@
 ///
 /// Supported: `<svg>` (viewBox/width/height), `<g>` (transform, opacity),
 /// `<path>`, and the basic shapes `<rect>` (incl. rounded), `<circle>`,
-/// `<ellipse>`, `<line>`, `<polygon>`, `<polyline>` — each normalised to path
+/// `<ellipse>`, `<line>`, `<polygon>`, `<polyline>`, each normalised to path
 /// data. Fills/strokes resolve presentation attributes and inline `style`, with
 /// SVG inheritance. Unsupported constructs (gradients, filters, masks, text,
 /// images, `<use>`) are dropped, and the parser records [warnings] for them so
@@ -176,7 +176,7 @@ class SvgDocument {
   static SvgPath? _shape(String? d, XmlElement el, _Paint ctx,
       {Bounds? bounds}) {
     if (d == null || d.isEmpty) return null;
-    // A shape with neither fill nor stroke paints nothing — skip it.
+    // A shape with neither fill nor stroke paints nothing. Skip it.
     if (ctx.fill.isNone && ctx.stroke.isNone) return null;
     return SvgPath(
       pathData: d,

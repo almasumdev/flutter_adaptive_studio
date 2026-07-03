@@ -26,7 +26,7 @@ class AdaptiveStudio {
   /// locations.
   final String? configPath;
 
-  /// Optional build flavor — merges the `flavors.<flavor>` config overrides and
+  /// Optional build flavor. Merges the `flavors.<flavor>` config overrides and
   /// writes resources into the `src/<flavor>/res` overlay.
   final String? flavor;
 
@@ -69,7 +69,7 @@ class AdaptiveStudio {
     }
 
     // In-app splash config (the package's AdaptiveSplash). Platform-agnostic, so
-    // it's written once for whichever platform(s) configured a splash — including
+    // it's written once for whichever platform(s) configured a splash, including
     // an iOS-only project.
     SplashConfigWriter(config: config, loader: loader, logger: logger)
         .write(report);

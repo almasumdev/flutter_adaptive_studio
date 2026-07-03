@@ -6,8 +6,8 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 /// A finished `icon.image` must be inset to match the adaptive foreground (and
-/// the iOS icon) on the raster outputs — the legacy mipmaps and the Play Store
-/// PNG — so every generated icon shares one framing. `legacy_padding: 0` opts
+/// the iOS icon) on the raster outputs, the legacy mipmaps and the Play Store
+/// PNG, so every generated icon shares one framing. `legacy_padding: 0` opts
 /// back into edge-to-edge for a genuinely pre-framed icon.
 void main() {
   late Directory project;
@@ -36,7 +36,7 @@ void main() {
       ..parent.createSync(recursive: true)
       ..writeAsBytesSync(img.encodePng(red));
     // A foreground the adaptive layer composes from (so an adaptive safe zone
-    // is in play — the inset intent the finished icon should also follow).
+    // is in play, the inset intent the finished icon should also follow).
     File(p.join(project.path, 'assets', 'logo.svg')).writeAsStringSync(
         '<svg viewBox="0 0 100 100"><rect width="100" height="100" '
         'fill="#FF0000"/></svg>');

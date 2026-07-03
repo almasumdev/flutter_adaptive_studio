@@ -1,5 +1,5 @@
 /// Drop-in runtime glue + guide emitted for the Phase 4 themed-icon feature.
-/// These are *references* the developer wires in — the alias toggle is inherently
+/// These are *references* the developer wires in: the alias toggle is inherently
 /// app-side, so we hand over correct, copy-pasteable code plus the caveats.
 library;
 
@@ -65,14 +65,14 @@ at runtime by your app.
 
 > ⚠️ Android has **no** automatic "swap launcher icon by system theme". This is
 > the only mechanism for two *different full-colour* icons, and it has costs:
-> - Toggling an alias can **relaunch** your task — switch in the background
+> - Toggling an alias can **relaunch** your task. Switch in the background
 >   (`onStop`) to hide it (the Blinkit/Meesho approach).
-> - Shipped aliases are **permanent** — never delete one a user might have
+> - Shipped aliases are **permanent**. Never delete one a user might have
 >   enabled, or their icon vanishes.
 > - **OEM launchers vary** (Samsung/Xiaomi/OnePlus vs Pixel) and may cache the
 >   old icon briefly.
 > For a side-effect-free theme-reactive icon, prefer the **monochrome** themed
-> icon (Android 13+) — already generated if you supplied `monochrome:`.
+> icon (Android 13+), already generated if you supplied `monochrome:`.
 
 ## Wiring (3 steps)
 
@@ -100,7 +100,7 @@ at runtime by your app.
    }
    ```
 
-3. Copy `icon_switcher.dart` into your `lib/` and call it — ideally when the app
+3. Copy `icon_switcher.dart` into your `lib/` and call it, ideally when the app
    is backgrounded, after detecting the platform brightness:
 
    ```dart

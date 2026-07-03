@@ -42,15 +42,15 @@ flutter_adaptive_studio:
             projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
         .run();
 
-    // The SVG background is RASTERISED (not a vector) for the pre-31 layer — a
-    // VectorDrawable can't paint in windowBackground on API 21–23. It lands as a
+    // The SVG background is RASTERISED (not a vector) for the pre-31 layer: a
+    // VectorDrawable can't paint in windowBackground on API 21-23. It lands as a
     // nodpi bitmap, and the pre-31 splash layers it in.
     expect(File(res('drawable-nodpi/splash_bg.png')).existsSync(), isTrue);
     expect(File(res('drawable/splash_bg.xml')).existsSync(), isFalse);
     final launch =
         File(res('drawable/launch_background.xml')).readAsStringSync();
     expect(launch, contains('@drawable/splash_bg'));
-    // The API 31+ theme takes a colour only — it must NOT reference the image.
+    // The API 31+ theme takes a colour only: it must NOT reference the image.
     expect(File(res('values-v31/styles.xml')).readAsStringSync(),
         isNot(contains('splash_bg')));
     // The in-app config embeds the background image bytes (the widget draws it

@@ -1,9 +1,9 @@
-/// `revert` — removes the files flutter_adaptive_studio fully owns (generated
+/// `revert` removes the files flutter_adaptive_studio fully owns (generated
 /// drawables, mipmaps, animators, v31 styles, store PNG, glue/preview folder).
 ///
 /// Shared files it only *edits* (AndroidManifest.xml, values/colors.xml,
-/// values/styles.xml) are left intact and the user is pointed at version control
-/// — reverting a structured edit cleanly is VCS's job, not ours.
+/// values/styles.xml) are left intact and the user is pointed at version control.
+/// Reverting a structured edit cleanly is VCS's job, not ours.
 library;
 
 import 'dart:io';
@@ -84,7 +84,7 @@ class Reverter {
       rm(p.join(dir, 'splash_bg.xml'));
     }
     // Launch backgrounds: we overwrite drawable/ + drawable-v21/, which
-    // LaunchTheme.windowBackground references — so RESTORE the stock Flutter
+    // LaunchTheme.windowBackground references, so RESTORE the stock Flutter
     // template there (deleting would dangle that ref and break the build), and
     // remove the night variants we may have written.
     for (final dir in ['drawable', 'drawable-v21']) {
@@ -199,8 +199,8 @@ class Reverter {
     logger.success('Reverted $removed generated item(s).');
     logger.warn(
         'Edits to shared files (AndroidManifest.xml, values/colors.xml, '
-        'values/styles.xml, AppIcon.appiconset/Contents.json) were NOT reverted '
-        '— use version control for those.');
+        'values/styles.xml, AppIcon.appiconset/Contents.json) were NOT reverted. '
+        'Use version control for those.');
     return removed;
   }
 }

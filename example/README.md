@@ -1,8 +1,8 @@
-# flutter_adaptive_studio — example
+# flutter_adaptive_studio: example
 
 A **runnable** Flutter app that demonstrates the in-app splash (`AdaptiveSplash`)
-and doubles as a showcase of what the generator produces from one set of SVG
-sources.
+and doubles as a showcase of what the generator produces from a single icon
+source.
 
 ## Run it
 
@@ -14,7 +14,7 @@ flutter run
 ```
 
 On launch you'll see the native splash hand off seamlessly to `AdaptiveSplash`
-(same background + logo + branding), which holds briefly and fades to the home
+(same background + logo), which holds briefly and fades to the home
 screen. Tap **Replay splash** to see it again; toggle your **system dark mode**
 and replay to see the `-night` variant.
 
@@ -24,7 +24,7 @@ and replay to see the `-night` variant.
 
 ## The entire integration
 
-That's the whole thing — wrap your app once ([lib/main.dart](lib/main.dart)):
+That's the whole thing: wrap your app once ([lib/main.dart](lib/main.dart)):
 
 ```dart
 import 'package:flutter_adaptive_studio/flutter_adaptive_studio.dart';
@@ -33,29 +33,25 @@ import 'fas_splash.g.dart';
 void main() => runApp(AdaptiveSplash(config: fasSplash, child: const MyApp()));
 ```
 
-No assets to declare, no `flutter_svg`, no `device_info_plus`: the logo and
-branding are rasterised and baked into `lib/fas_splash.g.dart` by `generate`.
+No assets to declare, no `flutter_svg`, no `device_info_plus`: the logo is
+rasterised and baked into `lib/fas_splash.g.dart` by `generate`.
 
 ## Sources it generates from
 
-- [`flutter_adaptive_studio.yaml`](flutter_adaptive_studio.yaml) — the config
-- `assets/` — the SVG/AVD/PNG sources it references:
-  - `listkin_logo.svg`, `listkin_logo_dark.svg`, `listkin_logo_mono.svg` — the mark (light / dark / monochrome)
-  - `avd_listkin_light.xml`, `avd_listkin_dark.xml` — AnimatedVectorDrawables for the native Android 12 splash
-  - `wordmark.svg`, `wordmark_dark.svg` — bottom splash branding
-  - `icon.png` — finished raster, used for legacy mipmaps + the Play Store icon
+- [`flutter_adaptive_studio.yaml`](flutter_adaptive_studio.yaml): the config
+- `assets/`: the source it references:
+  - `app_icon.webp`: the app icon mark (launcher icons, Play Store, and the splash logo)
 
 ## What `generate` produces
 
-- **In-app splash** — `lib/fas_splash.g.dart` (the `FasSplashConfig` consumed by
-  the package's `AdaptiveSplash`), with the logo/branding base64-embedded.
-- **Android** — adaptive icon (foreground + background + monochrome themed icon),
+- **In-app splash**: `lib/fas_splash.g.dart` (the `FasSplashConfig` consumed by
+  the package's `AdaptiveSplash`), with the logo base64-embedded.
+- **Android**: adaptive icon (foreground + background),
   round icon, legacy mipmaps, Play Store PNG; the native Android 12 `SplashScreen`
-  with the AnimatedVectorDrawable (light/dark) and a bulletproof pre-31
-  `windowBackground` splash.
-- **iOS** — a 1024² app icon with iOS 18 dark + tinted variants, and a
+  (static logo) and a bulletproof pre-31 `windowBackground` splash.
+- **iOS**: a 1024² app icon, and a
   `LaunchScreen.storyboard` driven by a colour set + logo image set (light/dark).
-- **Flavors** — `dart run flutter_adaptive_studio generate --flavor dev` writes
+- **Flavors**: `dart run flutter_adaptive_studio generate --flavor dev` writes
   Android resources to `src/dev/res` and a separate `AppIcon-dev` set,
   deep-merging the `flavors.dev` overrides over the base.
 

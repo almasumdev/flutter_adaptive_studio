@@ -3,7 +3,7 @@
 /// Generated drawable XML files are fully owned by us and overwritten wholesale.
 /// Shared resource files like `values/colors.xml` are edited **structurally**
 /// (parse → upsert one entry → re-serialise) so we never clobber the user's
-/// other colours — a direct fix for the incumbents' regex string-surgery.
+/// other colours, a direct fix for the incumbents' regex string-surgery.
 library;
 
 import 'dart:io';
@@ -19,7 +19,7 @@ class ResWriter {
 
   final List<String> written = [];
 
-  /// Files (or entries) we deleted to keep the build consistent — surfaced in
+  /// Files (or entries) we deleted to keep the build consistent, surfaced in
   /// the generation report's `removed` list.
   final List<String> removed = [];
 
@@ -74,7 +74,7 @@ class ResWriter {
     // file in the same values dir (e.g. an Android-Studio-generated
     // `ic_launcher_background.xml`) collides with ours at build time
     // ("Duplicate resources"). colors.xml is our single source of truth, so we
-    // strip the stray copy — deleting the file if that empties it.
+    // strip the stray copy, deleting the file if that empties it.
     _removeDuplicateColor(valuesDir, name, keep: file);
   }
 
@@ -114,7 +114,7 @@ class ResWriter {
       if (root.childElements.isEmpty) {
         entity.deleteSync();
         removed.add('$base (duplicate @color/$name)');
-        logger.step('removed $base — duplicate @color/$name (kept colors.xml)');
+        logger.step('removed $base: duplicate @color/$name (kept colors.xml)');
       } else {
         entity.writeAsStringSync(doc.toXmlString(pretty: true, indent: '    '));
         removed.add('@color/$name in $base (duplicate)');

@@ -22,12 +22,12 @@ class IosPaths {
   String appIconSet([String? flavor]) => p.join(xcassetsDir,
       flavor == null ? 'AppIcon.appiconset' : 'AppIcon-$flavor.appiconset');
 
-  /// `ios/Runner.xcodeproj/project.pbxproj` — where build-configuration settings
+  /// `ios/Runner.xcodeproj/project.pbxproj`: where build-configuration settings
   /// (e.g. `ASSETCATALOG_COMPILER_APPICON_NAME`) live.
   String get pbxproj =>
       p.join(projectRoot, 'ios', 'Runner.xcodeproj', 'project.pbxproj');
 
-  /// The shared scheme for [flavor]: `…/xcshareddata/xcschemes/<flavor>.xcscheme`.
+  /// The shared scheme for [flavor]: `.../xcshareddata/xcschemes/<flavor>.xcscheme`.
   String scheme(String flavor) => p.join(projectRoot, 'ios', 'Runner.xcodeproj',
       'xcshareddata', 'xcschemes', '$flavor.xcscheme');
 

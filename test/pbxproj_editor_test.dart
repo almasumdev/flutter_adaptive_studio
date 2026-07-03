@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 /// A representative slice of a Flutter `project.pbxproj`: three base configs
 /// (Debug/Release/Profile) plus the standard per-flavor copies (`*-dev`). The
-/// `-dev` configs vary on purpose — Debug-dev has no app-icon key (insert path),
+/// `-dev` configs vary on purpose: Debug-dev has no app-icon key (insert path),
 /// Release-dev already sets it to `AppIcon` (replace path), Profile-dev quotes
 /// its name and has no key.
 const _pbxproj = '''
@@ -107,7 +107,7 @@ void main() {
     expect(File('$path.bak').readAsStringSync(), _pbxproj);
   });
 
-  test('is idempotent — a second run rewrites nothing', () {
+  test('is idempotent: a second run rewrites nothing', () {
     PbxprojEditor(path).setAppIcon('dev', 'AppIcon-dev');
     final after1 = File(path).readAsStringSync();
 
@@ -118,7 +118,7 @@ void main() {
   });
 
   test('onlyConfigs (from a scheme) overrides the naming convention', () {
-    // Scheme says this flavor builds only Release-dev — so Debug-dev/Profile-dev
+    // Scheme says this flavor builds only Release-dev, so Debug-dev/Profile-dev
     // must be left alone even though they match the `-dev` suffix.
     final result = PbxprojEditor(path)
         .setAppIcon('dev', 'AppIcon-dev', onlyConfigs: {'Release-dev'});

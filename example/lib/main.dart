@@ -1,7 +1,7 @@
 // Demo for flutter_adaptive_studio's in-app splash.
 //
-// Note: this app depends on NOTHING from flutter_adaptive_studio. Everything —
-// `AdaptiveSplash`, `FasSplashConfig`, and the `fasSplash` config — is generated
+// Note: this app depends on NOTHING from flutter_adaptive_studio. Everything
+// (`AdaptiveSplash`, `FasSplashConfig`, and the `fasSplash` config) is generated
 // into the self-contained `fas_splash.g.dart`, which imports only
 // `package:flutter`. Regenerate it with the CLI (`fas generate`, or from the
 // package root `dart run flutter_adaptive_studio generate -p example`).
@@ -71,7 +71,7 @@ class _Home extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'The splash you just saw was AdaptiveSplash — it matched the '
+                'The splash you just saw was AdaptiveSplash. It matched the '
                 'native launch screen, held briefly, then faded to here.\n\n'
                 'Toggle your system dark mode and replay to see the -night '
                 'variant. The splash carries no assets: the logo + branding are '

@@ -2,8 +2,8 @@
 ///
 /// PNG is the safe default. WebP (lossless) produces noticeably smaller
 /// resources and is resolved by Android exactly like a PNG of the same resource
-/// name. The Play Store marketing icon is always PNG — Google requires a 32-bit
-/// PNG there — regardless of this setting.
+/// name. The Play Store marketing icon is always PNG (Google requires a 32-bit
+/// PNG there), regardless of this setting.
 library;
 
 enum ImageFormat {

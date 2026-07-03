@@ -38,7 +38,7 @@ class IconEffects {
   }
 
   /// A black silhouette of [content] at [alpha] opacity, Gaussian-blurred and
-  /// offset down — the classic Material drop shadow.
+  /// offset down: the classic Material drop shadow.
   static img.Image _dropShadow(
     img.Image content, {
     required int blurRadius,
@@ -58,7 +58,7 @@ class IconEffects {
   }
 
   /// Blends a white radial gradient (strength at the top-left corner, fading to
-  /// 0 at [radius]) onto [canvas], clipped to [mask]'s alpha — a subtle sheen.
+  /// 0 at [radius]) onto [canvas], clipped to [mask]'s alpha: a subtle sheen.
   static void _radialSheen(
     img.Image canvas,
     img.Image mask, {

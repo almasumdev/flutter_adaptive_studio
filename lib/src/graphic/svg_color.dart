@@ -29,7 +29,7 @@ class SvgColor {
   /// Opacity in 0..1, suitable for `android:fillAlpha`/`strokeAlpha`.
   double get opacity => alpha / 255.0;
 
-  /// `#RRGGBB` (no alpha) — for SVG `fill`/`stroke`, which take opacity
+  /// `#RRGGBB` (no alpha): for SVG `fill`/`stroke`, which take opacity
   /// separately.
   String get rgbHex =>
       '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
@@ -100,7 +100,7 @@ class SvgColor {
     return SvgColor._((a << 24) | (r << 16) | (g << 8) | b);
   }
 
-  /// A pragmatic subset — extend as real-world inputs demand.
+  /// A pragmatic subset. Extend as real-world inputs demand.
   static const Map<String, int> _named = {
     'black': 0xFF000000,
     'white': 0xFFFFFFFF,

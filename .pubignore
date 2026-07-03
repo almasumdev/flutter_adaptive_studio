@@ -3,11 +3,14 @@
 # The two incumbent packages, vendored for study only.
 reference/
 
-# Full dogfood app — the published usage sample is example/.
+# Full dogfood app; the published usage sample is example/.
 example_2/
 
 # Internal planning notes.
 docs/
+
+# README hero image, served from GitHub raw (not needed inside the package).
+images/
 
 # Stray local artifacts.
 run_log.txt

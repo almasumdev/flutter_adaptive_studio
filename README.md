@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="https://raw.githubusercontent.com/almasumdev/flutter_adaptive_studio/main/images/logo.webp" alt="flutter_adaptive_studio logo" width="180"/>
+</p>
+
+<p align="center">
   <a href="https://pub.dev/packages/flutter_adaptive_studio"><img src="https://img.shields.io/pub/v/flutter_adaptive_studio.svg" alt="pub version"></a>
   <a href="https://pub.dev/packages/flutter_adaptive_studio/score"><img src="https://img.shields.io/pub/points/flutter_adaptive_studio" alt="pub points"></a>
   <a href="https://pub.dev/packages/flutter_adaptive_studio"><img src="https://img.shields.io/pub/likes/flutter_adaptive_studio" alt="pub likes"></a>
@@ -62,6 +66,7 @@ Icons and splash behavior differ by platform. Here is what each one gets:
 | Animated splash icon | ✅ (AVD, API 31+) | ❌¹ |
 | Pre-31 / legacy splash | ✅ classic `windowBackground` | n/a |
 | Light / dark splash | ✅ (`-night`) | ✅ |
+| Full-bleed splash background image | ✅ (pre-31) | ✅ (launch screen) |
 | Splash branding (image / text) | ✅ | ❌¹ |
 | In-app Flutter splash (`AdaptiveSplash`) | ✅ | ✅ |
 | Flavors | ✅ resource overlay | ✅ build-config wiring |
@@ -163,7 +168,7 @@ one SVG-first config. Expand a group for details:
 ## Requirements & limitations
 
 - **Android splash needs `compileSdk 34`.** The Android 12 `SplashScreen` styles
-  reference API 31+ attributes. If your build fails with `windowSplashScreen… not
+  reference API 31+ attributes. If your build fails with `windowSplashScreen... not
   found`, set `compileSdk` to 34 in `android/app/build.gradle`. The generator also
   prints this reminder.
 - **iOS launch screens are static.** Apple has no animated launch API. Use the in-app
@@ -174,9 +179,11 @@ one SVG-first config. Expand a group for details:
 - **Full-color themed light and dark icons require an SVG source.** They are skipped
   with a log line for raster sources. The Android 13 monochrome themed icon is always
   supported.
-- **`branding_mode` and `background_image` apply to the pre-31 splash and the in-app
-  splash.** The Android 12 system splash always bottom-centers its branding and has no
-  full-bleed background, which is OS behavior.
+- **`background_image` paints a full-bleed image behind the splash logo** on the
+  pre-31 Android splash and the iOS launch screen. The Android 12 system splash uses
+  the solid `background` color only, since its API takes a color rather than an image.
+  **`branding_mode`** applies to the pre-31 splash and the in-app splash; the Android
+  12 system splash always bottom-centers its branding.
 
 ## Roadmap
 
@@ -216,7 +223,7 @@ dart pub global activate flutter_adaptive_studio
 > Global activation keeps the generator's build-time dependencies (`image`, `xml`,
 > and so on) out of your app's resolution entirely, so they can never conflict with
 > your app's packages. You can instead add it as a `dev_dependency` and run `dart run
-> flutter_adaptive_studio …`, but then those dependencies participate in your app's
+> flutter_adaptive_studio ...`, but then those dependencies participate in your app's
 > resolution.
 
 ## Getting started
@@ -273,6 +280,7 @@ flutter_adaptive_studio:
     splash:
       background: "#E4ECE8"
       background_dark: "#0C1413"
+      background_image: assets/splash_bg.png   # optional full-bleed launch image
       image: assets/logo.svg
 
   flavors:                                   # deep-merged over the base
@@ -376,8 +384,9 @@ on Android 5 and 6, where a vector `windowBackground` will not), bottom branding
 `lib/fas_splash.g.dart` for the in-app `AdaptiveSplash`.
 
 **iOS:** the `AppIcon.appiconset` (single-size 1024², light, dark, and tinted) with a
-modern `Contents.json`, a patched `LaunchScreen.storyboard`, and a `LaunchBackground`
-color set plus a `LaunchImage` image set. With `--flavor`, a separate
+modern `Contents.json`, a patched `LaunchScreen.storyboard`, a `LaunchBackground`
+color set, a `LaunchImage` image set, and, when `background_image` is set, a full-bleed
+`LaunchBackgroundImage` set behind the logo. With `--flavor`, a separate
 `AppIcon-<flavor>` set wired into the matching build configurations.
 
 ## Comparison with flutter_launcher_icons & flutter_native_splash
@@ -439,7 +448,7 @@ No. It is pure Dart. Adaptive icons and the animated splash are vector XML, and 
 outputs come from a built-in rasterizer. There are no system tools, no native build
 step, and no plugin.
 
-**My Android build fails with `windowSplashScreen… not found`.**
+**My Android build fails with `windowSplashScreen... not found`.**
 Set `compileSdk` to 34 in `android/app/build.gradle`. The Android 12 splash styles
 reference API 31+ attributes. See
 [Requirements & limitations](#requirements--limitations).

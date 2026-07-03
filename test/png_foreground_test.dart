@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 /// A PNG (raster) adaptive foreground should produce density-bucketed,
-/// safe-zone-fit foreground PNGs — not be rejected.
+/// safe-zone-fit foreground PNGs, not be rejected.
 void main() {
   test('raster foreground → density PNGs + adaptive xml reference', () {
     final project = Directory.systemTemp.createTempSync('fas_png_');

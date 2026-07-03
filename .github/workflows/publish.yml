@@ -1,8 +1,8 @@
 name: Publish
 
 # Publishes to pub.dev when a version tag (v1.2.3) is pushed. Uses pub.dev's
-# OIDC automated-publishing flow, so no token/secret is stored in the repo —
-# configure the package's "Automated publishing" on pub.dev to trust this
+# OIDC automated-publishing flow, so no token/secret is stored in the repo.
+# Configure the package's "Automated publishing" on pub.dev to trust this
 # workflow first. Tag a release that matches pubspec.yaml's version:
 #   git tag v0.17.0 && git push origin v0.17.0
 on:
@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # pub resolves example/ too, which needs the Flutter SDK — a Dart-only
+      # pub resolves example/ too, which needs the Flutter SDK; a Dart-only
       # setup fails here. flutter ships dart as well.
       - uses: subosito/flutter-action@v2
         with:

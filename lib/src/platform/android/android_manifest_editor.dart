@@ -46,7 +46,7 @@ class AndroidManifestEditor {
   }
 
   /// Sets `android:screenOrientation` on the launcher `<activity>`. Returns true
-  /// if the file was modified. App-wide — not just the splash.
+  /// if the file was modified. App-wide, not just the splash.
   bool setLaunchOrientation(String orientation) {
     final file = File(manifestPath);
     if (!file.existsSync()) return false;
@@ -73,8 +73,8 @@ class AndroidManifestEditor {
   /// Wires up activity-aliases for full-colour light/dark icon switching.
   ///
   /// **Non-destructive:** the launcher `<activity>` keeps its LAUNCHER category
-  /// (so `flutter run`, which only resolves `<activity>` launchers — not
-  /// `<activity-alias>` — keeps working, and the default icon still shows). One
+  /// (so `flutter run`, which only resolves `<activity>` launchers, not
+  /// `<activity-alias>`, keeps working, and the default icon still shows). One
   /// alias per [variants] entry is *added* `enabled="false"`; the runtime glue
   /// enables the chosen one. Idempotent: existing aliases are left untouched and
   /// only missing ones are appended. Returns true if it modified the file.
@@ -92,7 +92,7 @@ class AndroidManifestEditor {
         .firstWhere((_) => true, orElse: () => null);
     if (app == null) return false;
 
-    // Resolve the launcher activity for targetActivity — but DON'T modify it.
+    // Resolve the launcher activity for targetActivity, but DON'T modify it.
     XmlElement? launcher;
     for (final activity
         in app.childElements.where((e) => e.name.local == 'activity')) {

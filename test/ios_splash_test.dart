@@ -169,4 +169,100 @@ flutter_adaptive_studio:
     expect(File(asset('LaunchBackground.colorset/Contents.json')).existsSync(),
         isTrue);
   });
+
+  test('iOS splash: full-bleed background image sits behind the logo', () {
+    File(p.join(project.path, 'assets', 'bg.svg')).writeAsStringSync(
+        '<svg viewBox="0 0 200 400"><rect width="200" height="400" '
+        'fill="#3949AB"/><circle cx="100" cy="150" r="70" fill="#FFD54F"/></svg>');
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  ios:
+    splash:
+      background: "#3949AB"
+      background_image: assets/bg.svg
+      image: assets/logo.svg
+''');
+    AdaptiveStudio(
+            projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
+        .run();
+
+    // The image set is written (light entry; no dark configured).
+    expect(
+        File(asset('LaunchBackgroundImage.imageset/LaunchBackgroundImage.png'))
+            .existsSync(),
+        isTrue);
+
+    final story = File(storyboardPath()).readAsStringSync();
+    // A full-bleed scaleAspectFill image view pinned to all four edges.
+    expect(story, contains('image="LaunchBackgroundImage"'));
+    expect(story, contains('contentMode="scaleAspectFill"'));
+    for (final id in [
+      'fasBgTop',
+      'fasBgLeading',
+      'fasBgTrailing',
+      'fasBgBottom'
+    ]) {
+      expect(story, contains('id="$id"'), reason: 'missing pin $id');
+    }
+    expect(story, contains('<image name="LaunchBackgroundImage"'));
+    // Behind the centred logo (its view appears before the logo view), over the
+    // colour set.
+    expect(story, contains('image="LaunchImage"'));
+    expect(story.indexOf('image="LaunchBackgroundImage"'),
+        lessThan(story.indexOf('image="LaunchImage"')));
+    expect(story, contains('key="backgroundColor" name="LaunchBackground"'));
+
+    // Idempotent: a second run does not duplicate the view, pins, or resource.
+    AdaptiveStudio(
+            projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
+        .run();
+    final again = File(storyboardPath()).readAsStringSync();
+    expect(RegExp('image="LaunchBackgroundImage"').allMatches(again).length, 1);
+    expect(RegExp('id="fasBgTop"').allMatches(again).length, 1);
+    expect(
+        RegExp('<image name="LaunchBackgroundImage"').allMatches(again).length,
+        1);
+  });
+
+  test('iOS splash: removing background_image cleans up the launch screen', () {
+    final cfg = File(p.join(project.path, 'flutter_adaptive_studio.yaml'));
+    File(p.join(project.path, 'assets', 'bg.svg')).writeAsStringSync(
+        '<svg viewBox="0 0 200 400"><rect width="200" height="400" '
+        'fill="#3949AB"/></svg>');
+    cfg.writeAsStringSync('''
+flutter_adaptive_studio:
+  ios:
+    splash:
+      background: "#3949AB"
+      background_image: assets/bg.svg
+      image: assets/logo.svg
+''');
+    AdaptiveStudio(
+            projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
+        .run();
+    expect(Directory(asset('LaunchBackgroundImage.imageset')).existsSync(),
+        isTrue);
+
+    // Drop background_image and regenerate: the image set, the image view, its
+    // constraints, and its <image> resource are all removed; the logo stays.
+    cfg.writeAsStringSync('''
+flutter_adaptive_studio:
+  ios:
+    splash:
+      background: "#3949AB"
+      image: assets/logo.svg
+''');
+    AdaptiveStudio(
+            projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
+        .run();
+
+    expect(Directory(asset('LaunchBackgroundImage.imageset')).existsSync(),
+        isFalse);
+    final story = File(storyboardPath()).readAsStringSync();
+    expect(story, isNot(contains('image="LaunchBackgroundImage"')));
+    expect(story, isNot(contains('id="fasBgTop"')));
+    expect(story, isNot(contains('<image name="LaunchBackgroundImage"')));
+    expect(story, contains('image="LaunchImage"'));
+  });
 }

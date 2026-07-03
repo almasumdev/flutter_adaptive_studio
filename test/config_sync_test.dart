@@ -92,7 +92,7 @@ flutter_adaptive_studio:
     expect(statusAt, greaterThan(splashAt));
   });
 
-  test('sync is idempotent — a second run adds nothing', () {
+  test('sync is idempotent: a second run adds nothing', () {
     final first = ConfigSync(
             projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
         .run();

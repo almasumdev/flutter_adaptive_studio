@@ -1,4 +1,4 @@
-/// Writes `lib/fas_splash.g.dart` — the platform-agnostic config the runtime
+/// Writes `lib/fas_splash.g.dart`: the platform-agnostic config the runtime
 /// `AdaptiveSplash` consumes.
 ///
 /// This is intentionally NOT tied to the Android generator: the in-app splash
@@ -40,12 +40,12 @@ class SplashConfigWriter {
   final ConfigLoader loader;
   final Logger logger;
 
-  /// Default in-app logo box (logical dp) — the baseline an iOS `logo_size`
+  /// Default in-app logo box (logical dp): the baseline an iOS `logo_size`
   /// override is compared against.
   static const _logoSizeDp = 192;
 
   /// App-logo fallback when a splash has no `image:` of its own (the app icon
-  /// foreground, else the root `source`) — matching the native splash fallback.
+  /// foreground, else the root `source`), matching the native splash fallback.
   String? get _fallbackLogo =>
       config.android?.icon?.adaptive?.foreground ?? config.source;
 
@@ -56,7 +56,7 @@ class SplashConfigWriter {
     if (aSplash == null && iSplash == null) return;
 
     // The in-app logo is transparent over the splash background (no icon-circle)
-    // at a consistent 288dp box — the art's bounding box inscribed in the 2/3
+    // at a consistent 288dp box: the art's bounding box inscribed in the 2/3
     // safe circle (⌀192), matching the Android-12 keyline. `logo_padding`
     // insets it further. A fixed 288 (rather than 240 with an icon background)
     // keeps the in-app logo one predictable size.
@@ -77,7 +77,7 @@ class SplashConfigWriter {
     final logoDarkSrc =
         aSplash?.imageDark ?? (aSplash == null ? iSplash?.imageDark : null);
 
-    // Branding (Android only — the iOS launch screen has none).
+    // Branding (Android only: the iOS launch screen has none).
     String? brandingLightB64, brandingDarkB64, brandingText;
     if (aSplash?.branding != null) {
       brandingLightB64 = _b64(_brandingPng(aSplash!.branding!));
@@ -96,7 +96,7 @@ class SplashConfigWriter {
         ? _b64(_bgImagePng(aSplash!.backgroundImageDark!))
         : null;
 
-    // ---- iOS overrides — only when they differ from the base, mirroring the
+    // ---- iOS overrides: only when they differ from the base, mirroring the
     // iOS LaunchScreen resolution in ios_splash.dart. ----
     int? iosBgLight, iosBgDark, iosLogoSize;
     String? iosLogoB64, iosLogoDarkB64;
@@ -200,7 +200,7 @@ class SplashConfigWriter {
   // --------------------------------------------------------------- rasterising
 
   /// PNG bytes of the centre logo, transparent, with the art's bounding box
-  /// inscribed in the [safeDp] safe circle of a [canvasDp]² box — the same
+  /// inscribed in the [safeDp] safe circle of a [canvasDp]² box: the same
   /// Android-12 keyline the native splash icon uses, so the in-app logo matches
   /// it when displayed at a [canvasDp] box. Null when the source is missing.
   Uint8List? _logoPng(String source,
@@ -238,7 +238,7 @@ class SplashConfigWriter {
   }
 
   /// Longest-side fill fraction that inscribes an art bounding box [w]×[h]'s
-  /// diagonal in the [safeDp] safe circle of a [canvasDp]² box — the native
+  /// diagonal in the [safeDp] safe circle of a [canvasDp]² box: the native
   /// splash keyline (mirrors the API 31+ icon geometry).
   static double _keylineFit(
       double w, double h, double canvasDp, double safeDp) {

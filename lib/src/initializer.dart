@@ -1,4 +1,4 @@
-/// `init` — drops a commented starter `flutter_adaptive_studio.yaml` into the
+/// `init` drops a commented starter `flutter_adaptive_studio.yaml` into the
 /// target project so you don't hand-write config. Edit the asset paths, then run
 /// `generate`.
 library;
@@ -21,7 +21,7 @@ class Initializer {
   /// Sink for progress and result messages.
   final Logger logger;
 
-  /// The fully-commented starter config — every supported option. Exposed so
+  /// The fully-commented starter config with every supported option. Exposed so
   /// `sync` can diff a user's config against it and fill in what's missing.
   static String get starterTemplate => _starter;
 
@@ -30,7 +30,7 @@ class Initializer {
   String? run({bool force = false}) {
     final out = File(p.join(projectRoot, 'flutter_adaptive_studio.yaml'));
     if (out.existsSync() && !force) {
-      logger.warn('flutter_adaptive_studio.yaml already exists — '
+      logger.warn('flutter_adaptive_studio.yaml already exists; '
           'pass --force to overwrite.');
       return null;
     }
@@ -42,7 +42,7 @@ class Initializer {
   }
 
   static const String _starter = '''
-# flutter_adaptive_studio — configuration
+# flutter_adaptive_studio configuration
 #
 # This starter lists EVERY supported option. The few that are uncommented are
 # enough to generate adaptive icons after you drop in a logo; uncomment the
@@ -65,7 +65,7 @@ flutter_adaptive_studio:
       adaptive:
         foreground: assets/logo.svg        # your logo (SVG or raster)
         background: "#FFFFFF"              # hex colour, or an SVG/PNG path
-        # monochrome: assets/logo_mono.svg # Android 13 themed (tinted) icon — SVG only
+        # monochrome: assets/logo_mono.svg # Android 13 themed (tinted) icon, SVG only
         safe_zone: fit                     # fit (15% padding) | inset:<pct> | none
         # padding: 15                      # alias for `safe_zone: inset:<pct>` (wins if both set)
 
@@ -74,7 +74,7 @@ flutter_adaptive_studio:
       # legacy: true                       # pre-API-26 mipmap PNGs
       # legacy_padding: 15                 # % the legacy/store art is inset (overrides the adaptive safe zone for these raster icons)
       # play_store: true                   # 512² Play Store icon (always PNG, per Google)
-      # image_format: png                  # png | webp — encoding for the generated icon resources
+      # image_format: png                  # png | webp, encoding for the generated icon resources
       # image: assets/icon.png             # finished-icon source for legacy + play_store
       #                                    #   (otherwise they're rasterised from `foreground`)
       # effect: elevate                    # none | elevate (Material drop shadow + sheen)
@@ -94,10 +94,10 @@ flutter_adaptive_studio:
     #   background_image_dark: assets/splash_bg_dark.png
     #   image: assets/logo.svg                    # static centre logo (SVG or raster)
     #   image_dark: assets/logo_dark.svg          # dark-mode centre logo
-    #   image_format: png                         # png | webp — encoding for the pre-31 raster splash logo
+    #   image_format: png                         # png | webp, encoding for the pre-31 raster splash logo
     #   icon_background: "#FFFFFF"                 # hex circle behind the icon (API 31+)
     #   icon_background_dark: "#111111"           # dark-mode icon circle
-    #   gravity: center                           # pre-31 centre-image alignment (center, fill, bottom, …)
+    #   gravity: center                           # pre-31 centre-image alignment (center, fill, bottom, ...)
     #   fullscreen: false                         # hide status/nav bars during splash
     #   screen_orientation: portrait              # lock orientation (app-wide; not undone by revert)
     #   # --- system bars during the splash (status + bottom navigation) ---
@@ -137,15 +137,17 @@ flutter_adaptive_studio:
   #     background_dark: "#000000"      # opaque fill behind the dark icon
   #     tinted: assets/logo_mono.svg    # iOS 18 tinted appearance (optional; grayscale)
   #     padding: 0                      # % the art is inset (0 = use the source's own framing)
-  #   splash:                           # LaunchScreen — centred logo on a background colour
+  #   splash:                           # LaunchScreen with a centred logo over a background colour
   #     background: "#FFFFFF"           # falls back to the Android splash background
   #     background_dark: "#000000"
+  #     background_image: assets/splash_bg.png       # optional full-bleed image behind the logo
+  #     background_image_dark: assets/splash_bg_dark.png
   #     image: assets/logo.svg          # centred logo (transparent over the background)
   #     image_dark: assets/logo_dark.svg
   #     logo_size: 192                  # logo edge length in points
 
   # --- build flavors (one file, base + per-flavor overrides) -----------------
-  # A flavor accepts EVERY key the config above supports — write it the same way.
+  # A flavor accepts EVERY key the config above supports, so write it the same way.
   # It deep-merges over the base: keys you omit are inherited, scalars you set
   # replace, nested maps merge, and you can add a whole section the base lacks.
   # Output goes to that flavor's `src/<name>/res` overlay. Generate with:

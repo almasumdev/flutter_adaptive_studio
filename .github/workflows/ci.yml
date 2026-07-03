@@ -25,27 +25,27 @@ jobs:
         with:
           channel: stable
 
-      - name: Package — install
+      - name: Package - install
         run: flutter pub get
 
-      # Scoped to our own sources — the repo vendors third-party code under
+      # Scoped to our own sources; the repo vendors third-party code under
       # reference/ (and a scratch example_2/) that we don't reformat.
-      - name: Package — format
+      - name: Package - format
         run: dart format --output=none --set-exit-if-changed bin lib test example/lib
 
-      - name: Package — analyze
+      - name: Package - analyze
         run: flutter analyze
 
-      - name: Package — test
+      - name: Package - test
         run: flutter test
 
-      - name: Example — install & analyze
+      - name: Example - install & analyze
         working-directory: example
         run: |
           flutter pub get
           flutter analyze
 
-  # Pana score gate — temporarily disabled (the local dartdoc bug makes the
+  # Pana score gate, temporarily disabled (the local dartdoc bug makes the
   # score unreliable to gate on; re-enable once confirmed on pub.dev).
   # pana:
   #   name: Pana score gate
@@ -71,7 +71,7 @@ jobs:
   #           echo "::error::Could not read pana score."; tail -n 50 pana.err; exit 1
   #         fi
   #         if [ "$POINTS" -lt 140 ]; then
-  #           echo "::error::pana $POINTS/$MAX is below the required 140 — aborting."; exit 1
+  #           echo "::error::pana $POINTS/$MAX is below the required 140, aborting."; exit 1
   #         fi
 
   version:
@@ -95,13 +95,13 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           if git rev-parse "v$VERSION" >/dev/null 2>&1; then
             echo "is_new=false" >> "$GITHUB_OUTPUT"
-            echo "v$VERSION is already tagged — nothing to release."
+            echo "v$VERSION is already tagged. Nothing to release."
           else
             echo "is_new=true" >> "$GITHUB_OUTPUT"
-            echo "v$VERSION is new — will tag, then publish."
+            echo "v$VERSION is new. Will tag, then publish."
           fi
 
-  # Push the tag with a PAT so it triggers the Publish workflow — a default
+  # Push the tag with a PAT so it triggers the Publish workflow; a default
   # GITHUB_TOKEN push would not. Requires the RELEASE_PAT repo secret.
   tag:
     name: Tag release

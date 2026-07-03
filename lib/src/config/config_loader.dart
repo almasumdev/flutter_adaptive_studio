@@ -34,7 +34,7 @@ class ConfigLoader {
   /// Returns the parsed config, or `null` if no config could be found.
   ///
   /// When [flavor] is given, the matching `flavors:` entry is deep-merged over
-  /// the base config (one file, base + per-flavor overrides — no separate config
+  /// the base config (one file, base + per-flavor overrides: no separate config
   /// file per flavor). The `flavors:` key itself never reaches the parser.
   AdaptiveStudioConfig? load({String? explicitPath, String? flavor}) {
     final raw = _readRawSection(explicitPath);
@@ -142,6 +142,8 @@ class ConfigLoader {
           ? IosSplashConfig(
               background: _str(splash['background']),
               backgroundDark: _str(splash['background_dark']),
+              backgroundImage: _str(splash['background_image']),
+              backgroundImageDark: _str(splash['background_image_dark']),
               image: _str(splash['image']),
               imageDark: _str(splash['image_dark']),
               logoSizePt: _int(splash['logo_size']) ?? 192,

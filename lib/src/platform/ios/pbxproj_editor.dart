@@ -2,11 +2,11 @@
 /// `project.pbxproj`, without a full pbxproj parser.
 ///
 /// Why this is safe without parsing the whole (OpenStep-plist) format: inside an
-/// Xcode `buildSettings = { … }` block there are **no nested braces** — values
-/// are scalars, quoted strings, or `( … )` arrays. So a build-settings block
+/// Xcode `buildSettings = { ... }` block there are **no nested braces**: values
+/// are scalars, quoted strings, or `( ... )` arrays. So a build-settings block
 /// runs from its `{` to the very next `}`. We scope to the `XCBuildConfiguration`
-/// section, find each configuration by its trailing `name = …;`, and set exactly
-/// one key inside that object's build-settings block — touching nothing else.
+/// section, find each configuration by its trailing `name = ...;`, and set exactly
+/// one key inside that object's build-settings block, touching nothing else.
 ///
 /// If the project doesn't follow the standard Flutter flavor convention (no
 /// `*-<flavor>` configurations), we change nothing and report it, so the caller
@@ -126,7 +126,7 @@ class PbxprojEditor {
   }
 
   /// Bounds of the `XCBuildConfiguration` section, so a target's or scheme's
-  /// `name = …` can never be mistaken for a build configuration.
+  /// `name = ...` can never be mistaken for a build configuration.
   static ({int start, int end})? _section(String s) {
     final a = s.indexOf('/* Begin XCBuildConfiguration section */');
     if (a < 0) return null;

@@ -1,6 +1,6 @@
 /// Lightweight SVG path-data utilities.
 ///
-/// We do NOT re-emit path data — VectorDrawable's `android:pathData` accepts the
+/// We do NOT re-emit path data: VectorDrawable's `android:pathData` accepts the
 /// exact same `d` grammar (including relative commands), so paths pass through
 /// verbatim. What we DO need is a bounding box, to fit foreground art into the
 /// adaptive-icon safe zone. The box is computed conservatively (control points
@@ -102,7 +102,7 @@ class PathData {
           cx = sx;
           cy = sy;
         default:
-          // Unknown token — bail rather than loop forever.
+          // Unknown token: bail rather than loop forever.
           return box;
       }
     }
