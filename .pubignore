@@ -9,9 +9,6 @@ example_2/
 # Internal planning notes.
 docs/
 
-# README hero image, served from GitHub raw (not needed inside the package).
-images/
-
 # Stray local artifacts.
 run_log.txt
 *.bak

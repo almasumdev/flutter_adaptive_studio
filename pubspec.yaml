@@ -13,6 +13,10 @@ topics:
   - adaptive-icons
   - app-icon
 
+screenshots:
+  - description: The flutter_adaptive_studio logo.
+    path: images/logo.webp
+
 environment:
   sdk: ^3.6.0
 

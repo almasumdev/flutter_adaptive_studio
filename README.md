@@ -1,8 +1,4 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/almasumdev/flutter_adaptive_studio/main/images/logo.webp" alt="flutter_adaptive_studio logo" width="180"/>
-</p>
-
-<p align="center">
   <a href="https://pub.dev/packages/flutter_adaptive_studio"><img src="https://img.shields.io/pub/v/flutter_adaptive_studio.svg" alt="pub version"></a>
   <a href="https://pub.dev/packages/flutter_adaptive_studio/score"><img src="https://img.shields.io/pub/points/flutter_adaptive_studio" alt="pub points"></a>
   <a href="https://pub.dev/packages/flutter_adaptive_studio"><img src="https://img.shields.io/pub/likes/flutter_adaptive_studio" alt="pub likes"></a>
