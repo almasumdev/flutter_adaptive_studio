@@ -6,9 +6,8 @@ reference/
 # Full dogfood app — the published usage sample is example/.
 example_2/
 
-# Internal planning notes and dev-only scripts.
+# Internal planning notes.
 docs/
-tool/
 
 # Stray local artifacts.
 run_log.txt

@@ -1,8 +1,8 @@
 name: flutter_adaptive_studio
 description: >-
   Vector-native, theme-aware, mask-correct launcher icons and animated splash
-  screens for Flutter — done the way native tooling does it, per platform.
-version: 0.21.0
+  screens for Flutter, done the way native tooling does it, per platform.
+version: 0.21.1
 repository: https://github.com/almasumdev/flutter_adaptive_studio
 issue_tracker: https://github.com/almasumdev/flutter_adaptive_studio/issues
 
@@ -11,14 +11,7 @@ topics:
   - launcher-icons
   - splash-screen
   - adaptive-icons
-  - cli
-
-# A pure-Dart command-line generator — install it with `dart pub global activate
-# flutter_adaptive_studio` and run `fas generate`. It writes native icon/splash
-# files into your android/ and ios/ folders, plus a self-contained
-# `lib/fas_splash.g.dart` for the in-app splash that imports only package:flutter.
-# Your app therefore depends on NOTHING from this package, so its build-time
-# dependencies (image, xml, …) can never conflict with your app's.
+  - app-icon
 
 environment:
   sdk: ^3.6.0

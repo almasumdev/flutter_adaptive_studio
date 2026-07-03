@@ -162,18 +162,6 @@ class ImageRasterizer implements Rasterizer {
     File(path).writeAsBytesSync(img.encodePng(_maskCircle(src)));
   }
 
-  /// Renders a shaped legacy icon at [sizePx]² in a **single** resample: the
-  /// high-res [sourcePath] is downscaled once, straight to the padded inner box,
-  /// then shaped with an anti-aliased rounded-square (or circle) mask and centred
-  /// on a transparent canvas.
-  ///
-  /// One resample is the whole point. The old path rendered to the density size
-  /// and *then* re-inset with a redundant ~1.2× box-average downscale; stacking
-  /// resamples is what softened the output. Going straight from the full-res
-  /// source to the final inner size keeps every dot and edge crisp.
-  ///
-  /// Geometry matches real Android-Studio output: square ≈ 9% pad + ~7% radius;
-  /// round ≈ 3% pad. Returns false if the source can't be decoded.
   /// Shapes a pre-rendered [inner]-sized solid square into a density icon:
   /// applies the rounded-square (or circle) mask, centres it on a transparent
   /// [sizePx]² canvas at [inset], and optionally adds the elevate effect.

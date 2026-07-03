@@ -136,15 +136,12 @@ flutter_adaptive_studio:
     expect(nightColors, contains('#0E1A1C'));
 
     // In-app splash config generated with baked colours + embedded logo bytes.
+    // (Its self-contained, flutter-only runtime is asserted in full by the
+    // "bakes in a self-contained runtime" test below.)
     final cfg = splashCfg();
-    expect(cfg, contains('FasSplashConfig'));
     expect(cfg, contains('0xFF0E1A1C')); // dark bg baked in
     expect(cfg, contains('logo: _b64(')); // logo rasterised + embedded
     expect(cfg, contains('brandingLight: _b64(')); // SVG wordmark embedded
-    // Self-contained: the widget is baked into the file; it does NOT import our
-    // package (that's what keeps the app conflict-free).
-    expect(cfg, isNot(contains('package:flutter_adaptive_studio')));
-    expect(cfg, contains('class AdaptiveSplash'));
     // Branding placement mirrors the native default (bottom-centre, 48dp). No
     // branding_dark here → no dark branding bytes.
     expect(cfg, contains('brandingAlignment: Alignment.bottomCenter'));

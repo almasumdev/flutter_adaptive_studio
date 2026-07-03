@@ -109,7 +109,7 @@ class AndroidConfig {
 
   final AndroidIconConfig? icon;
 
-  /// Splash config — modelled now, generated in Phase 2.
+  /// Splash-screen configuration, or null when no `splash:` block is present.
   final AndroidSplashConfig? splash;
 
   /// Minimum Android SDK. Gates whether legacy (pre-26) mipmaps are emitted.
@@ -149,7 +149,7 @@ class AndroidIconConfig {
   /// pass `legacy_padding: 0` to use a finished icon edge-to-edge.
   final String? image;
 
-  /// Emit pre-API-26 mipmap PNGs. `null` ⇒ decide from `minSdk` (Phase 3).
+  /// Emit pre-API-26 mipmap PNGs. `null` ⇒ decide from `minSdk`.
   final bool? legacy;
 
   /// Percent the legacy/store art is inset from the icon edge, overriding the
@@ -162,10 +162,10 @@ class AndroidIconConfig {
   /// Emit `ic_launcher_round` and wire `android:roundIcon`.
   final bool round;
 
-  /// Emit the 512² Play Store marketing PNG (Phase 3).
+  /// Emit the 512² Play Store marketing PNG.
   final bool playStore;
 
-  /// Full-colour light/dark icon via activity-alias (Phase 4).
+  /// Full-colour light/dark icon via activity-alias.
   final ThemedIconConfig? themed;
 
   /// Resource base name. Defaults to Flutter's `ic_launcher`.

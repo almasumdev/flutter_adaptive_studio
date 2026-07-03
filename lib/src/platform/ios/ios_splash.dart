@@ -57,6 +57,7 @@ class IosSplash {
     final bgDark = splash.backgroundDark ?? android?.backgroundDark;
 
     _writeColorset(bg, bgDark, report);
+    _removeStaleBackgroundImageset(report);
     final hasLogo = logo != null && _writeLaunchImage(logo, logoDark, report);
     _patchStoryboard(report, hasLogo: hasLogo);
     logger.step('iOS launch screen → LaunchScreen.storyboard + asset catalog');
@@ -90,6 +91,19 @@ class IosSplash {
         p.join(paths.xcassetsDir, '$_bgColorName.colorset', 'Contents.json'),
         {'colors': colors, 'info': _info});
     report.written.add('$_bgColorName.colorset');
+  }
+
+  /// Deletes a stale `LaunchBackground` *image set* a previous tool (e.g.
+  /// flutter_native_splash) wrote for a full-bleed background image. We own that
+  /// name as a colour set, so leaving the imageset gives the asset catalog two
+  /// `LaunchBackground` entries ("ambiguous content") and the stale image can
+  /// shadow the colour.
+  void _removeStaleBackgroundImageset(GenerationReport report) {
+    final dir = Directory(p.join(paths.xcassetsDir, '$_bgColorName.imageset'));
+    if (dir.existsSync()) {
+      dir.deleteSync(recursive: true);
+      report.removed.add('$_bgColorName.imageset (stale background image)');
+    }
   }
 
   static String _f(int v) => (v / 255).toStringAsFixed(3);
@@ -202,6 +216,8 @@ class IosSplash {
       return;
     }
 
+    _stripStaleBackgroundImageViews(doc, report);
+
     view.children.removeWhere((n) =>
         n is XmlElement &&
         n.name.local == 'color' &&
@@ -225,6 +241,12 @@ class IosSplash {
       resources.children.add(XmlElement(XmlName.parts('namedColor'),
           [XmlAttribute(XmlName.parts('name'), _bgColorName)]));
     }
+    // Drop a stale <image name="LaunchBackground"> resource a prior tool left
+    // for its full-bleed background — we own that name as a <namedColor> now.
+    resources.children.removeWhere((n) =>
+        n is XmlElement &&
+        n.name.local == 'image' &&
+        n.getAttribute('name') == _bgColorName);
 
     if (hasLogo) {
       final hasImageView = doc.descendantElements.any((e) =>
@@ -238,6 +260,35 @@ class IosSplash {
 
     file.writeAsStringSync(doc.toXmlString(pretty: true, indent: '    '));
     report.written.add('Base.lproj/LaunchScreen.storyboard (background)');
+  }
+
+  /// Removes a full-bleed background image view (and any layout constraints that
+  /// reference it) a prior tool painted over the launch background —
+  /// flutter_native_splash adds `<imageView image="LaunchBackground">`, which
+  /// sits ON TOP of our `backgroundColor` and shadows it. Orphaned constraints
+  /// must go too, or the storyboard won't load.
+  void _stripStaleBackgroundImageViews(
+      XmlDocument doc, GenerationReport report) {
+    final stale = doc.descendantElements
+        .where((e) =>
+            e.name.local == 'imageView' &&
+            e.getAttribute('image') == _bgColorName)
+        .toList();
+    if (stale.isEmpty) return;
+    final ids =
+        stale.map((e) => e.getAttribute('id')).whereType<String>().toSet();
+    for (final e in stale) {
+      e.parent?.children.remove(e);
+    }
+    for (final c in doc.descendantElements
+        .where((e) => e.name.local == 'constraint')
+        .toList()) {
+      if (ids.contains(c.getAttribute('firstItem')) ||
+          ids.contains(c.getAttribute('secondItem'))) {
+        c.parent?.children.remove(c);
+      }
+    }
+    report.removed.add('LaunchScreen stale background image view');
   }
 
   // ---------------------------------------------------------------------- utils

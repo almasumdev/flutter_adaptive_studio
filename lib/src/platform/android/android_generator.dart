@@ -1,5 +1,4 @@
-/// Android platform entry point. Dispatches to icon generation now; splash
-/// (Phase 2) plugs in here next.
+/// Android platform entry point. Dispatches to icon + splash generation.
 library;
 
 import '../../config/config.dart';

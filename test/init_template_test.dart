@@ -5,10 +5,12 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
 
-/// The complete public config surface, as a nested tree mirroring the YAML.
-/// This is the contract: every key here must be documented in the `init`
-/// starter **under its correct parent**. A leaf value of `null` just marks "this
-/// is a documented option"; the structure (the nesting) is what's asserted.
+/// Every documented config **option**, as a nested tree mirroring the YAML (the
+/// top-level `flutter_adaptive_studio:` wrapper and the `flavors:` override
+/// mechanism are structural, not options — the loader-key backstop test below
+/// covers those). This is the contract: every key here must be documented in the
+/// `init` starter **under its correct parent**. A leaf value of `null` just marks
+/// "this is a documented option"; the structure (the nesting) is what's asserted.
 const Map<String, dynamic> _schema = {
   'source': null,
   'android': {
@@ -67,6 +69,9 @@ const Map<String, dynamic> _schema = {
       'animated_icon': null,
       'animated_icon_dark': null,
       'duration': null,
+      'flutter_splash_duration': null,
+      'flutter_splash_all_versions': null,
+      'logo_padding': null,
     },
   },
   'ios': {

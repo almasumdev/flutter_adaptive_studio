@@ -1,4 +1,4 @@
-/// iOS platform entry point. Dispatches to icon generation (splash to follow).
+/// iOS platform entry point. Dispatches to icon + splash generation.
 library;
 
 import '../../config/config.dart';

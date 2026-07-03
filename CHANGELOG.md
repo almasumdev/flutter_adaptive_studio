@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.21.1
+
+### iOS: clean up a stale flutter_native_splash launch background
+
+- **Fixed the iOS launch background not matching your config.** If the project
+  previously used `flutter_native_splash`, its full-bleed `LaunchBackground`
+  image view and matching `LaunchBackground.imageset` stayed in the launch
+  screen and shadowed the color set this tool writes, so iOS showed the old
+  background instead of the one you configured. `generate` now strips that image
+  view (with its layout constraints and its `<image>` resource) and deletes the
+  conflicting image set, leaving only the `LaunchBackground` color set.
+- Housekeeping: removed an unused internal file and refreshed the docs. No change
+  to generated output.
+
 ## 0.21.0
 
 ### In-app splash: closer native match + split timing

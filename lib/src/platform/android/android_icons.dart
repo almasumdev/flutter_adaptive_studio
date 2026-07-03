@@ -1,10 +1,8 @@
-/// Generates Android adaptive launcher icons (API 26+) from vector sources.
-///
-/// Phase 1 scope: SVG → VectorDrawable for foreground / background / monochrome,
-/// with safe-zone fit, plus the `mipmap-anydpi-v26` adaptive XML and (optionally)
-/// the round variant. Legacy mipmaps + the 512² store PNG (which need a
-/// rasteriser) are Phase 3. PNG/Shapeshifter sources are skipped with a clear
-/// message until their phases land.
+/// Generates Android launcher icons: adaptive layers (API 26+) — SVG →
+/// VectorDrawable, or a raster source → per-density PNGs — with safe-zone fit
+/// and the `mipmap-anydpi-v26` adaptive XML (plus the optional round variant).
+/// Legacy pre-26 mipmaps and the 512² Play Store PNG are delegated to
+/// [AndroidLegacyIcons], and the themed light/dark icon to [AndroidThemedIcons].
 library;
 
 import 'dart:io';
@@ -127,7 +125,7 @@ class AndroidIcons {
       logger.step('AndroidManifest.xml updated');
     }
 
-    // ---- Legacy mipmaps + Play Store icon (raster, Phase 3) ----
+    // ---- Legacy mipmaps + Play Store icon (raster) ----
     final minSdk = config.android?.minSdk ?? 21;
     final emitLegacy = iconConfig.legacy ?? (minSdk < 26);
     if (emitLegacy || iconConfig.playStore) {
@@ -142,7 +140,7 @@ class AndroidIcons {
       ).generate());
     }
 
-    // ---- Themed full-colour light/dark icon (activity-alias, Phase 4) ----
+    // ---- Themed full-colour light/dark icon (activity-alias) ----
     if (iconConfig.themed != null) {
       report.merge(AndroidThemedIcons(
         iconConfig: iconConfig,
@@ -298,8 +296,9 @@ class AndroidIcons {
   double _fillFraction(SafeZone zone) =>
       AdaptiveGeometry.canvasFillFraction(zone);
 
-  /// Loads + parses an SVG source. Non-SVG sources are skipped (with a message)
-  /// until their rasteriser/parser phase lands.
+  /// Loads + parses [source] into an [SvgDocument]. Returns null — with a skip
+  /// or warn message — when the source isn't an SVG, is missing, or fails to
+  /// parse.
   SvgDocument? _loadSvg(String source, String role, GenerationReport report) {
     final abs = loader.resolveAsset(source);
     final ext = p.extension(abs).toLowerCase();

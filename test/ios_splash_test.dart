@@ -109,4 +109,64 @@ flutter_adaptive_studio:
     expect(File(asset('LaunchImage.imageset/LaunchImage.png')).existsSync(),
         isTrue);
   });
+
+  test('iOS splash strips a stale flutter_native_splash launch background', () {
+    // A project migrated from flutter_native_splash: a full-bleed
+    // <imageView image="LaunchBackground"> (pinned by a constraint) painting
+    // OVER the logo, plus a colliding LaunchBackground *imageset*. Both must be
+    // removed or the stale image shadows our colour set on iOS.
+    File(storyboardPath()).writeAsStringSync(
+        '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
+        '<document launchScreen="YES" initialViewController="01J-lp-oVM">\n'
+        '  <scenes><scene sceneID="EHf-IW-A2E"><objects>\n'
+        '    <viewController id="01J-lp-oVM" sceneMemberID="viewController">\n'
+        '      <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">\n'
+        '        <subviews>\n'
+        '          <imageView contentMode="scaleAspectFill" image="LaunchBackground" id="bg1"/>\n'
+        '          <imageView contentMode="center" image="LaunchImage" id="YRO-k0-Ey4"/>\n'
+        '        </subviews>\n'
+        '        <constraints>\n'
+        '          <constraint firstItem="bg1" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="c-bg"/>\n'
+        '          <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="c-logo"/>\n'
+        '        </constraints>\n'
+        '        <color key="backgroundColor" systemColor="systemBackgroundColor"/>\n'
+        '      </view>\n'
+        '    </viewController>\n'
+        '  </objects></scene></scenes>\n'
+        '  <resources>\n'
+        '    <image name="LaunchBackground" width="1" height="1"/>\n'
+        '    <image name="LaunchImage" width="168" height="185"/>\n'
+        '  </resources>\n'
+        '</document>\n');
+    Directory(asset('LaunchBackground.imageset')).createSync(recursive: true);
+    File(asset('LaunchBackground.imageset/Contents.json'))
+        .writeAsStringSync('{}');
+
+    File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+        .writeAsStringSync('''
+flutter_adaptive_studio:
+  ios:
+    splash:
+      background: "#FFFFFF"
+      image: assets/logo.svg
+''');
+    AdaptiveStudio(
+            projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
+        .run();
+
+    final story = File(storyboardPath()).readAsStringSync();
+    // The full-bleed background image view + its <image> resource are gone.
+    expect(story, isNot(contains('image="LaunchBackground"')));
+    expect(story, isNot(contains('<image name="LaunchBackground"')));
+    // Its orphaned constraint is gone; the logo's constraint survives.
+    expect(story, isNot(contains('id="c-bg"')));
+    expect(story, contains('id="c-logo"'));
+    // The centred logo view is preserved, now over the colour set.
+    expect(story, contains('image="LaunchImage"'));
+    expect(story, contains('key="backgroundColor" name="LaunchBackground"'));
+    // The colliding imageset is deleted; only the colour set remains.
+    expect(Directory(asset('LaunchBackground.imageset')).existsSync(), isFalse);
+    expect(File(asset('LaunchBackground.colorset/Contents.json')).existsSync(),
+        isTrue);
+  });
 }
