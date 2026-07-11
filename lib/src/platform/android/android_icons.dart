@@ -98,6 +98,10 @@ class AndroidIcons {
     } else {
       logger.skip('monochrome: not provided (Android 13 themed icon disabled)');
       report.skipped.add('monochrome (not provided)');
+      // Prune an orphaned monochrome layer from a previous run: the adaptive XML
+      // is (re)written below without a <monochrome> ref, so nothing points at it.
+      _removeStaleVector('${name}_monochrome', report);
+      _removeStaleRaster('${name}_monochrome', report);
     }
 
     // ---- Adaptive icon XML (+ round) ----
@@ -115,6 +119,11 @@ class AndroidIcons {
           p.join(paths.mipmapAnydpiV26, '${name}_round.xml'), adaptiveXml);
       report.written.add('mipmap-anydpi-v26/${name}_round.xml');
       logger.step('round icon → mipmap-anydpi-v26/${name}_round.xml');
+    } else {
+      // `round: false`: prune round outputs from a previous run. Safe because
+      // `ensureIconAttributes` (below) drops the manifest's android:roundIcon, so
+      // nothing references these; leaving them would keep the round icon showing.
+      _removeRoundOutputs(name, report);
     }
 
     // ---- Manifest ----
@@ -151,6 +160,15 @@ class AndroidIcons {
         writer: writer,
         logger: logger,
       ).generate());
+    } else {
+      // Feature turned off: prune the owned files it left behind (only where no
+      // activity-alias still references them) and warn about shared remnants.
+      AndroidThemedIcons.tearDownDisabled(
+        paths: paths,
+        iconName: name,
+        logger: logger,
+        report: report,
+      );
     }
 
     return report;
@@ -269,6 +287,28 @@ class AndroidIcons {
         if (f.existsSync()) {
           f.deleteSync();
           report.removed.add('drawable-$d/$base$e (stale)');
+        }
+      }
+    }
+  }
+
+  /// Prunes the round launcher outputs when `round: false`: the anydpi-v26
+  /// adaptive XML and the per-density legacy round mipmaps. Paired with
+  /// [AndroidManifestEditor.ensureIconAttributes] dropping android:roundIcon, so
+  /// nothing is left referencing them.
+  void _removeRoundOutputs(String name, GenerationReport report) {
+    final anydpi = File(p.join(paths.mipmapAnydpiV26, '${name}_round.xml'));
+    if (anydpi.existsSync()) {
+      anydpi.deleteSync();
+      report.removed
+          .add('mipmap-anydpi-v26/${name}_round.xml (round disabled)');
+    }
+    for (final d in _layerDensities) {
+      for (final e in const ['.png', '.webp']) {
+        final r = File(p.join(paths.mipmapDir(d), '${name}_round$e'));
+        if (r.existsSync()) {
+          r.deleteSync();
+          report.removed.add('mipmap-$d/${name}_round$e (round disabled)');
         }
       }
     }

@@ -12,7 +12,9 @@ import 'package:path/path.dart' as p;
 
 import 'config/config_loader.dart';
 import 'logger.dart';
+import 'platform/android/android_manifest_editor.dart';
 import 'platform/android/android_paths.dart';
+import 'platform/android/android_themed_icons.dart';
 import 'platform/android/splash_templates.dart';
 import 'platform/ios/ios_paths.dart';
 import 'platform/ios/pbxproj_editor.dart';
@@ -54,26 +56,19 @@ class Reverter {
       }
     }
 
-    // Adaptive + themed adaptive XML.
-    for (final v in [
-      '',
-      '_round',
-      '_light',
-      '_light_round',
-      '_dark',
-      '_dark_round'
-    ]) {
+    // Adaptive mipmap XML (base + round) and vector layers.
+    for (final v in ['', '_round']) {
       rm(p.join(paths.mipmapAnydpiV26, '$name$v.xml'));
     }
-    // Vector layers.
-    for (final v in [
-      '_foreground',
-      '_monochrome',
-      '_background',
-      '_light_foreground',
-      '_dark_foreground'
-    ]) {
+    for (final v in ['_foreground', '_monochrome', '_background']) {
       rm(p.join(paths.drawableDir, '$name$v.xml'));
+    }
+    // Themed light/dark owned files (mipmap XML + round sibling + foreground
+    // vector), sourced from the same helper `generate` uses so they can't drift.
+    for (final variant in ThemedIconAssets.variants) {
+      for (final f in ThemedIconAssets.ownedFiles(paths, name, variant)) {
+        rm(f);
+      }
     }
     // Splash drawables.
     for (final dir in [paths.drawableDir, paths.drawableNightDir]) {
@@ -194,6 +189,24 @@ class Reverter {
       glue.deleteSync(recursive: true);
       removed++;
       logger.detail('removed flutter_adaptive_studio/');
+    }
+
+    // If the themed activity-aliases remain in the (shared) manifest, they now
+    // reference the mipmaps we just deleted, so the next Android build breaks.
+    // This is a hard failure, not just leftover cruft, so warn specifically
+    // ahead of the generic shared-files note below.
+    final themedAliases =
+        AndroidManifestEditor(paths.manifest).themedAliasVariants();
+    if (themedAliases.isNotEmpty) {
+      final refs = themedAliases.map((v) => '@mipmap/${name}_$v').join(', ');
+      final aliases = themedAliases.map(ThemedIconAssets.aliasName).join(' / ');
+      logger.warn(
+          'Removed the themed mipmaps ($refs), but AndroidManifest.xml still '
+          'has the $aliases <activity-alias> node(s) referencing them. The next '
+          "Android build will FAIL ('resource mipmap/${name}_${themedAliases.first} "
+          'not found\') until you restore AndroidManifest.xml (and '
+          'values/colors.xml) from version control, or delete those alias '
+          'node(s) by hand.');
     }
 
     logger.success('Reverted $removed generated item(s).');

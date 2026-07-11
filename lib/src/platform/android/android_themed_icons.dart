@@ -24,6 +24,35 @@ import 'android_manifest_editor.dart';
 import 'android_paths.dart';
 import 'themed_icon_templates.dart';
 
+/// Single source of truth for the files and shared-resource names the themed
+/// light/dark icon feature owns, so `generate` (teardown) and `revert` can't
+/// drift apart. Pure naming: no I/O.
+class ThemedIconAssets {
+  const ThemedIconAssets._();
+
+  static const variants = ['light', 'dark'];
+
+  /// The manifest `<activity-alias>` name for [variant], e.g. `.FasIconLight`.
+  static String aliasName(String variant) =>
+      '.FasIcon${variant[0].toUpperCase()}${variant.substring(1)}';
+
+  /// The `values/colors.xml` entry name for [variant]'s background.
+  static String backgroundColorName(String iconName, String variant) =>
+      '${iconName}_${variant}_background';
+
+  /// Absolute paths of the files fully owned by [variant]: the adaptive mipmap
+  /// XML, its round sibling (only written when `round: true`), and the
+  /// foreground vector. Safe to delete *only once no activity-alias references
+  /// them* (an alias points at `@mipmap/<iconName>_<variant>`).
+  static List<String> ownedFiles(
+          AndroidPaths paths, String iconName, String variant) =>
+      [
+        p.join(paths.mipmapAnydpiV26, '${iconName}_$variant.xml'),
+        p.join(paths.mipmapAnydpiV26, '${iconName}_${variant}_round.xml'),
+        p.join(paths.drawableDir, '${iconName}_${variant}_foreground.xml'),
+      ];
+}
+
 class AndroidThemedIcons {
   AndroidThemedIcons({
     required this.iconConfig,
@@ -101,6 +130,89 @@ class AndroidThemedIcons {
     logger.warn('Themed icons carry caveats (possible relaunch, permanent '
         'aliases, OEM variance). See flutter_adaptive_studio/THEMED_ICONS.md.');
     return report;
+  }
+
+  /// Tears the themed feature down when it is no longer configured, called from
+  /// [AndroidIcons] on a `generate` where `icon.themed` is absent.
+  ///
+  /// The owned mipmaps are referenced by the `.FasIcon*` activity-aliases in the
+  /// **shared** manifest, which we never auto-edit. So we only prune a variant's
+  /// owned files when **no alias references them** (deleting a still-referenced
+  /// mipmap would dangle `@mipmap/<name>_<variant>` and break the build). When an
+  /// alias (or a leftover background colour) remains, we leave the files in place
+  /// and WARN, naming the remnants and how to remove them. Does nothing (and
+  /// stays quiet) when there is no themed residue at all.
+  static void tearDownDisabled({
+    required AndroidPaths paths,
+    required String iconName,
+    required Logger logger,
+    required GenerationReport report,
+  }) {
+    final aliasVariants =
+        AndroidManifestEditor(paths.manifest).themedAliasVariants().toSet();
+
+    final colorsFile = File(p.join(paths.valuesDir, 'colors.xml'));
+    final colorsXml =
+        colorsFile.existsSync() ? colorsFile.readAsStringSync() : '';
+    bool colorPresent(String v) => colorsXml.contains(
+        'name="${ThemedIconAssets.backgroundColorName(iconName, v)}"');
+
+    final leftoverColors = <String>[];
+    var prunedAny = false;
+
+    for (final v in ThemedIconAssets.variants) {
+      final files = ThemedIconAssets.ownedFiles(paths, iconName, v)
+          .map(File.new)
+          .where((f) => f.existsSync())
+          .toList();
+      if (aliasVariants.contains(v)) {
+        // An alias still references @mipmap/${iconName}_$v; leave the files in
+        // place so the reference resolves and the build keeps working.
+      } else {
+        for (final f in files) {
+          f.deleteSync();
+          prunedAny = true;
+          final rel = p.relative(f.path, from: paths.resDir);
+          report.removed.add('$rel (themed icon disabled)');
+          logger.detail('pruned $rel (themed icon disabled)');
+        }
+      }
+      if (colorPresent(v)) {
+        leftoverColors
+            .add('@color/${ThemedIconAssets.backgroundColorName(iconName, v)}');
+      }
+    }
+
+    if (prunedAny) {
+      logger.step('themed icons disabled: pruned orphaned generated files');
+    }
+
+    // Surface shared-file remnants we will not auto-edit (manifest, colors).
+    if (aliasVariants.isNotEmpty) {
+      final aliasNames =
+          aliasVariants.map(ThemedIconAssets.aliasName).join(' / ');
+      final colorNote = leftoverColors.isNotEmpty
+          ? ', and values/colors.xml still has ${leftoverColors.join(', ')}'
+          : '';
+      final w =
+          'Themed icons look disabled in your config, but AndroidManifest.xml '
+          'still has the $aliasNames <activity-alias> node(s)$colorNote. They '
+          'reference the generated themed mipmaps, so those files were left in '
+          'place to keep the build working. Remove the alias node(s)'
+          '${leftoverColors.isNotEmpty ? ' and colour(s)' : ''} via version '
+          'control or a manifest edit, then re-run generate to prune the files, '
+          'or run `fas revert`.';
+      logger.warn(w);
+      report.warnings.add(w);
+    } else if (leftoverColors.isNotEmpty && prunedAny) {
+      final w = 'Themed icons are disabled and the generated mipmaps/drawables '
+          'were pruned, but values/colors.xml still has the now-unused '
+          '${leftoverColors.join(', ')} entr'
+          '${leftoverColors.length == 1 ? 'y' : 'ies'}. Harmless, but remove '
+          'via version control to keep colors.xml clean.';
+      logger.warn(w);
+      report.warnings.add(w);
+    }
   }
 
   bool _writeVariant(

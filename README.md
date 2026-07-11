@@ -157,6 +157,7 @@ one SVG-first config. Expand a group for details:
 - Idempotent: re-run any time and existing wiring is detected, not duplicated
 - A missing optional asset is skipped with a log line, never a hard failure
 - `revert` undoes the generated files and `doctor` validates before you generate
+- Turning a feature off cleans up after itself: disabling `round`, `monochrome`, or the themed light and dark icons prunes the files it owns, and anything left in a shared file (the manifest or `colors.xml`) is called out so nothing inert lingers
 - `sync` fills in newly-available config options without touching your values
 
 </details>

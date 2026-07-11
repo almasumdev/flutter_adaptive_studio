@@ -72,6 +72,9 @@ class AndroidGenerator extends PlatformGenerator {
       ).generate());
     } else {
       report.skipped.add('android.splash (not configured)');
+      // Splash turned off but files may linger; surface them (revert removes).
+      AndroidSplash.warnIfDisabledResidue(
+          paths: paths, logger: logger, report: report);
     }
 
     // Surface any duplicate-resource cleanups the shared writer performed.

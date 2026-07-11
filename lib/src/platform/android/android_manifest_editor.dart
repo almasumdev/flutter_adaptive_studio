@@ -31,6 +31,12 @@ class AndroidManifestEditor {
     changed |= _ensure(app, 'android:icon', '@mipmap/$iconName');
     if (round) {
       changed |= _ensure(app, 'android:roundIcon', '@mipmap/${iconName}_round');
+    } else {
+      // `round: false`: drop the roundIcon *we* own (a user's custom value is
+      // left untouched) so the round launcher icon is actually disabled, and so
+      // the attribute can't dangle once the round mipmap is pruned.
+      changed |= _removeAttrIfValue(
+          app, 'android:roundIcon', '@mipmap/${iconName}_round');
     }
 
     if (changed) {
@@ -42,6 +48,14 @@ class AndroidManifestEditor {
   static bool _ensure(XmlElement el, String attr, String value) {
     if (el.getAttribute(attr) == value) return false;
     el.setAttribute(attr, value);
+    return true;
+  }
+
+  /// Removes [attr] from [el] only when it currently holds exactly [value] (so
+  /// we never strip an attribute the user set to something of their own).
+  static bool _removeAttrIfValue(XmlElement el, String attr, String value) {
+    if (el.getAttribute(attr) != value) return false;
+    el.removeAttribute(attr);
     return true;
   }
 
@@ -128,6 +142,30 @@ class AndroidManifestEditor {
       file.writeAsStringSync(doc.toXmlString(pretty: true, indent: '    '));
     }
     return changed;
+  }
+
+  /// Variant names (`light` / `dark`) that currently have a `.FasIcon<Variant>`
+  /// `<activity-alias>` in the manifest. Empty when the file is missing,
+  /// unparseable, or has none. Read-only: never mutates the file. Used to tear
+  /// the themed feature down safely (an alias still referencing a deleted mipmap
+  /// would dangle and break the build).
+  List<String> themedAliasVariants() {
+    final file = File(manifestPath);
+    if (!file.existsSync()) return const [];
+    final XmlDocument doc;
+    try {
+      doc = XmlDocument.parse(file.readAsStringSync());
+    } on XmlException {
+      return const [];
+    }
+    final out = <String>[];
+    final re = RegExp(r'^\.FasIcon(\w+)$');
+    for (final e in doc.rootElement.descendantElements
+        .where((e) => e.name.local == 'activity-alias')) {
+      final m = re.firstMatch(e.getAttribute('android:name') ?? '');
+      if (m != null) out.add(m.group(1)!.toLowerCase());
+    }
+    return out;
   }
 
   static XmlElement _alias({

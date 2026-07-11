@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.23.0
+
+### Turning a feature off now cleans up after itself
+
+Disabling a sub-feature used to leave its generated output in place, sometimes
+inert and sometimes still active. `generate` now removes what it safely owns and
+warns about the rest.
+
+- **`round: false` actually disables the round icon.** Switching `round` off left
+  `android:roundIcon` in the manifest and the round mipmaps on disk, so the
+  launcher kept showing the round icon. `generate` now removes the
+  `android:roundIcon` it set (a custom value you added yourself is left alone) and
+  prunes the round mipmaps, so the setting takes effect.
+- **Dropping the themed light and dark icons prunes what it owns and flags the
+  rest.** The generated mipmaps and foreground drawables are removed once no
+  `activity-alias` still references them. The `.FasIconLight` and `.FasIconDark`
+  aliases and the `ic_launcher_*_background` colours live in shared files
+  (AndroidManifest.xml, colors.xml) that the tool never rewrites on its own, so it
+  names them and asks you to remove them in version control (or run `revert`),
+  instead of leaving disabled cruft in the build.
+- **Removing `monochrome` deletes the leftover monochrome drawable** rather than
+  keeping an unused file in your resources.
+- **Removing the whole `splash:` block warns about the splash files left behind.**
+  They stay wired into your launch theme and manifest, so the tool points you at
+  `revert` for a clean removal instead of half-editing shared files.
+
+### `revert` warns before it can break a build
+
+- **`revert` now flags the dangling manifest reference it can create.** When it
+  deletes the themed mipmaps but your manifest still has the `.FasIconLight` and
+  `.FasIconDark` `activity-alias` nodes that reference them, the next Android build
+  fails on the missing `@mipmap/ic_launcher_light` until you restore the manifest
+  (and colors.xml) from version control. `revert` now says exactly that, instead
+  of leaving you to discover it at build time.
+
 ## 0.22.1
 
 ### Packaging

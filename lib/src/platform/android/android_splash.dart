@@ -88,6 +88,34 @@ class AndroidSplash {
     'xxxhdpi': 4.0,
   };
 
+  /// Warns when splash is no longer configured but generated splash files remain
+  /// from a previous run. We deliberately do NOT auto-remove them: the pre-31
+  /// launch background and the API 31+ styles are wired into **shared** files
+  /// (values/styles.xml, the manifest theme), so a clean teardown is `revert`'s
+  /// job, not something we can do without editing those shared files. Quiet when
+  /// there is no splash residue (a project that never generated one).
+  static void warnIfDisabledResidue({
+    required AndroidPaths paths,
+    required Logger logger,
+    required GenerationReport report,
+  }) {
+    // Markers that are ours and not part of a stock Flutter project.
+    final markers = [
+      File(p.join(paths.valuesV31Dir, 'styles.xml')),
+      File(p.join(paths.drawableDir, '$_name.xml')),
+      File(p.join(paths.drawableDir, '${_name}_static.xml')),
+      File(p.join(paths.drawableDir, '${_name}_vector.xml')),
+    ];
+    if (!markers.any((f) => f.existsSync())) return;
+    final w = 'Splash is not configured, but generated splash files remain '
+        '(e.g. values-v31/styles.xml, drawable/$_name*.xml). They are still '
+        'wired into your LaunchTheme (values/styles.xml) and manifest, so they '
+        'were left in place. Run `fas revert` to remove the splash cleanly, or '
+        'restore those shared files from version control.';
+    logger.warn(w);
+    report.warnings.add(w);
+  }
+
   GenerationReport generate() {
     final report = GenerationReport();
 
