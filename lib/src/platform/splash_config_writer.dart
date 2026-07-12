@@ -80,9 +80,10 @@ class SplashConfigWriter {
     // Branding (Android only: the iOS launch screen has none).
     String? brandingLightB64, brandingDarkB64, brandingText;
     if (aSplash?.branding != null) {
-      brandingLightB64 = _b64(_brandingPng(aSplash!.branding!));
+      final asIs = aSplash!.brandingFit == BrandingFit.asIs;
+      brandingLightB64 = _b64(_brandingPng(aSplash.branding!, asIs));
       brandingDarkB64 = aSplash.brandingDark != null
-          ? _b64(_brandingPng(aSplash.brandingDark!))
+          ? _b64(_brandingPng(aSplash.brandingDark!, asIs))
           : null;
     } else if (aSplash?.brandingText != null) {
       brandingText = aSplash!.brandingText;
@@ -248,23 +249,46 @@ class SplashConfigWriter {
     return (longest / diagonal) * (safeDp / canvasDp);
   }
 
-  /// Tight wordmark PNG bytes for an image branding (aspect-preserved), or null.
-  Uint8List? _brandingPng(String source) {
+  /// Wordmark PNG bytes for an image branding, or null. [asIs] keeps the source
+  /// exactly as drawn (its own aspect ratio and inner padding); otherwise the
+  /// wordmark is trimmed so the widget can size the tight art itself.
+  Uint8List? _brandingPng(String source, bool asIs) {
     final abs = loader.resolveAsset(source);
     if (!File(abs).existsSync()) return null;
     final ext = p.extension(abs).toLowerCase();
     if (ext == '.svg') {
       final doc = _parse(abs);
       if (doc == null) return null;
-      return img.encodePng(
-          _trim(const SvgRasterizer().rasterize(doc, 512, fitFraction: 0.98)));
+      return img.encodePng(asIs
+          ? _viewBoxImage(doc, 512)
+          : _trim(
+              const SvgRasterizer().rasterize(doc, 512, fitFraction: 0.98)));
     }
     if (_isRaster(ext)) {
       final src = img.decodeImage(File(abs).readAsBytesSync());
       if (src == null) return null;
-      return img.encodePng(_trim(_downscale(src, 1024)));
+      final down = _downscale(src, 1024);
+      return img.encodePng(asIs ? down : _trim(down));
     }
     return null;
+  }
+
+  /// The whole viewBox of [doc] rasterised into an image whose longest side is
+  /// [size] (aspect ratio and inner padding preserved, not trimmed). Renders
+  /// onto a square, then crops to the viewBox rectangle. Backs `as_is` branding.
+  img.Image _viewBoxImage(SvgDocument doc, int size) {
+    final vw = doc.viewportWidth <= 0 ? 1.0 : doc.viewportWidth;
+    final vh = doc.viewportHeight <= 0 ? 1.0 : doc.viewportHeight;
+    final square = const SvgRasterizer().rasterize(doc, size);
+    final s = size / math.max(vw, vh);
+    final w = (vw * s).round().clamp(1, size);
+    final h = (vh * s).round().clamp(1, size);
+    if (w == size && h == size) return square;
+    return img.copyCrop(square,
+        x: ((size - w) / 2).round(),
+        y: ((size - h) / 2).round(),
+        width: w,
+        height: h);
   }
 
   /// Full-bleed background PNG bytes (source aspect, ≤1080px long side), or null.

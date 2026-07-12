@@ -56,28 +56,39 @@ class AndroidLegacyIcons {
     final report = GenerationReport();
     if (!emitLegacy && !emitPlayStore) return report;
 
-    final prepared = _prepareSource(report);
-    if (prepared == null) return report;
-
     final name = iconConfig.iconName;
     final elevate = iconConfig.effect == LegacyEffect.elevate;
     final fmt = iconConfig.imageFormat;
     final ext = fmt.extension;
 
+    // The Play Store icon gets its own inset when `play_store_padding` is set;
+    // otherwise it shares the legacy source's framing.
+    final storeFill = emitPlayStore ? _playStoreFill() : null;
+    final storeSharesLegacy = storeFill == null;
+
+    // Prepare the legacy source only when it's actually used: for the legacy
+    // mipmaps, or for the Play Store when it shares that framing.
+    _Source? legacy;
+    if (emitLegacy || (emitPlayStore && storeSharesLegacy)) {
+      legacy = _prepareSource(report);
+      if (legacy == null) return report;
+    }
+
     if (emitLegacy) {
+      final src = legacy!; // prepared above whenever emitLegacy is true
       _mipmap.forEach((density, px) {
         // Each density is rendered straight at its target size (SVG: a direct
         // rasterisation, no resample, no grid). Geometry matches Android
         // Studio / Asset Studio's square target (5,5,38,38 in 48dp): ~10.4%
         // inset, ~8% corner radius.
-        _shapeDensity(prepared, px, density, '$name$ext', report,
+        _shapeDensity(src, px, density, '$name$ext', report,
             paddingFraction: 0.104,
             cornerRadiusFraction: 0.08,
             circle: false,
             elevate: elevate,
             format: fmt);
         if (iconConfig.round) {
-          _shapeDensity(prepared, px, density, '${name}_round$ext', report,
+          _shapeDensity(src, px, density, '${name}_round$ext', report,
               paddingFraction: 0.042,
               cornerRadiusFraction: 0,
               circle: true,
@@ -96,8 +107,11 @@ class AndroidLegacyIcons {
     if (emitPlayStore) {
       // The Play Store marketing icon must be a 32-bit PNG (Google's rule), so
       // it ignores `image_format`. It lives in src/main, not the android/app
-      // root.
-      final store = prepared.square(512); // opaque, full-bleed
+      // root. When `play_store_padding` is set it uses a source of its own.
+      final storeSource = storeSharesLegacy
+          ? legacy!
+          : _prepareSource(report, fillOverride: storeFill);
+      final store = storeSource?.square(512); // opaque
       if (store != null) {
         final out = p.join(paths.mainSrcDir, '$name-playstore.png');
         File(out)
@@ -113,10 +127,18 @@ class AndroidLegacyIcons {
           report.removed.add('android/app/$name-playstore.png (moved to main)');
         }
       }
+      if (!storeSharesLegacy) storeSource?.cleanup();
     }
 
-    prepared.cleanup();
+    legacy?.cleanup();
     return report;
+  }
+
+  /// Fill fraction (0..1) for the Play Store PNG when `play_store_padding` is
+  /// set, or null to share the legacy source's framing.
+  double? _playStoreFill() {
+    final pp = iconConfig.playStorePadding;
+    return pp == null ? null : 1 - (pp.clamp(0, 95) / 100);
   }
 
   /// Renders one density icon: a direct inner-sized square from [src], shaped
@@ -175,7 +197,7 @@ class AndroidLegacyIcons {
   /// framing. SVG defers to a direct per-size render (sharpest, grid-free);
   /// raster composes a high-res master once. Returns null (with a clear skip)
   /// when no source can be used.
-  _Source? _prepareSource(GenerationReport report) {
+  _Source? _prepareSource(GenerationReport report, {double? fillOverride}) {
     final String rel;
     final bool fullIcon;
     if (iconConfig.image != null) {
@@ -210,9 +232,14 @@ class AndroidLegacyIcons {
     // `icon.image` with no inset intent (no adaptive safe zone and no
     // `legacy_padding`) is still used full-bleed. Set `legacy_padding: 0` to
     // force that explicitly.
-    final insetArt =
-        !fullIcon || adaptive != null || iconConfig.legacyPadding != null;
-    final composeFill = insetArt ? 1 - _composePadding() : 1.0;
+    // A [fillOverride] (the Play Store's own `play_store_padding`) forces an
+    // explicit inset even for an otherwise full-bleed finished `icon.image`.
+    final insetArt = fillOverride != null ||
+        !fullIcon ||
+        adaptive != null ||
+        iconConfig.legacyPadding != null;
+    final composeFill =
+        insetArt ? (fillOverride ?? (1 - _composePadding())) : 1.0;
 
     // SVG → render directly at each target size (no resample → no grid, sharpest
     // result). A null fit fraction fills the canvas (a finished icon kept

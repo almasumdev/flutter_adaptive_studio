@@ -256,6 +256,7 @@ flutter_adaptive_studio:
       round: true
       play_store: true                       # 512² store icon (always PNG)
       legacy_padding: 15                     # % inset for legacy and store art
+      play_store_padding: 20                 # % inset for the Play Store icon on its own
       image_format: webp                     # png (default) | webp
     splash:
       background: "#E4ECE8"
@@ -264,6 +265,7 @@ flutter_adaptive_studio:
       animated_icon: assets/logo_anim.xml    # AnimatedVectorDrawable, Android 12+
       animated_icon_dark: assets/logo_anim_dark.xml
       branding: assets/wordmark.svg          # bottom branding (or branding_text:)
+      branding_fit: as_is                    # auto (default) trims + fills; as_is keeps the SVG as drawn
       status_bar_color: transparent          # hex | transparent
       navigation_bar_color: "#E4ECE8"
       status_bar_icon_brightness: dark       # dark | light (auto from color if unset)

@@ -74,6 +74,7 @@ flutter_adaptive_studio:
       # legacy: true                       # pre-API-26 mipmap PNGs
       # legacy_padding: 15                 # % the legacy/store art is inset (overrides the adaptive safe zone for these raster icons)
       # play_store: true                   # 512² Play Store icon (always PNG, per Google)
+      # play_store_padding: 15             # % the Play Store art is inset, on its own (else follows legacy_padding/safe_zone)
       # image_format: png                  # png | webp, encoding for the generated icon resources
       # image: assets/icon.png             # finished-icon source for legacy + play_store
       #                                    #   (otherwise they're rasterised from `foreground`)
@@ -115,6 +116,7 @@ flutter_adaptive_studio:
     #   branding_text_color: "#1F5560"            # branding text colour (auto-contrasts the bg if unset)
     #   branding_text_color_dark: "#E6F2F4"
     #   branding_mode: bottom                     # bottom | bottom_left | bottom_right (pre-31 + fallback)
+    #   branding_fit: auto                        # auto trims + fills the slot; as_is keeps the SVG's own aspect, padding, size
     #   branding_bottom_padding: 48               # branding distance from bottom edge, dp
     #   # --- in-app Flutter splash (AdaptiveSplash) ---
     #   flutter_splash_all_versions: false        # show the in-app splash on every OS version

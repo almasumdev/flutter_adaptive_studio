@@ -168,6 +168,7 @@ class ConfigLoader {
       imageFormat: _imageFormat(raw['image_format']),
       round: _bool(raw['round']) ?? false,
       playStore: _bool(raw['play_store']) ?? false,
+      playStorePadding: _int(raw['play_store_padding']),
       image: _str(raw['image']),
       effect: _effect(raw['effect']),
       adaptive: raw['adaptive'] is Map
@@ -232,6 +233,7 @@ class ConfigLoader {
       brandingTextColor: _str(raw['branding_text_color']),
       brandingTextColorDark: _str(raw['branding_text_color_dark']),
       brandingMode: _brandingMode(raw['branding_mode']),
+      brandingFit: _brandingFit(raw['branding_fit']),
       brandingBottomPadding: _int(raw['branding_bottom_padding']) ?? 48,
       gravity: _str(raw['gravity']) ?? 'center',
       fullscreen: _bool(raw['fullscreen']) ?? false,
@@ -269,6 +271,14 @@ class ConfigLoader {
       'bottomleft' => BrandingMode.bottomLeft,
       'bottomright' => BrandingMode.bottomRight,
       _ => BrandingMode.bottom,
+    };
+  }
+
+  static BrandingFit _brandingFit(Object? v) {
+    final s = v?.toString().trim().toLowerCase().replaceAll('_', '');
+    return switch (s) {
+      'asis' => BrandingFit.asIs,
+      _ => BrandingFit.auto,
     };
   }
 

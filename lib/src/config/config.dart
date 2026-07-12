@@ -133,6 +133,7 @@ class AndroidIconConfig {
     this.legacyPadding,
     this.round = false,
     this.playStore = false,
+    this.playStorePadding,
     this.themed,
     this.image,
     this.iconName = 'ic_launcher',
@@ -172,6 +173,12 @@ class AndroidIconConfig {
 
   /// Emit the 512² Play Store marketing PNG.
   final bool playStore;
+
+  /// Percent the **Play Store** PNG's art is inset, independently of the legacy
+  /// mipmaps. `null` follows the shared framing ([legacyPadding], else
+  /// `adaptive.safe_zone`, else the default); set it to frame the marketing icon
+  /// on its own (0-95, e.g. a roomier inset for Play's rounded presentation).
+  final int? playStorePadding;
 
   /// Full-colour light/dark icon via activity-alias.
   final ThemedIconConfig? themed;
@@ -264,6 +271,16 @@ class ThemedIconConfig {
 /// Where the bottom branding image sits in the splash.
 enum BrandingMode { bottom, bottomLeft, bottomRight }
 
+/// How a branding **image** is sized into the splash's branding area.
+///
+/// [auto] measures the wordmark's bounding box and scales it to fill the slot,
+/// trimming whatever padding the source carries (the default, best for a
+/// tightly-cropped logo). [asIs] uses the SVG exactly as drawn: its own aspect
+/// ratio, inner padding, and relative size are preserved, just centred in the
+/// slot. Only affects an SVG `branding:` image (a raster branding is already
+/// used as authored, and `branding_text:` is unaffected).
+enum BrandingFit { auto, asIs }
+
 /// Brightness of the system-bar **icons** during the splash. `dark` icons suit a
 /// light bar/background (maps to `windowLight*Bar = true`); `light` icons suit a
 /// dark one. When unset, it's auto-derived from the bar/background colour.
@@ -292,6 +309,7 @@ class AndroidSplashConfig {
     this.brandingTextColor,
     this.brandingTextColorDark,
     this.brandingMode = BrandingMode.bottom,
+    this.brandingFit = BrandingFit.auto,
     this.brandingBottomPadding = 48,
     this.gravity = 'center',
     this.fullscreen = false,
@@ -367,6 +385,11 @@ class AndroidSplashConfig {
   /// Branding placement on the pre-31 splash + Flutter fallback (the API 31+
   /// system splash always bottom-centres it).
   final BrandingMode brandingMode;
+
+  /// How an SVG [branding] image is framed: [BrandingFit.auto] trims and fills
+  /// the slot; [BrandingFit.asIs] keeps the SVG's own aspect ratio, inner
+  /// padding, and size.
+  final BrandingFit brandingFit;
 
   /// Branding distance from the bottom edge, in dp.
   final int brandingBottomPadding;

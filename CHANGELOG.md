@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.24.0
+
+### Splash: keep an SVG branding as you drew it
+
+- **New `splash.branding_fit`.** By default (`auto`) an SVG `branding:` image is
+  measured and scaled to fill the branding slot, which trims whatever padding you
+  built into the file. Set `branding_fit: as_is` to place the SVG exactly as
+  drawn: its own aspect ratio, inner padding, and size are kept, just centred in
+  the slot. It applies to the native splash (API 31+ and the pre-31 raster) and
+  the in-app `AdaptiveSplash` alike. A raster branding was already used as
+  authored, and `branding_text` is unaffected.
+
+### Icons: a separate padding for the Play Store icon
+
+- **New `icon.play_store_padding`.** The 512² Play Store PNG used to share its
+  inset with the legacy mipmaps (`legacy_padding`, else `safe_zone`). You can now
+  set its padding on its own, for example a roomier margin for Play's
+  rounded-corner presentation, without touching the launcher mipmaps. Left unset
+  it still follows the shared framing, so existing configs are unchanged.
+
 ## 0.23.0
 
 ### Turning a feature off now cleans up after itself

@@ -583,22 +583,27 @@ class AndroidSplash {
       report.warnings.add('pre-31 branding parse error: $e');
       return false;
     }
-    const slotW = 200, slotH = 80, margin = 0.9;
+    const slotW = 200, slotH = 80;
+    final asIs = splash.brandingFit == BrandingFit.asIs;
+    final margin = asIs ? 1.0 : 0.9;
     final fmt = splash.imageFormat;
     var any = false;
     _legacyDensities.forEach((density, mult) {
       final canvasW = (slotW * mult).round();
       final canvasH = (slotH * mult).round();
-      // Render the art tightly to a square, trim, then letterbox into the slot,
-      // so its aspect matches the slot and the layer can't distort it.
-      final rendered = const SvgRasterizer()
-          .rasterize(doc, math.max(canvasW, canvasH), fitFraction: 0.95);
-      final tight = _trimTransparent(rendered);
+      final hi = math.max(canvasW, canvasH);
+      // as_is: render the whole viewBox (aspect + inner padding) and fill the
+      // slot. auto: render the art tightly, trim, and fill 90% of the slot, so
+      // its aspect matches the slot and the layer can't distort it.
+      final content = asIs
+          ? _viewBoxRaster(doc, hi)
+          : _trimTransparent(
+              const SvgRasterizer().rasterize(doc, hi, fitFraction: 0.95));
       final scale = math.min(
-          canvasW * margin / tight.width, canvasH * margin / tight.height);
-      final w = (tight.width * scale).round().clamp(1, canvasW);
-      final h = (tight.height * scale).round().clamp(1, canvasH);
-      final scaled = ImageRasterizer.resizeSmart(tight, w, h);
+          canvasW * margin / content.width, canvasH * margin / content.height);
+      final w = (content.width * scale).round().clamp(1, canvasW);
+      final h = (content.height * scale).round().clamp(1, canvasH);
+      final scaled = ImageRasterizer.resizeSmart(content, w, h);
       final canvas = img.Image(width: canvasW, height: canvasH, numChannels: 4);
       img.compositeImage(canvas, scaled,
           dstX: ((canvasW - w) / 2).round(), dstY: ((canvasH - h) / 2).round());
@@ -636,6 +641,25 @@ class AndroidSplash {
     final t = img.findTrim(src, mode: img.TrimMode.transparent);
     if (t[2] <= 0 || t[3] <= 0) return src;
     return img.copyCrop(src, x: t[0], y: t[1], width: t[2], height: t[3]);
+  }
+
+  /// Rasterises the whole viewBox of [doc] (its own aspect ratio and inner
+  /// padding preserved, not trimmed) into a bitmap whose longest side is [size].
+  /// Renders onto a square, then crops to the viewBox rectangle, mirroring the
+  /// background-image path. Backs the `as_is` branding fit.
+  static img.Image _viewBoxRaster(SvgDocument doc, int size) {
+    final vw = doc.viewportWidth <= 0 ? 1.0 : doc.viewportWidth;
+    final vh = doc.viewportHeight <= 0 ? 1.0 : doc.viewportHeight;
+    final square = const SvgRasterizer().rasterize(doc, size);
+    final s = size / math.max(vw, vh);
+    final w = (vw * s).round().clamp(1, size);
+    final h = (vh * s).round().clamp(1, size);
+    if (w == size && h == size) return square;
+    return img.copyCrop(square,
+        x: ((size - w) / 2).round(),
+        y: ((size - h) / 2).round(),
+        width: w,
+        height: h);
   }
 
   /// True when [source] resolves to an `.svg` asset.
@@ -806,9 +830,15 @@ class AndroidSplash {
   String _brandingVd(SvgDocument doc) {
     const slotW = 200.0; // Android branding image slot (dp)
     const slotH = 80.0;
-    const margin = 0.9; // leave a little breathing room inside the slot
-    final art =
-        doc.artBounds() ?? Bounds(0, 0, doc.viewportWidth, doc.viewportHeight);
+    // `as_is`: place the whole viewBox (its own aspect + inner padding) and fill
+    // the slot. `auto` (default): measure the wordmark and fill 90% of the slot,
+    // trimming whatever padding the source carries.
+    final asIs = splash.brandingFit == BrandingFit.asIs;
+    final margin = asIs ? 1.0 : 0.9;
+    final art = asIs
+        ? Bounds(0, 0, doc.viewportWidth, doc.viewportHeight)
+        : (doc.artBounds() ??
+            Bounds(0, 0, doc.viewportWidth, doc.viewportHeight));
     final w = art.width > 0 ? art.width : doc.viewportWidth;
     final h = art.height > 0 ? art.height : doc.viewportHeight;
     final scale =
