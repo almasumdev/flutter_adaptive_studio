@@ -264,6 +264,7 @@ flutter_adaptive_studio:
       image: assets/logo.svg                 # static logo (in-app + pre-31)
       animated_icon: assets/logo_anim.xml    # AnimatedVectorDrawable, Android 12+
       animated_icon_dark: assets/logo_anim_dark.xml
+      icon_padding: 30                       # % the native splash icon is inset (auto when icon_background is set, so an OEM adaptive mask can't clip a tall logo)
       branding: assets/wordmark.svg          # bottom branding (or branding_text:)
       branding_fit: as_is                    # auto (default) trims + fills; as_is keeps the SVG as drawn
       status_bar_color: transparent          # hex | transparent

@@ -80,6 +80,14 @@ class AndroidSplash {
   /// fraction of the square: a comfortable, mask-free size on the pre-31 splash.
   static const _legacyRasterFill = 0.7;
 
+  /// Default extra inset for the native splash icon when an `icon_background`
+  /// forces the OS's adaptive-icon path (scaled up + masked to the launcher
+  /// shape). Without it, a tall/wide logo drawn to the raw keyline is clipped by
+  /// the squircle mask on OEMs like Samsung One UI. Sized to keep a full-height
+  /// logo clear of the mask with margin; override with `icon_padding`. See
+  /// [_iconPadFraction].
+  static const _defaultMaskedIconPad = 0.40;
+
   static const _legacyDensities = {
     'mdpi': 1.0,
     'hdpi': 1.5,
@@ -373,7 +381,7 @@ class AndroidSplash {
   /// pre-31 logo matches the size of the system splash icon on API 31+.
   double _legacyFitFraction(SvgDocument doc) {
     final canvas = splash.iconBackground != null ? 240.0 : 288.0;
-    final safeDiameter = canvas * 2 / 3;
+    final safeDiameter = canvas * 2 / 3 * (1 - _iconPadFraction());
     final art = doc.artBounds();
     final w = (art?.width ?? doc.viewportWidth).abs();
     final h = (art?.height ?? doc.viewportHeight).abs();
@@ -793,16 +801,33 @@ class AndroidSplash {
     return false;
   }
 
+  /// Extra inset (fraction 0..0.95) applied to the native splash icon's keyline.
+  /// A caller-set `icon_padding` wins; otherwise a safe default kicks in **only
+  /// when an icon background is set**, because that path emits
+  /// `windowSplashScreenIconBackgroundColor`, which makes the OS render the icon
+  /// through the adaptive-icon pipeline (scaled up + masked to the launcher
+  /// squircle). A logo drawn to the raw ⌀160 keyline then gets its edge clipped;
+  /// insetting it keeps a tall/wide logo in a fully safe spot for every OEM
+  /// shape. The no-background path is shown verbatim (no mask), so it defaults to
+  /// no extra inset.
+  double _iconPadFraction() {
+    final p = splash.iconPadding;
+    if (p != null) return p.clamp(0, 95) / 100;
+    return splash.iconBackground != null ? _defaultMaskedIconPad : 0.0;
+  }
+
   /// Builds the centre-icon VectorDrawable to the Android 12 SplashScreen
   /// keyline spec so the launcher's circular mask never clips it.
   ///
   /// The system masks the icon to a centred circle of **2/3 the canvas**:
   /// 288dp canvas / ⌀192dp safe circle (no icon background), or 240/⌀160 (with
   /// one). We **inscribe the art's bounding box in that circle** (diagonal ≤
-  /// diameter) so even a square logo's corners stay inside the mask.
+  /// diameter) so even a square logo's corners stay inside the mask, then apply
+  /// [_iconPadFraction] so a tall/wide logo also survives the tighter
+  /// adaptive-icon masking OEMs apply to a backgrounded splash icon.
   String _squareIconVd(SvgDocument doc) {
     final canvas = splash.iconBackground != null ? 240.0 : 288.0;
-    final safeDiameter = canvas * 2 / 3; // ⌀160 or ⌀192
+    final safeDiameter = canvas * 2 / 3 * (1 - _iconPadFraction());
     final art = doc.artBounds();
     final w = (art?.width ?? doc.viewportWidth).abs();
     final h = (art?.height ?? doc.viewportHeight).abs();

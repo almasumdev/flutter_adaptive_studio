@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.25.0
+
+### Splash: a tall logo no longer gets clipped on the native splash
+
+Setting `splash.icon_background` puts the Android 12+ system splash into a
+"badged icon" mode, where the OS renders your icon like an adaptive app icon: it
+scales the foreground up and masks it to the launcher shape (a squircle on
+Samsung One UI, with a drop shadow and gloss). A logo that is taller or wider
+than it is round then has its edge sliced off by that mask, even though the
+generated drawable itself was correct and centred.
+
+- **New `splash.icon_padding`.** It insets the native splash icon (the API 31+
+  vector and the pre-31 raster) so the logo sits where the OEM mask cannot reach.
+  It is separate from `logo_padding`, which only affects the in-app
+  `AdaptiveSplash`.
+- **A safe default now applies when `icon_background` is set.** Because that is
+  the case the OS masks, the native splash icon is inset automatically so a
+  full-height logo stays clear of the mask. Set `icon_padding` to tune it, or
+  `icon_padding: 0` to keep the raw keyline. Splashes without an icon background
+  render exactly as before.
+
 ## 0.24.0
 
 ### Splash: keep an SVG branding as you drew it

@@ -303,6 +303,7 @@ class AndroidSplashConfig {
     this.flutterSplashDuration,
     this.iconBackground,
     this.iconBackgroundDark,
+    this.iconPadding,
     this.branding,
     this.brandingDark,
     this.brandingText,
@@ -366,6 +367,16 @@ class AndroidSplashConfig {
 
   /// Dark-mode variant of [iconBackground] (the API 31+ icon circle colour).
   final String? iconBackgroundDark;
+
+  /// Extra percent (0-95) the **native** splash icon is inset beyond the
+  /// Android-12 keyline, so a tall/wide logo sits in a completely safe spot even
+  /// when the OS treats it as an adaptive icon and masks it to the launcher
+  /// shape (e.g. a `windowSplashScreenIconBackgroundColor` icon on Samsung One
+  /// UI is scaled up + squircle-masked, clipping a logo drawn to the raw
+  /// keyline). Independent of [logoPadding] (which is in-app only). `null` ⇒ a
+  /// safe default is applied when [iconBackground] is set (the masked case),
+  /// otherwise no extra inset.
+  final int? iconPadding;
 
   /// Bottom branding image (SVG or raster), as the native splash shows beneath
   /// the icon. Light variant; [brandingDark] supplies the `-night` version.

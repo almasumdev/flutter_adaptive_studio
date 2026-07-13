@@ -98,6 +98,7 @@ flutter_adaptive_studio:
     #   image_format: png                         # png | webp, encoding for the pre-31 raster splash logo
     #   icon_background: "#FFFFFF"                 # hex circle behind the icon (API 31+)
     #   icon_background_dark: "#111111"           # dark-mode icon circle
+    #   icon_padding: 30                          # extra % the NATIVE splash icon is inset (auto when icon_background is set, so OEM adaptive masks can't clip a tall logo)
     #   gravity: center                           # pre-31 centre-image alignment (center, fill, bottom, ...)
     #   fullscreen: false                         # hide status/nav bars during splash
     #   screen_orientation: portrait              # lock orientation (app-wide; not undone by revert)
