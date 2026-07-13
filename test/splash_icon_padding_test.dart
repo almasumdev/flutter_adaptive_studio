@@ -64,8 +64,8 @@ $splashLines
     final defaulted = vectorScale('      icon_background: "#EEEEEE"');
     expect(defaulted, lessThan(raw),
         reason: 'a backgrounded splash icon must inset by default');
-    // Default is 40%: the scale should be ~0.6x the un-inset keyline scale.
-    expect(defaulted / raw, closeTo(0.6, 0.02));
+    // Default is a light 6.25% (⌀160 keyline -> ⌀150): scale ~0.9375x the raw.
+    expect(defaulted / raw, closeTo(0.9375, 0.01));
   });
 
   test('icon_padding: 0 opts out of the default inset', () {

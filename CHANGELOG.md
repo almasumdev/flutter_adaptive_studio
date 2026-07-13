@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.25.1
+
+### Splash: a gentler default inset for the native icon
+
+0.25.0 started insetting a native splash icon that has an `icon_background`, so an
+OEM adaptive mask can't clip it, but that default was heavier than it needed to
+be. The clip is only a few pixels on the launchers that do it, so the default now
+trims the keyline just slightly (a 150 dp safe circle instead of the full 160 dp
+on the 240 dp canvas) rather than shrinking the logo. Set `icon_padding` if you
+want more or less.
+
 ## 0.25.0
 
 ### Splash: a tall logo no longer gets clipped on the native splash

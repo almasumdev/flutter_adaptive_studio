@@ -81,12 +81,12 @@ class AndroidSplash {
   static const _legacyRasterFill = 0.7;
 
   /// Default extra inset for the native splash icon when an `icon_background`
-  /// forces the OS's adaptive-icon path (scaled up + masked to the launcher
-  /// shape). Without it, a tall/wide logo drawn to the raw keyline is clipped by
-  /// the squircle mask on OEMs like Samsung One UI. Sized to keep a full-height
-  /// logo clear of the mask with margin; override with `icon_padding`. See
-  /// [_iconPadFraction].
-  static const _defaultMaskedIconPad = 0.40;
+  /// forces the OS's adaptive-icon path (masked to the launcher shape). The clip
+  /// is only a few pixels past the keyline on OEMs like Samsung One UI, so this
+  /// is a light nudge: it pulls the ⌀160 keyline in to ⌀150, enough to clear the
+  /// squircle without visibly shrinking the logo. Override with `icon_padding`
+  /// for more or less. See [_iconPadFraction].
+  static const _defaultMaskedIconPad = 0.0625; // ⌀160 -> ⌀150
 
   static const _legacyDensities = {
     'mdpi': 1.0,
