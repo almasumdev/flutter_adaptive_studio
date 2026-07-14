@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.27.1
+
+### Discoverability
+
+Reworded the package description so it carries the terms people actually search
+for on pub.dev (adaptive launcher icons, app icons, animated splash screens,
+Android and iOS) instead of internal wording. The description is the field
+pub.dev weights most for search, so this helps the package surface for those
+queries. No code or behaviour changes.
+
 ## 0.27.0
 
 ### `auto`/`as_is` framing for the icon and the splash logo
