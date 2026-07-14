@@ -30,6 +30,7 @@ const Map<String, dynamic> _schema = {
         'monochrome': null,
         'safe_zone': null,
         'padding': null,
+        'foreground_format': null,
       },
       'themed': {
         'light': null,
@@ -45,6 +46,7 @@ const Map<String, dynamic> _schema = {
       'background_image_dark': null,
       'image': null,
       'image_dark': null,
+      'image_fit': null,
       'image_format': null,
       'icon_background': null,
       'icon_background_dark': null,

@@ -39,6 +39,15 @@ class AdaptiveGeometry {
     );
   }
 
+  /// Like [fit], but chooses the art to fit based on [zone]: `as_is` maps the
+  /// whole [viewBox] (its authored padding preserved), while every other mode
+  /// fits the measured [artBounds]. [artBounds] may be null (unmeasurable), in
+  /// which case the viewBox is used as a fallback.
+  static AdaptiveFit fitDoc(Bounds? artBounds, Bounds viewBox, SafeZone zone) {
+    final art = zone.mode == SafeZoneMode.asIs ? viewBox : artBounds;
+    return fit(art, zone, viewBox.longestSide);
+  }
+
   /// Target side the art's longest edge is scaled to, in 108dp units.
   ///
   /// `fit`/`inset` shrink the art inside the 72dp safe square by the requested
@@ -48,14 +57,18 @@ class AdaptiveGeometry {
         SafeZoneMode.fit ||
         SafeZoneMode.inset =>
           safeSquare * (1 - paddingFraction(zone)),
+        // `as_is` fits the whole viewBox into the mask-safe square, honouring the
+        // source's own padding rather than adding any.
+        SafeZoneMode.asIs => safeSquare,
         SafeZoneMode.none => canvas,
       };
 
   /// Padding (0..1) the foreground is inset by inside the safe zone. The user
   /// picks any percentage 0-100; 0 = flush to the masked edge, 100 = vanishing.
-  static double paddingFraction(SafeZone zone) => zone.mode == SafeZoneMode.none
-      ? 0
-      : (zone.insetPercent / 100).clamp(0, 1).toDouble();
+  static double paddingFraction(SafeZone zone) =>
+      (zone.mode == SafeZoneMode.none || zone.mode == SafeZoneMode.asIs)
+          ? 0
+          : (zone.insetPercent / 100).clamp(0, 1).toDouble();
 
   /// Foreground target as a fraction of the full 108dp canvas, used by raster
   /// layers that fit a source into the layer bitmap rather than a `<group>`.

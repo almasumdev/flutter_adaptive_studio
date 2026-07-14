@@ -17,6 +17,7 @@ import '../../graphic/svg_document.dart';
 import '../../io/res_writer.dart';
 import '../../logger.dart';
 import '../../raster/image_rasterizer.dart';
+import '../../raster/svg_rasterizer.dart';
 import '../../vector/vector_drawable_writer.dart';
 import '../platform_generator.dart';
 import 'android_legacy_icons.dart';
@@ -62,8 +63,9 @@ class AndroidIcons {
       report.skipped.add('adaptive foreground (no source)');
       return report;
     }
-    final foregroundRef = _buildLayer(fgSource, '${name}_foreground',
-        'foreground', adaptive.safeZone, report);
+    final foregroundRef = _buildLayer(
+        fgSource, '${name}_foreground', 'foreground', adaptive.safeZone, report,
+        rasterizeSvg: adaptive.foregroundFormat == LayerFormat.raster);
     if (foregroundRef == null) return report;
 
     // ---- Background (color, vector, or raster; default white if absent) ----
@@ -177,24 +179,28 @@ class AndroidIcons {
   /// Builds one adaptive layer (foreground/background/monochrome) from [source],
   /// accepting SVG (→ VectorDrawable) or raster (→ density PNGs). Returns the
   /// `@drawable/...` reference, or null if the source couldn't be used.
+  ///
+  /// [rasterizeSvg] bakes an SVG source to density PNGs instead of a
+  /// VectorDrawable (for gradient art that won't render as a VD everywhere).
   String? _buildLayer(String source, String base, String label, SafeZone zone,
-      GenerationReport report) {
+      GenerationReport report,
+      {bool rasterizeSvg = false}) {
     final abs = loader.resolveAsset(source);
     final ext = p.extension(abs).toLowerCase();
 
     if (ext == '.svg') {
       final doc = _loadSvg(source, label, report);
       if (doc == null) return null;
+      if (rasterizeSvg) {
+        final ok = _rasterizeSvgDensities(doc, base, zone, report, label);
+        if (ok) _removeStaleVector(base, report);
+        return ok ? '@drawable/$base' : null;
+      }
       final warns = <String>[];
       final xml = VectorDrawableWriter(warnings: warns).build(
         doc,
         viewport: AdaptiveGeometry.canvas,
-        fit: AdaptiveGeometry.fit(
-            doc.artBounds(),
-            zone,
-            doc.viewportWidth > doc.viewportHeight
-                ? doc.viewportWidth
-                : doc.viewportHeight),
+        fit: AdaptiveGeometry.fitDoc(doc.artBounds(), doc.viewBox, zone),
       );
       writer.writeText(p.join(paths.drawableDir, '$base.xml'), xml);
       report.written.add('$base.xml');
@@ -214,8 +220,8 @@ class AndroidIcons {
         report.skipped.add('$label (file not found)');
         return null;
       }
-      final ok =
-          _rasterDensities(abs, base, _fillFraction(zone), report, label);
+      final ok = _rasterDensities(abs, base, _fillFraction(zone), report, label,
+          trim: zone.mode != SafeZoneMode.asIs);
       if (ok) _removeStaleVector(base, report);
       return ok ? '@drawable/$base' : null;
     }
@@ -228,8 +234,10 @@ class AndroidIcons {
 
   /// Writes [base].png at each density into `drawable-<density>/`, the source fit
   /// to [fillFraction] of the 108dp layer canvas, centred and transparent.
+  /// [trim] (the `auto` fit) drops the source's transparent margins first.
   bool _rasterDensities(String abs, String base, double fillFraction,
-      GenerationReport report, String label) {
+      GenerationReport report, String label,
+      {bool trim = false}) {
     const layerDp = 108;
     const densities = {
       'mdpi': 1.0,
@@ -250,6 +258,7 @@ class AndroidIcons {
         fillFraction: fillFraction,
         outPath: out,
         format: fmt,
+        trim: trim,
       )) {
         any = true;
         report.written.add('drawable-$density/$base$ext');
@@ -258,6 +267,44 @@ class AndroidIcons {
       }
     });
     if (any) logger.step('$label (raster, ${fmt.name}) → drawable-*/$base$ext');
+    return any;
+  }
+
+  /// Bakes an SVG [doc] to per-density PNGs (same safe-zone fit as the
+  /// VectorDrawable path), for `foreground_format: raster`. Gradients and clips
+  /// are rendered into pixels, so the layer draws in previewers and non-Android
+  /// targets that don't resolve VectorDrawable `aapt:attr` gradients.
+  bool _rasterizeSvgDensities(SvgDocument doc, String base, SafeZone zone,
+      GenerationReport report, String label) {
+    const layerDp = 108;
+    const densities = {
+      'mdpi': 1.0,
+      'hdpi': 1.5,
+      'xhdpi': 2.0,
+      'xxhdpi': 3.0,
+      'xxxhdpi': 4.0,
+    };
+    final fmt = iconConfig.imageFormat;
+    final ext = fmt.extension;
+    final asIs = zone.mode == SafeZoneMode.asIs;
+    final frac = AdaptiveGeometry.canvasFillFraction(zone);
+    var any = false;
+    densities.forEach((density, mult) {
+      final image = const SvgRasterizer().rasterize(
+          doc, (layerDp * mult).round(),
+          fitFraction: frac, fitArtBounds: !asIs);
+      File(p.join(paths.drawableDensityDir(density), '$base$ext'))
+        ..parent.createSync(recursive: true)
+        ..writeAsBytesSync(ImageRasterizer.encode(image, fmt));
+      report.written.add('drawable-$density/$base$ext');
+      _removeStaleRasterSibling(density, base, ext, report);
+      any = true;
+    });
+    if (any) {
+      report.warnings.addAll(doc.warnings);
+      logger
+          .step('$label (raster from SVG, ${fmt.name}) → drawable-*/$base$ext');
+    }
     return any;
   }
 

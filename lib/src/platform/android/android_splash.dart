@@ -18,7 +18,6 @@ import 'package:xml/xml.dart';
 import '../../config/config.dart';
 import '../../config/config_loader.dart';
 import '../../geometry/adaptive_geometry.dart';
-import '../../graphic/bounds.dart';
 import '../../graphic/svg_color.dart';
 import '../../graphic/svg_document.dart';
 import '../../io/res_writer.dart';
@@ -80,14 +79,6 @@ class AndroidSplash {
   /// fraction of the square: a comfortable, mask-free size on the pre-31 splash.
   static const _legacyRasterFill = 0.7;
 
-  /// Default extra inset for the native splash icon when an `icon_background`
-  /// forces the OS's adaptive-icon path (masked to the launcher shape). The clip
-  /// is only a few pixels past the keyline on OEMs like Samsung One UI, so this
-  /// is a light nudge: it pulls the ⌀160 keyline in to ⌀150, enough to clear the
-  /// squircle without visibly shrinking the logo. Override with `icon_padding`
-  /// for more or less. See [_iconPadFraction].
-  static const _defaultMaskedIconPad = 0.0625; // ⌀160 -> ⌀150
-
   static const _legacyDensities = {
     'mdpi': 1.0,
     'hdpi': 1.5,
@@ -137,13 +128,22 @@ class AndroidSplash {
       writer.upsertColor(paths.valuesNightDir, 'splash_background',
           splash.backgroundDark!.toUpperCase());
     }
-    if (splash.iconBackground != null) {
-      writer.upsertColor(paths.valuesDir, 'splash_icon_background',
-          splash.iconBackground!.toUpperCase());
-    }
-    if (splash.iconBackgroundDark != null) {
-      writer.upsertColor(paths.valuesNightDir, 'splash_icon_background',
-          splash.iconBackgroundDark!.toUpperCase());
+    if (_hasIconBackground) {
+      if (splash.iconBackground != null) {
+        writer.upsertColor(paths.valuesDir, 'splash_icon_background',
+            splash.iconBackground!.toUpperCase());
+      }
+      if (splash.iconBackgroundDark != null) {
+        writer.upsertColor(paths.valuesNightDir, 'splash_icon_background',
+            splash.iconBackgroundDark!.toUpperCase());
+      }
+    } else if (splash.iconBackground != null) {
+      final w = 'icon_background matches the splash background, so the API 31+ '
+          'icon badge would be invisible. Skipping it: a colour there forces the '
+          "OS's adaptive-icon mask, which trims a tall logo. Set a different "
+          'icon_background for a visible circle, or drop it.';
+      logger.warn(w);
+      report.warnings.add(w);
     }
 
     // ---- System bar colours (status + navigation), if configured ----
@@ -322,14 +322,17 @@ class AndroidSplash {
         report.warnings.add('pre-31 splash logo parse error: $e');
         return false;
       }
-      final fit = _legacyFitFraction(doc);
+      final asIs = splash.imageFit == ArtFit.asIs;
+      // auto fits the trimmed art to the keyline; as_is fits the whole viewBox's
+      // longest side to the same safe circle, keeping the source's own padding.
+      final fit = asIs ? _safeCircleFraction() : _legacyFitFraction(doc);
       var any = false;
       _legacyDensities.forEach((density, mult) {
         final sizePx = (_legacyBoxDp * mult).round();
         // Transparent canvas (no backgroundArgb). The layer-list paints the
         // colour behind it.
-        final image =
-            const SvgRasterizer().rasterize(doc, sizePx, fitFraction: fit);
+        final image = const SvgRasterizer()
+            .rasterize(doc, sizePx, fitFraction: fit, fitArtBounds: !asIs);
         final dir = _legacyDensityDir(density, night);
         File(p.join(dir, '$_legacyName$outExt'))
           ..parent.createSync(recursive: true)
@@ -345,6 +348,7 @@ class AndroidSplash {
 
     if (_rasterExts.contains(ext)) {
       const rasterizer = ImageRasterizer();
+      final asIs = splash.imageFit == ArtFit.asIs;
       var any = false;
       _legacyDensities.forEach((density, mult) {
         final out =
@@ -355,6 +359,7 @@ class AndroidSplash {
           fillFraction: _legacyRasterFill,
           outPath: out,
           format: fmt,
+          trim: !asIs,
         )) {
           report.written.add('${night ? 'drawable-night' : 'drawable'}'
               '-$density/$_legacyName$outExt');
@@ -380,7 +385,7 @@ class AndroidSplash {
   /// look (the art's bounding box inscribed in the 2/3 safe circle) so the
   /// pre-31 logo matches the size of the system splash icon on API 31+.
   double _legacyFitFraction(SvgDocument doc) {
-    final canvas = splash.iconBackground != null ? 240.0 : 288.0;
+    final canvas = _hasIconBackground ? 240.0 : 288.0;
     final safeDiameter = canvas * 2 / 3 * (1 - _iconPadFraction());
     final art = doc.artBounds();
     final w = (art?.width ?? doc.viewportWidth).abs();
@@ -392,6 +397,11 @@ class AndroidSplash {
     // keyline fits the *diagonal* to the safe diameter. Convert between them.
     return (longest / diagonal) * (safeDiameter / canvas);
   }
+
+  /// The safe circle's diameter as a fraction of the icon canvas (⌀ = 2/3 of the
+  /// canvas, less any `icon_padding`). Backs `image_fit: as_is`, which fits the
+  /// whole viewBox's longest side to this fraction rather than the trimmed art.
+  double _safeCircleFraction() => 2 / 3 * (1 - _iconPadFraction());
 
   /// Drops a same-name legacy logo left in the other raster format by a previous
   /// run, so a stale PNG can't shadow a fresh WebP (or vice-versa).
@@ -592,7 +602,7 @@ class AndroidSplash {
       return false;
     }
     const slotW = 200, slotH = 80;
-    final asIs = splash.brandingFit == BrandingFit.asIs;
+    final asIs = splash.brandingFit == ArtFit.asIs;
     final margin = asIs ? 1.0 : 0.9;
     final fmt = splash.imageFormat;
     var any = false;
@@ -766,15 +776,22 @@ class AndroidSplash {
       writer.writeText(p.join(drawableDir, '$base.xml'), xml);
       report.written.add('${night ? 'drawable-night' : 'drawable'}/$base.xml');
       report.warnings.addAll(doc.warnings);
+      _removeStaleDrawableSibling(base, night, report, keptVector: true);
       return true;
     }
 
     if (_rasterExts.contains(ext)) {
-      final src = img.decodeImage(File(abs).readAsBytesSync());
+      var src = img.decodeImage(File(abs).readAsBytesSync());
       if (src == null) {
         logger.warn('$role: could not decode $abs');
         report.skipped.add('$role (decode failed)');
         return false;
+      }
+      // The centre logo's `auto` fit trims the source's transparent margins, so
+      // the OS scales the real art (not its padding) to the keyline; `as_is`
+      // keeps them. Background/branding rasters are unaffected.
+      if (square && !fill && splash.imageFit == ArtFit.auto) {
+        src = ImageRasterizer.trimTransparent(src);
       }
       // nodpi → used as-authored across densities; downscale only if huge.
       const maxDim = 512;
@@ -792,6 +809,7 @@ class AndroidSplash {
         ..writeAsBytesSync(img.encodePng(out));
       report.written.add(
           '${night ? 'drawable-night-nodpi' : 'drawable-nodpi'}/$base.png');
+      _removeStaleDrawableSibling(base, night, report, keptVector: false);
       return true;
     }
 
@@ -801,19 +819,67 @@ class AndroidSplash {
     return false;
   }
 
-  /// Extra inset (fraction 0..0.95) applied to the native splash icon's keyline.
-  /// A caller-set `icon_padding` wins; otherwise a safe default kicks in **only
-  /// when an icon background is set**, because that path emits
-  /// `windowSplashScreenIconBackgroundColor`, which makes the OS render the icon
-  /// through the adaptive-icon pipeline (scaled up + masked to the launcher
-  /// squircle). A logo drawn to the raw ⌀160 keyline then gets its edge clipped;
-  /// insetting it keeps a tall/wide logo in a fully safe spot for every OEM
-  /// shape. The no-background path is shown verbatim (no mask), so it defaults to
-  /// no extra inset.
+  /// Removes a stale same-name drawable left by a previous run in the *other*
+  /// output form. Switching a source between SVG and raster otherwise leaves a
+  /// `drawable[-night]-nodpi/<base>.png` shadowing the new
+  /// `drawable[-night]/<base>.xml` (a nodpi raster WINS resource resolution over
+  /// a plain-`drawable/` vector, so the old PNG keeps rendering as the splash),
+  /// or a stale `.xml` shadowing a new raster. [keptVector] is what we just
+  /// wrote; the opposite form is the stale one to drop.
+  void _removeStaleDrawableSibling(
+      String base, bool night, GenerationReport report,
+      {required bool keptVector}) {
+    final File stale;
+    final String rel;
+    if (keptVector) {
+      stale = File(p.join(paths.resDir,
+          night ? 'drawable-night-nodpi' : 'drawable-nodpi', '$base.png'));
+      rel = '${night ? 'drawable-night-nodpi' : 'drawable-nodpi'}/$base.png';
+    } else {
+      stale = File(p.join(
+          night ? paths.drawableNightDir : paths.drawableDir, '$base.xml'));
+      rel = '${night ? 'drawable-night' : 'drawable'}/$base.xml';
+    }
+    if (stale.existsSync()) {
+      stale.deleteSync();
+      report.removed.add('$rel (stale)');
+      // Drop the parent dir too if removing the file left it empty, so a
+      // raster→SVG switch can't leave a stray empty `drawable-nodpi/` behind.
+      final dir = stale.parent;
+      if (dir.existsSync() && dir.listSync().isEmpty) {
+        dir.deleteSync();
+      }
+    }
+  }
+
+  /// Extra inset (fraction 0..0.95) from the Android splash keyline for the
+  /// native icon. Defaults to `0`, i.e. the art fills the ⌀192 (or ⌀160 with an
+  /// icon background) safe circle exactly as the Android guide specifies. Set
+  /// `icon_padding` to inset a tall/wide logo further if a particular OEM mask
+  /// crops it.
   double _iconPadFraction() {
     final p = splash.iconPadding;
     if (p != null) return p.clamp(0, 95) / 100;
-    return splash.iconBackground != null ? _defaultMaskedIconPad : 0.0;
+    return 0;
+  }
+
+  /// True when a *visible* icon background is configured: one whose colour
+  /// differs from the splash background it sits on. An invisible badge (same
+  /// colour) is treated as none, because emitting
+  /// `windowSplashScreenIconBackgroundColor` makes the OS render the icon
+  /// through its adaptive-icon pipeline (masked + normalised to the launcher
+  /// shape), which trims a tall logo, for no visual gain.
+  bool get _hasIconBackground {
+    final ib = splash.iconBackground;
+    if (ib == null) return false;
+    final bg = (splash.background ?? '#FFFFFF').trim().toUpperCase();
+    if (ib.trim().toUpperCase() != bg) return true;
+    final ibd = splash.iconBackgroundDark;
+    if (ibd == null) return false;
+    final bgd = (splash.backgroundDark ?? splash.background ?? '#000000')
+        .trim()
+        .toUpperCase();
+    return ibd.trim().toUpperCase() != bgd;
   }
 
   /// Builds the centre-icon VectorDrawable to the Android 12 SplashScreen
@@ -821,24 +887,28 @@ class AndroidSplash {
   ///
   /// The system masks the icon to a centred circle of **2/3 the canvas**:
   /// 288dp canvas / ⌀192dp safe circle (no icon background), or 240/⌀160 (with
-  /// one). We **inscribe the art's bounding box in that circle** (diagonal ≤
-  /// diameter) so even a square logo's corners stay inside the mask, then apply
-  /// [_iconPadFraction] so a tall/wide logo also survives the tighter
-  /// adaptive-icon masking OEMs apply to a backgrounded splash icon.
+  /// one). `auto` (default) **inscribes the art's bounding box in that circle**
+  /// (diagonal ≤ diameter) so even a square logo's corners stay inside the mask,
+  /// filling the safe circle as the Android guide specifies. `image_fit: as_is`
+  /// instead fits the whole viewBox's longest side into the circle, keeping the
+  /// source's own padding and aspect. `icon_padding` (default 0) insets either
+  /// further for an OEM that masks tighter.
   String _squareIconVd(SvgDocument doc) {
-    final canvas = splash.iconBackground != null ? 240.0 : 288.0;
+    final canvas = _hasIconBackground ? 240.0 : 288.0;
     final safeDiameter = canvas * 2 / 3 * (1 - _iconPadFraction());
-    final art = doc.artBounds();
-    final w = (art?.width ?? doc.viewportWidth).abs();
-    final h = (art?.height ?? doc.viewportHeight).abs();
-    final diagonal = math.sqrt(w * w + h * h);
-    final cx = art?.centerX ?? doc.viewportWidth / 2;
-    final cy = art?.centerY ?? doc.viewportHeight / 2;
-    final scale = diagonal == 0 ? 1.0 : safeDiameter / diagonal;
+    final asIs = splash.imageFit == ArtFit.asIs;
+    final box = asIs ? doc.viewBox : (doc.artBounds() ?? doc.viewBox);
+    final w = box.width.abs();
+    final h = box.height.abs();
+    // auto inscribes the art's diagonal in the safe circle; as_is fits the whole
+    // viewBox's longest side into it (the source's padding is honoured, not
+    // trimmed, so the visible logo can sit smaller inside the circle).
+    final span = asIs ? math.max(w, h) : math.sqrt(w * w + h * h);
+    final scale = span == 0 ? 1.0 : safeDiameter / span;
     final fit = AdaptiveFit(
       scale: scale,
-      translateX: canvas / 2 - scale * cx,
-      translateY: canvas / 2 - scale * cy,
+      translateX: canvas / 2 - scale * box.centerX,
+      translateY: canvas / 2 - scale * box.centerY,
     );
     return VectorDrawableWriter()
         .build(doc, viewport: canvas, fit: fit, sizeDp: canvas);
@@ -858,12 +928,9 @@ class AndroidSplash {
     // `as_is`: place the whole viewBox (its own aspect + inner padding) and fill
     // the slot. `auto` (default): measure the wordmark and fill 90% of the slot,
     // trimming whatever padding the source carries.
-    final asIs = splash.brandingFit == BrandingFit.asIs;
+    final asIs = splash.brandingFit == ArtFit.asIs;
     final margin = asIs ? 1.0 : 0.9;
-    final art = asIs
-        ? Bounds(0, 0, doc.viewportWidth, doc.viewportHeight)
-        : (doc.artBounds() ??
-            Bounds(0, 0, doc.viewportWidth, doc.viewportHeight));
+    final art = asIs ? doc.viewBox : (doc.artBounds() ?? doc.viewBox);
     final w = art.width > 0 ? art.width : doc.viewportWidth;
     final h = art.height > 0 ? art.height : doc.viewportHeight;
     final scale =
@@ -888,11 +955,14 @@ class AndroidSplash {
   String _fillVd(SvgDocument doc) {
     final w = doc.viewportWidth <= 0 ? 1.0 : doc.viewportWidth;
     final h = doc.viewportHeight <= 0 ? 1.0 : doc.viewportHeight;
+    // Shift a non-zero viewBox origin back to (0,0) so the art fills the vector's
+    // own viewport instead of being pushed off by its authored offset.
     return VectorDrawableWriter().build(
       doc,
       viewport: w,
       viewportHeight: h,
-      fit: const AdaptiveFit(scale: 1, translateX: 0, translateY: 0),
+      fit: AdaptiveFit(
+          scale: 1, translateX: -doc.viewBoxMinX, translateY: -doc.viewBoxMinY),
       sizeDp: w,
       sizeDpHeight: h,
     );
@@ -965,9 +1035,15 @@ class AndroidSplash {
       editor.upsertItem(launch, 'android:windowSplashScreenAnimationDuration',
           '${splash.durationMs}');
     }
-    if (splash.iconBackground != null) {
+    // TEMP TEST: white is baked INTO the icon drawable + raster (see
+    // _squareIconVd / _rasterizeLegacyIcon), so no OS icon-background is set for
+    // the invisible-badge case. A real icon_background still emits its colour.
+    if (_hasIconBackground) {
       editor.upsertItem(launch, 'android:windowSplashScreenIconBackgroundColor',
           '@color/splash_icon_background');
+    } else {
+      editor.removeItem(
+          launch, 'android:windowSplashScreenIconBackgroundColor');
     }
     if (brandingRef != null) {
       editor.upsertItem(launch, 'android:windowSplashScreenBrandingImage',

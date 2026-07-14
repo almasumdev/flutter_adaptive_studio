@@ -83,15 +83,21 @@ class ImageRasterizer implements Rasterizer {
   /// preserved) so its longest side fills [fillFraction] of the canvas and
   /// centred, i.e. an adaptive-icon layer with the source fit into the safe
   /// zone. Works for any raster source; no system tool needed.
+  ///
+  /// [trim] (the `auto` fit) drops fully-transparent margins first, so only the
+  /// real art is measured and fills the slot; leave it false (`as_is`) to keep
+  /// the source's own padding.
   bool renderFittedPng({
     required String sourcePath,
     required int canvasPx,
     required double fillFraction,
     required String outPath,
     ImageFormat format = ImageFormat.png,
+    bool trim = false,
   }) {
-    final src = img.decodeImage(File(sourcePath).readAsBytesSync());
+    var src = img.decodeImage(File(sourcePath).readAsBytesSync());
     if (src == null) return false;
+    if (trim) src = trimTransparent(src);
     final target = (canvasPx * fillFraction).round();
     final longest = src.width > src.height ? src.width : src.height;
     final scale = longest == 0 ? 1.0 : target / longest;
@@ -120,9 +126,11 @@ class ImageRasterizer implements Rasterizer {
     required int sizePx,
     required double fillFraction,
     required String outPath,
+    bool trim = false,
   }) {
-    final src = img.decodeImage(File(foregroundPath).readAsBytesSync());
+    var src = img.decodeImage(File(foregroundPath).readAsBytesSync());
     if (src == null) return false;
+    if (trim) src = trimTransparent(src);
     final canvas = img.Image(width: sizePx, height: sizePx, numChannels: 4)
       ..clear(img.ColorRgba8(
         (backgroundArgb >> 16) & 0xFF,
@@ -260,6 +268,18 @@ class ImageRasterizer implements Rasterizer {
     if (cur.width == w && cur.height == h) return cur;
     return img.copyResize(cur,
         width: w, height: h, interpolation: img.Interpolation.average);
+  }
+
+  /// Crops fully-transparent margins so only the real art remains. Returns the
+  /// source unchanged when it has no alpha border (or is entirely transparent).
+  /// Backs the `auto` fit for raster sources.
+  static img.Image trimTransparent(img.Image src) {
+    final t = img.findTrim(src, mode: img.TrimMode.transparent);
+    if (t[2] <= 0 || t[3] <= 0) return src;
+    if (t[0] == 0 && t[1] == 0 && t[2] == src.width && t[3] == src.height) {
+      return src;
+    }
+    return img.copyCrop(src, x: t[0], y: t[1], width: t[2], height: t[3]);
   }
 
   static String basename(String path) => p.basename(path);

@@ -58,7 +58,8 @@ flutter_adaptive_studio:
     expect(File(res('drawable/splash_branding.xml')).existsSync(), isTrue);
 
     // Icon honours the Android 12 keyline: 288dp canvas (no icon background),
-    // art inscribed in the ⌀192 safe circle so the mask can't clip it.
+    // art inscribed in the ⌀192 safe circle (the platform-guide size, no extra
+    // inset by default).
     final icon = File(res('drawable/splash_icon.xml')).readAsStringSync();
     expect(icon, contains('android:viewportWidth="288"'));
     final scale = RegExp(r'scaleX="([0-9.]+)"').firstMatch(icon);

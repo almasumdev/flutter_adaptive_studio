@@ -240,6 +240,11 @@ class AndroidLegacyIcons {
         iconConfig.legacyPadding != null;
     final composeFill =
         insetArt ? (fillOverride ?? (1 - _composePadding())) : 1.0;
+    // `safe_zone: as_is` keeps the source's own framing (whole viewBox / full
+    // bitmap, padding preserved) so the mipmaps + Play Store PNG match the
+    // adaptive foreground. A Play Store `fillOverride` still forces its inset.
+    final asIs =
+        fillOverride == null && adaptive?.safeZone.mode == SafeZoneMode.asIs;
 
     // SVG → render directly at each target size (no resample → no grid, sharpest
     // result). A null fit fraction fills the canvas (a finished icon kept
@@ -247,7 +252,8 @@ class AndroidLegacyIcons {
     if (ext == '.svg') {
       try {
         final doc = SvgDocument.parse(File(abs).readAsStringSync());
-        return _Source.svg(doc, bgArgb, insetArt ? composeFill : null);
+        return _Source.svg(
+            doc, bgArgb, asIs ? null : (insetArt ? composeFill : null));
       } on Exception {
         logger.skip('legacy/store: could not parse SVG "$rel"');
         report.skipped.add('legacy/store (SVG parse failed)');
@@ -264,8 +270,9 @@ class AndroidLegacyIcons {
               foregroundPath: abs,
               backgroundArgb: bgArgb,
               sizePx: 1024,
-              fillFraction: composeFill,
-              outPath: master)
+              fillFraction: asIs ? 1.0 : composeFill,
+              outPath: master,
+              trim: !asIs)
           : const ImageRasterizer().renderFlattenedPng(
               sourcePath: abs,
               sizePx: 1024,

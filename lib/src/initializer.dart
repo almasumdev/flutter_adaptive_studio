@@ -66,7 +66,8 @@ flutter_adaptive_studio:
         foreground: assets/logo.svg        # your logo (SVG or raster)
         background: "#FFFFFF"              # hex colour, or an SVG/PNG path
         # monochrome: assets/logo_mono.svg # Android 13 themed (tinted) icon, SVG only
-        safe_zone: fit                     # fit (15% padding) | inset:<pct> | none
+        safe_zone: fit                     # fit (15% padding) | inset:<pct> | none | as_is (keep the source's own padding/aspect, no trim)
+        # foreground_format: vector        # vector (default) | raster: bake a gradient SVG to PNGs so it renders in previewers / non-Android targets (VD `aapt:attr` gradients need a real build)
         # padding: 15                      # alias for `safe_zone: inset:<pct>` (wins if both set)
 
       round: true                          # also emit ic_launcher_round
@@ -95,6 +96,7 @@ flutter_adaptive_studio:
     #   background_image_dark: assets/splash_bg_dark.png
     #   image: assets/logo.svg                    # static centre logo (SVG or raster)
     #   image_dark: assets/logo_dark.svg          # dark-mode centre logo
+    #   image_fit: auto                           # auto trims the logo's padding + fills the safe circle; as_is keeps the source's own padding/aspect
     #   image_format: png                         # png | webp, encoding for the pre-31 raster splash logo
     #   icon_background: "#FFFFFF"                 # hex circle behind the icon (API 31+)
     #   icon_background_dark: "#111111"           # dark-mode icon circle
@@ -117,7 +119,7 @@ flutter_adaptive_studio:
     #   branding_text_color: "#1F5560"            # branding text colour (auto-contrasts the bg if unset)
     #   branding_text_color_dark: "#E6F2F4"
     #   branding_mode: bottom                     # bottom | bottom_left | bottom_right (pre-31 + fallback)
-    #   branding_fit: auto                        # auto trims + fills the slot; as_is keeps the SVG's own aspect, padding, size
+    #   branding_fit: auto                        # auto trims + fills the slot; as_is keeps the source's own aspect, padding, size
     #   branding_bottom_padding: 48               # branding distance from bottom edge, dp
     #   # --- in-app Flutter splash (AdaptiveSplash) ---
     #   flutter_splash_all_versions: false        # show the in-app splash on every OS version

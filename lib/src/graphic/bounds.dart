@@ -53,6 +53,18 @@ class Bounds {
     );
   }
 
+  /// Overlap of two boxes, or `null` if they don't overlap. Used to bound art to
+  /// the region a `clip-path` actually keeps visible.
+  static Bounds? intersect(Bounds? a, Bounds? b) {
+    if (a == null || b == null) return null;
+    final nx = a.minX > b.minX ? a.minX : b.minX;
+    final ny = a.minY > b.minY ? a.minY : b.minY;
+    final xx = a.maxX < b.maxX ? a.maxX : b.maxX;
+    final xy = a.maxY < b.maxY ? a.maxY : b.maxY;
+    if (xx < nx || xy < ny) return null;
+    return Bounds(nx, ny, xx, xy);
+  }
+
   @override
   String toString() => 'Bounds($minX, $minY → $maxX, $maxY  $width x $height)';
 }

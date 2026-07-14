@@ -12,8 +12,9 @@
 /// with non-zero winding into a 4× supersampled buffer. The buffer is
 /// box-averaged down with premultiplied alpha, which is what produces clean
 /// anti-aliased edges. Strokes are expanded to segment quads plus round
-/// joins/caps and filled the same way. Gradients/filters/masks aren't modelled
-/// (the parser already drops them with a warning).
+/// joins/caps and filled the same way. Gradient fills are evaluated per pixel
+/// and clip paths mask the fill to their region; filters/masks aren't modelled
+/// (the parser drops those with a warning).
 library;
 
 import 'dart:io';
@@ -22,7 +23,9 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
+import '../graphic/bounds.dart';
 import '../graphic/matrix2d.dart';
+import '../graphic/path_data.dart';
 import '../graphic/svg_document.dart';
 import 'rasterizer.dart';
 
@@ -59,6 +62,10 @@ class SvgRasterizer implements Rasterizer {
   /// so a logo with generous internal margins fills the icon properly (more
   /// pixels per feature = crisp, not a small soft logo lost in padding).
   ///
+  /// [fitArtBounds] chooses what [fitFraction] scales: `true` (the `auto` fit)
+  /// measures the real art and trims the source's padding; `false` (the `as_is`
+  /// fit) scales the whole viewBox to that fraction, keeping authored padding.
+  ///
   /// Returns false if the file is missing or can't be parsed.
   bool render({
     required String svgPath,
@@ -66,6 +73,7 @@ class SvgRasterizer implements Rasterizer {
     required String outPath,
     int? backgroundArgb,
     double? fitFraction,
+    bool fitArtBounds = true,
   }) {
     final file = File(svgPath);
     if (!file.existsSync()) return false;
@@ -76,7 +84,9 @@ class SvgRasterizer implements Rasterizer {
       return false;
     }
     final image = rasterize(doc, sizePx,
-        backgroundArgb: backgroundArgb, fitFraction: fitFraction);
+        backgroundArgb: backgroundArgb,
+        fitFraction: fitFraction,
+        fitArtBounds: fitArtBounds);
     File(outPath)
       ..parent.createSync(recursive: true)
       ..writeAsBytesSync(img.encodePng(image));
@@ -85,7 +95,7 @@ class SvgRasterizer implements Rasterizer {
 
   /// Rasterises [doc] to a [sizePx]² image. Exposed for testing.
   img.Image rasterize(SvgDocument doc, int sizePx,
-      {int? backgroundArgb, double? fitFraction}) {
+      {int? backgroundArgb, double? fitFraction, bool fitArtBounds = true}) {
     final ss = supersample;
     final hi = sizePx * ss;
     final buf = Uint8List(hi * hi * 4);
@@ -101,51 +111,83 @@ class SvgRasterizer implements Rasterizer {
       }
     }
 
-    final base = _baseTransform(doc, hi, fitFraction);
+    final base = _baseTransform(doc, hi, fitFraction, fitArtBounds);
     final raster = _Raster(buf, hi);
-    _paint(doc.children, base, raster);
+    _paint(doc.children, base, raster, null);
     return _downsample(buf, hi, sizePx, ss);
   }
 
   /// The local→device transform for an [hi]² (supersampled) canvas. Fits the
-  /// art bounding box to [fitFraction] of the canvas when given; otherwise maps
-  /// the viewBox uniformly. Both centre the result.
-  static Matrix2D _baseTransform(SvgDocument doc, int hi, double? fitFraction) {
+  /// art bounding box (or, when [fitArtBounds] is false, the whole viewBox) to
+  /// [fitFraction] of the canvas when given; otherwise maps the viewBox
+  /// uniformly to fill it. All centre the result.
+  static Matrix2D _baseTransform(
+      SvgDocument doc, int hi, double? fitFraction, bool fitArtBounds) {
     if (fitFraction != null) {
-      final art = doc.artBounds();
-      if (art != null && art.longestSide > 0) {
-        final s = hi * fitFraction / art.longestSide;
+      final Bounds? box = fitArtBounds ? doc.artBounds() : doc.viewBox;
+      if (box != null && box.longestSide > 0) {
+        final s = hi * fitFraction / box.longestSide;
         return Matrix2D(
-            s, 0, 0, s, hi / 2 - s * art.centerX, hi / 2 - s * art.centerY);
+            s, 0, 0, s, hi / 2 - s * box.centerX, hi / 2 - s * box.centerY);
       }
     }
     final vw = doc.viewportWidth <= 0 ? 1.0 : doc.viewportWidth;
     final vh = doc.viewportHeight <= 0 ? 1.0 : doc.viewportHeight;
     final s = hi / (vw > vh ? vw : vh);
-    return Matrix2D(s, 0, 0, s, (hi - vw * s) / 2, (hi - vh * s) / 2);
+    // Fold the viewBox origin into the translate so offset art still centres.
+    return Matrix2D(s, 0, 0, s, (hi - vw * s) / 2 - s * doc.viewBoxMinX,
+        (hi - vh * s) / 2 - s * doc.viewBoxMinY);
   }
 
-  void _paint(List<SvgNode> nodes, Matrix2D m, _Raster raster) {
+  void _paint(
+      List<SvgNode> nodes, Matrix2D m, _Raster raster, Uint8List? clip) {
     for (final node in nodes) {
       switch (node) {
         case SvgGroup g:
-          _paint(g.children, m.multiply(g.transform), raster);
+          final cm = m.multiply(g.transform);
+          var childClip = clip;
+          if (g.clipPathData != null) {
+            childClip = _intersect(
+                clip, raster.mask(_Flattener(cm).flatten(g.clipPathData!)));
+          }
+          _paint(g.children, cm, raster, childClip);
         case SvgPath p:
+          var pathClip = clip;
+          if (p.clipPathData != null) {
+            pathClip = _intersect(
+                clip, raster.mask(_Flattener(m).flatten(p.clipPathData!)));
+          }
           final subpaths = _Flattener(m).flatten(p.pathData);
           if (subpaths.isEmpty) continue;
-          if (!p.fill.isNone && p.fillAlpha > 0) {
-            raster.fill(subpaths, p.fill.argb, p.fillAlpha, closeAll: true);
+          final grad = p.fillGradient;
+          if (grad != null && grad.stops.isNotEmpty && p.fillAlpha > 0) {
+            final bounds = p.explicitBounds ?? PathData.bounds(p.pathData);
+            raster.fillGradient(
+                subpaths, _DeviceGradient(grad, m, bounds), p.fillAlpha,
+                clip: pathClip);
+          } else if (!p.fill.isNone && p.fillAlpha > 0) {
+            raster.fill(subpaths, p.fill.argb, p.fillAlpha,
+                closeAll: true, clip: pathClip);
           }
           if (!p.stroke.isNone && p.strokeAlpha > 0 && p.strokeWidth > 0) {
             final wDev = p.strokeWidth * _avgScale(m);
             final outline = _strokeOutline(subpaths, wDev);
             if (outline.isNotEmpty) {
               raster.fill(outline, p.stroke.argb, p.strokeAlpha,
-                  closeAll: true);
+                  closeAll: true, clip: pathClip);
             }
           }
       }
     }
+  }
+
+  /// Intersects clip coverage masks (both 0/255). Mutates and returns [b].
+  static Uint8List _intersect(Uint8List? a, Uint8List b) {
+    if (a == null) return b;
+    for (var i = 0; i < b.length; i++) {
+      if (a[i] == 0) b[i] = 0;
+    }
+    return b;
   }
 
   static double _avgScale(Matrix2D m) =>
@@ -266,13 +308,11 @@ class _Raster {
   final Uint8List buf;
   final int size;
 
-  void fill(List<_Poly> polys, int argb, double alpha,
-      {required bool closeAll}) {
-    final sr = (argb >> 16) & 0xFF;
-    final sg = (argb >> 8) & 0xFF;
-    final sb = argb & 0xFF;
-
-    // Build edge list (x0,y0,x1,y1) with winding sign baked into vertex order.
+  /// Walks the non-zero-winding fill of [polys], calling [span] with each run of
+  /// covered pixels `(y, xStart, xEnd)` (both inclusive). The shared core of
+  /// solid fill, gradient fill and clip-mask building.
+  void _scan(List<_Poly> polys, bool closeAll,
+      void Function(int y, int xa, int xb) span) {
     final ex0 = <double>[],
         ey0 = <double>[],
         ex1 = <double>[],
@@ -326,16 +366,57 @@ class _Raster {
         if (wind == 0) continue;
         final xa = xsCross[order[oi]];
         final xb = xsCross[order[oi + 1]];
-        // Fill pixels whose centre lies in [xa, xb).
+        // Cover pixels whose centre lies in [xa, xb).
         final start = math.max(0, (xa - 0.5).ceil());
         final end = math.min(size - 1, (xb - 0.5).floor());
-        var idx = (y * size + start) * 4;
-        for (var x = start; x <= end; x++) {
-          _over(idx, sr, sg, sb, alpha);
-          idx += 4;
-        }
+        if (end >= start) span(y, start, end);
       }
     }
+  }
+
+  void fill(List<_Poly> polys, int argb, double alpha,
+      {required bool closeAll, Uint8List? clip}) {
+    final sr = (argb >> 16) & 0xFF;
+    final sg = (argb >> 8) & 0xFF;
+    final sb = argb & 0xFF;
+    _scan(polys, closeAll, (y, xa, xb) {
+      var idx = (y * size + xa) * 4;
+      var mi = y * size + xa;
+      for (var x = xa; x <= xb; x++) {
+        var a = alpha;
+        if (clip != null) a *= clip[mi] / 255.0;
+        if (a > 0) _over(idx, sr, sg, sb, a);
+        idx += 4;
+        mi++;
+      }
+    });
+  }
+
+  void fillGradient(List<_Poly> polys, _DeviceGradient g, double alpha,
+      {Uint8List? clip}) {
+    _scan(polys, true, (y, xa, xb) {
+      var mi = y * size + xa;
+      for (var x = xa; x <= xb; x++) {
+        final c = g.colorAt(x + 0.5, y + 0.5);
+        var a = ((c >> 24) & 0xFF) / 255.0 * alpha;
+        if (clip != null) a *= clip[mi] / 255.0;
+        if (a > 0) {
+          _over(mi * 4, (c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF, a);
+        }
+        mi++;
+      }
+    });
+  }
+
+  /// Builds a 0/255 coverage mask for [polys] (a clip region).
+  Uint8List mask(List<_Poly> polys) {
+    final m = Uint8List(size * size);
+    _scan(polys, true, (y, xa, xb) {
+      for (var x = xa; x <= xb; x++) {
+        m[y * size + x] = 255;
+      }
+    });
+    return m;
   }
 
   void _over(int idx, int sr, int sg, int sb, double sa) {
@@ -698,4 +779,92 @@ class _Scan {
   }
 
   static bool _digit(int u) => u >= 0x30 && u <= 0x39;
+}
+
+/// A gradient resolved to device space for per-pixel evaluation. Endpoints (or
+/// centre + radius) are mapped through the `gradientTransform` then the
+/// local→device matrix; stops are pre-sorted with their alpha baked in.
+class _DeviceGradient {
+  _DeviceGradient(SvgGradient g, Matrix2D device, Bounds? bounds)
+      : linear = g.linear,
+        tileMode = g.tileMode {
+    final minX = bounds?.minX ?? 0.0, minY = bounds?.minY ?? 0.0;
+    final w = bounds?.width ?? 1.0, h = bounds?.height ?? 1.0;
+    double mx(double v) => g.userSpace ? v : minX + v * w;
+    double my(double v) => g.userSpace ? v : minY + v * h;
+    final full = device.multiply(g.transform); // gradientTransform, then device
+    if (g.linear) {
+      final p1 = full.apply(mx(g.x1), my(g.y1));
+      final p2 = full.apply(mx(g.x2), my(g.y2));
+      _p1x = p1.x;
+      _p1y = p1.y;
+      _p2x = p2.x;
+      _p2y = p2.y;
+    } else {
+      final c = full.apply(mx(g.cx), my(g.cy));
+      final rPre = g.userSpace ? g.r : g.r * (w + h) / 2;
+      final edge = full.apply(mx(g.cx) + rPre, my(g.cy));
+      _cx = c.x;
+      _cy = c.y;
+      _r = math
+          .sqrt(math.pow(edge.x - c.x, 2) + math.pow(edge.y - c.y, 2))
+          .toDouble();
+    }
+    final sorted = [...g.stops]..sort((a, b) => a.offset.compareTo(b.offset));
+    _offs = [for (final s in sorted) s.offset];
+    _cols = [for (final s in sorted) s.color.argb];
+  }
+
+  final bool linear;
+  final String tileMode;
+  double _p1x = 0, _p1y = 0, _p2x = 0, _p2y = 0;
+  double _cx = 0, _cy = 0, _r = 0;
+  late final List<double> _offs;
+  late final List<int> _cols;
+
+  /// The 0xAARRGGBB colour at device pixel centre ([x], [y]).
+  int colorAt(double x, double y) {
+    if (_offs.isEmpty) return 0;
+    double t;
+    if (linear) {
+      final vx = _p2x - _p1x, vy = _p2y - _p1y;
+      final len2 = vx * vx + vy * vy;
+      t = len2 <= 0 ? 0 : ((x - _p1x) * vx + (y - _p1y) * vy) / len2;
+    } else {
+      final dx = x - _cx, dy = y - _cy;
+      t = _r <= 0 ? 0 : math.sqrt(dx * dx + dy * dy) / _r;
+    }
+    return _lookup(_tile(t));
+  }
+
+  double _tile(double t) => switch (tileMode) {
+        'repeated' => t - t.floor(),
+        'mirror' => () {
+            final m = t.abs() % 2.0;
+            return m > 1.0 ? 2.0 - m : m;
+          }(),
+        _ => t.clamp(0.0, 1.0),
+      };
+
+  int _lookup(double t) {
+    if (t <= _offs.first) return _cols.first;
+    if (t >= _offs.last) return _cols.last;
+    for (var i = 0; i + 1 < _offs.length; i++) {
+      if (t <= _offs[i + 1]) {
+        final span = _offs[i + 1] - _offs[i];
+        final f = span <= 0 ? 0.0 : (t - _offs[i]) / span;
+        return _lerp(_cols[i], _cols[i + 1], f);
+      }
+    }
+    return _cols.last;
+  }
+
+  static int _lerp(int c0, int c1, double f) {
+    int ch(int shift) {
+      final a = (c0 >> shift) & 0xFF, b = (c1 >> shift) & 0xFF;
+      return (a + (b - a) * f).round().clamp(0, 255);
+    }
+
+    return (ch(24) << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0);
+  }
 }

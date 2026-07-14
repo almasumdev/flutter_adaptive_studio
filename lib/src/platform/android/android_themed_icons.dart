@@ -232,12 +232,10 @@ class AndroidThemedIcons {
       return false;
     }
 
-    final fit = AdaptiveGeometry.fit(
+    final fit = AdaptiveGeometry.fitDoc(
       doc.artBounds(),
+      doc.viewBox,
       adaptive?.safeZone ?? const SafeZone.fit(),
-      doc.viewportWidth > doc.viewportHeight
-          ? doc.viewportWidth
-          : doc.viewportHeight,
     );
     final fgXml = VectorDrawableWriter()
         .build(doc, viewport: AdaptiveGeometry.canvas, fit: fit);

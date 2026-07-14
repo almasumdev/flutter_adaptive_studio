@@ -1,5 +1,120 @@
 # Changelog
 
+## 0.27.0
+
+### `auto`/`as_is` framing for the icon and the splash logo
+
+The `auto`-vs-`as_is` choice that `branding_fit` already offered now covers the
+launcher icon and the centre splash logo, for both SVG and transparent raster
+sources. `auto` (the default) considers only the real art, trimming whatever
+transparent padding the source carries so it fills its slot; `as_is` keeps the
+source exactly as authored (its own padding, aspect, and relative size), just
+centred and contained.
+
+- **`icon.adaptive.safe_zone: as_is`.** A fourth `safe_zone` value. The whole
+  viewBox (SVG) or full bitmap (raster) is mapped into the mask-safe square, so
+  art you already drew at adaptive-icon proportions is placed verbatim instead of
+  being re-measured and re-fit. Flows through the adaptive foreground, the
+  monochrome layer, the themed icons, and the legacy mipmaps + Play Store PNG, so
+  the whole icon set stays consistent.
+- **`splash.image_fit: auto | as_is`.** Frames the centre splash logo the same
+  way, across the Android-12 vector, the pre-31 raster, and the legacy layer.
+  `as_is` honours a logo's own breathing room rather than filling the safe circle.
+
+Raster `auto` now trims a source's transparent margins before fitting (matching
+how SVG `auto` has always used the measured art bounds), so a padded PNG icon or
+logo fills its slot the same way a padded SVG does. Set `as_is` to keep the
+margins.
+
+### `foreground_format: raster` for gradient icons
+
+VectorDrawable expresses gradients only through `aapt:attr`, a build-time AAPT2
+feature. A real device build renders them, but IDE previewers and some non-Android
+(Compose Multiplatform) renderers read the raw XML without AAPT2, so a gradient
+foreground can preview flat or empty. Set `icon.adaptive.foreground_format: raster`
+to bake an SVG foreground to per-density PNGs instead of a VectorDrawable, with the
+same safe-zone fit; gradients and clips are rendered into the pixels, so the icon
+draws identically in every previewer, tool, and platform. Defaults to `vector`.
+
+### SVG fidelity: shape transforms on gradients, and offset viewBoxes
+
+Two rendering bugs that made a rich SVG come out close-but-not-exact are fixed:
+
+- **A shape's own `transform` now applies to its gradient.** A
+  `userSpaceOnUse` gradient lives in the referencing shape's user space, so a
+  rotated (or scaled) shape must rotate its gradient with it. Previously the
+  shape moved but the gradient did not, tilting every gradient on a transformed
+  element (e.g. a coin whose rings use a `rotate(45)` gradient painted on a
+  `rotate(-45)` circle: the two should cancel to a clean vertical sheen).
+- **A non-zero `viewBox` origin is honoured.** Art authored away from (0,0)
+  (`viewBox="205 15 494 494"`, common in Illustrator exports) is no longer
+  shifted and clipped when rendered full-bleed or with `as_is`.
+- **The safe-zone fit measures the art tightly.** Bounding an arc by its
+  endpoints-plus-radii grossly over-sized any circle, and a `clip-path` let
+  clipped-away geometry count, so a circle-heavy or texture-masked logo (a coin,
+  a badge) was shrunk to a dot in the icon canvas. Arcs and cubics are now bounded
+  to their real extent and clipped geometry no longer inflates the measurement, so
+  the art fills the safe zone as intended.
+- **Circles, ellipses and rounded rects emit cubic Béziers, not `A` arcs.** Some
+  VectorDrawable / Compose-Multiplatform renderers silently drop arc commands,
+  which made a gradient-filled circle disappear and an arc-based `<clip-path>`
+  fail to clip (a coin rendering as just its unclipped background texture). The
+  generated paths now use cubics, which every renderer draws.
+
+### `sync` keeps options grouped
+
+`sync` used to append every missing option to the bottom of its section, so over
+releases new keys drifted away from the ones they belong with (a stray
+`image_fit` or a split-up branding block). It now inserts each option at its
+template position, right after the sibling it follows, so related keys stay
+together. It also no longer drags a trailing section banner or the next section's
+prose into the block it inserts.
+
+## 0.26.0
+
+### SVG: gradients and clip paths are now rendered, not flattened
+
+A gradient-heavy SVG (a shiny "coin", a metallic wordmark, a duotone mark) used
+to come out as a flat black shape with any `clip-path` ignored, because gradients
+and clips were silently dropped. They are now first-class:
+
+- **Gradients.** `<linearGradient>` and `<radialGradient>` fills are parsed with
+  their stops (and per-stop opacity), `gradientUnits`, `gradientTransform`,
+  `spreadMethod`, and `href`/`xlink:href` inheritance. The VectorDrawable emits a
+  real inline `aapt:attr` `<gradient>` (so it stays crisp at every density), and
+  the pure-Dart rasteriser evaluates the gradient per pixel for the legacy
+  mipmaps and store icon.
+- **Clip paths.** `clip-path="url(#id)"` on a group or shape is resolved from
+  `<defs>` (each clip shape's own transform baked in) and emitted as a
+  VectorDrawable `<clip-path>`; the rasteriser masks the fill to it.
+
+The result: an icon or splash built from a rich SVG now matches the source art.
+Filters, masks, `<text>` and `<image>` are still unsupported and dropped with a
+warning.
+
+## 0.25.8
+
+### Splash: icon size back to the Android keyline, plus robustness fixes
+
+- **The native splash icon fills the platform safe circle again.** It inscribes
+  the ⌀192 keyline (or ⌀160 with an icon background) exactly as the Android
+  splash guide specifies. The automatic inset added in 0.25.0-0.25.1 is removed:
+  `icon_padding` still works but now defaults to `0`. Set it only if a particular
+  OEM mask crops your logo and you want it tighter.
+- **A stale splash icon no longer shadows the new one.** Switching the splash
+  `image:` between a raster (PNG/WebP) and an SVG left the previous form on disk.
+  Because a `nodpi` raster wins Android resource resolution over a plain
+  `drawable/` vector, a leftover `drawable-nodpi/splash_icon.png` kept rendering
+  as the splash no matter what the new vector contained (and a near-full-bleed
+  one stayed clipped by the system circle mask). `generate` now deletes the stale
+  sibling, and drops the emptied folder, when the source form changes. If you hit
+  this, run `fas generate` once and rebuild with a clean install so the old
+  resource leaves the APK.
+- **An invisible `icon_background` is skipped.** If `icon_background` matches the
+  splash `background` it would only force the OS adaptive-icon mask for no visible
+  badge, so it is ignored with a warning. Set a different colour for a real badge.
+- **New `fas --version`.** Prints the installed version.
+
 ## 0.25.1
 
 ### Splash: a gentler default inset for the native icon

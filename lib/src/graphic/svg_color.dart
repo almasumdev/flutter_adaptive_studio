@@ -17,6 +17,9 @@ class SvgColor {
   static const SvgColor none = SvgColor._(0x00000000, isNone: true);
   static const SvgColor black = SvgColor._(0xFF000000);
 
+  /// Wraps a raw 0xAARRGGBB value (e.g. a gradient stop with baked opacity).
+  factory SvgColor.fromArgb(int argb) => SvgColor._(argb);
+
   int get alpha => (argb >> 24) & 0xFF;
 
   /// Android `android:fillColor`/`strokeColor` value. Emits `#RRGGBB` when fully

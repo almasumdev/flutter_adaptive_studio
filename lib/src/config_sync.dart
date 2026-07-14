@@ -61,23 +61,22 @@ class ConfigSync {
     // are "roots": insert each root's whole subtree (a leaf is just one line; a
     // missing section brings its children). Deeper-missing entries ride along in
     // an ancestor's block (their parent isn't present, so they're not roots).
-    final inserts = <String, List<String>>{};
+    final missing = <_Missing>[];
     final addedKeys = <String>[];
     for (final e in templateEntries) {
       if (present.contains(e.path)) continue;
       final parent = _parent(e.path);
       if (parent.isNotEmpty && !present.contains(parent)) continue;
-      final block = _subtree(templateLines, templateEntries, e);
-      (inserts[parent] ??= <String>[]).addAll(block);
+      missing.add(_Missing(parent, e, _subtree(templateLines, e)));
       addedKeys.add(e.path.split('.').last);
     }
 
-    if (inserts.isEmpty) {
+    if (missing.isEmpty) {
       logger.success('Config already lists every option; nothing to add.');
       return 0;
     }
 
-    final merged = _applyInserts(userLines, inserts);
+    final merged = _applyInserts(userLines, templateEntries, missing);
     file.writeAsStringSync(merged.join('\n'));
 
     logger.success('Added ${addedKeys.length} option(s) to '
@@ -137,41 +136,84 @@ class ConfigSync {
     return i < 0 ? '' : path.substring(0, i);
   }
 
-  /// The template lines covering [root]'s subtree: from its line up to (but not
-  /// including) the next entry at the same-or-shallower indent, trailing blanks
-  /// trimmed. A leaf yields one line; a section yields its whole block.
-  List<String> _subtree(List<String> lines, List<_Entry> entries, _Entry root) {
-    var end = lines.length;
-    for (final e in entries) {
-      if (e.line > root.line && e.indent <= root.indent) {
-        end = e.line;
-        break;
-      }
-    }
-    while (end > root.line + 1 && lines[end - 1].trim().isEmpty) {
-      end--;
+  /// The template lines covering [root]'s subtree: its line plus the lines that
+  /// belong to it, i.e. anything indented DEEPER than it (its children and its
+  /// own trailing continuation comments). It stops at the first same-or-shallower
+  /// line, so a sibling key, a section banner (`# --- ... ---`), or the next
+  /// section's prose isn't dragged along. A leaf yields one line; a section
+  /// yields its whole block.
+  List<String> _subtree(List<String> lines, _Entry root) {
+    var end = root.line + 1;
+    for (var i = root.line + 1; i < lines.length; i++) {
+      if (lines[i].trim().isEmpty) continue; // decide by the next non-blank
+      if (_logicalIndent(lines[i]) <= root.indent) break;
+      end = i + 1; // deeper line (child or continuation) belongs to root
     }
     return lines.sublist(root.line, end);
   }
 
-  /// Inserts each parent's collected lines at the end of that section in the
-  /// user file (bottom-up, so earlier indices stay valid).
-  List<String> _applyInserts(
-      List<String> lines, Map<String, List<String>> inserts) {
-    final entries = _parse(lines);
-    final byPath = {for (final e in entries) e.path: e};
+  /// Inserts each missing option at its **template-relative position**, grouped
+  /// with the siblings it belongs next to (not dumped at the section end): a
+  /// missing key lands right after the nearest preceding sibling that the user
+  /// already has, or before the first present sibling if none precede it. So
+  /// e.g. a new `image_fit` sits by `image`, and branding keys stay contiguous.
+  List<String> _applyInserts(List<String> userLines,
+      List<_Entry> templateEntries, List<_Missing> missing) {
+    final userEntries = _parse(userLines);
+    final userByPath = {for (final e in userEntries) e.path: e};
+
+    final byParent = <String, List<_Missing>>{};
+    for (final m in missing) {
+      (byParent[m.parent] ??= <_Missing>[]).add(m);
+    }
+
     final jobs = <_Job>[];
-    inserts.forEach((parent, ins) {
-      final header = byPath[parent];
+    byParent.forEach((parent, miss) {
+      final header = userByPath[parent];
       if (header == null) return;
-      jobs.add(_Job(_sectionEnd(lines, entries, header), ins));
+      final missByPath = {for (final m in miss) m.entry.path: m};
+
+      // Walk the template's direct children of `parent` in order. Anchor after
+      // each sibling the user already has; a run of missing siblings is inserted
+      // at the current anchor, so it lands in the same place the template groups
+      // it.
+      var anchor = _childrenStart(userLines, userEntries, header);
+      final pending = <String>[];
+      void flush() {
+        if (pending.isEmpty) return;
+        jobs.add(_Job(anchor, [...pending]));
+        pending.clear();
+      }
+
+      for (final tc in templateEntries) {
+        if (_parent(tc.path) != parent) continue;
+        final userChild = userByPath[tc.path];
+        if (userChild != null) {
+          flush();
+          anchor = _sectionEnd(userLines, userEntries, userChild);
+        } else if (missByPath.containsKey(tc.path)) {
+          pending.addAll(missByPath[tc.path]!.block);
+        }
+      }
+      flush();
     });
+
+    // Insert bottom-up so earlier indices stay valid.
     jobs.sort((a, b) => b.at.compareTo(a.at));
-    final out = [...lines];
+    final out = [...userLines];
     for (final job in jobs) {
       out.insertAll(job.at, job.lines);
     }
     return out;
+  }
+
+  /// Index of [header]'s first child line (where a leading new child goes), or
+  /// the section end when the section has no children yet.
+  int _childrenStart(List<String> lines, List<_Entry> entries, _Entry header) {
+    for (final e in entries) {
+      if (e.line > header.line && e.indent > header.indent) return e.line;
+    }
+    return _sectionEnd(lines, entries, header);
   }
 
   /// Index just past the last line of [header]'s section (trailing blanks
@@ -196,6 +238,15 @@ class _Entry {
   final int line;
   final int indent;
   final String path;
+}
+
+/// A template option missing from the user file: its [parent] path, the template
+/// [entry] (for sibling ordering), and the [block] of lines to insert.
+class _Missing {
+  _Missing(this.parent, this.entry, this.block);
+  final String parent;
+  final _Entry entry;
+  final List<String> block;
 }
 
 class _Job {

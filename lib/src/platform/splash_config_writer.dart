@@ -80,7 +80,7 @@ class SplashConfigWriter {
     // Branding (Android only: the iOS launch screen has none).
     String? brandingLightB64, brandingDarkB64, brandingText;
     if (aSplash?.branding != null) {
-      final asIs = aSplash!.brandingFit == BrandingFit.asIs;
+      final asIs = aSplash!.brandingFit == ArtFit.asIs;
       brandingLightB64 = _b64(_brandingPng(aSplash.branding!, asIs));
       brandingDarkB64 = aSplash.brandingDark != null
           ? _b64(_brandingPng(aSplash.brandingDark!, asIs))

@@ -187,6 +187,14 @@ class AndroidIconConfig {
   final String iconName;
 }
 
+/// How a vector (SVG) icon layer is emitted: as a crisp [vector] VectorDrawable
+/// (default), or [raster] density PNGs. Raster is for art whose VectorDrawable
+/// won't render everywhere, chiefly gradients: they rely on the `aapt:attr`
+/// build-time feature that IDE previewers and some renderers don't resolve, so a
+/// gradient icon can look flat or empty outside a real device build. Rasterising
+/// bakes the gradients into pixels, which every tool and platform draws.
+enum LayerFormat { vector, raster }
+
 /// Adaptive icon layers (API 26+). All layers optional.
 @immutable
 class AdaptiveConfig {
@@ -195,6 +203,7 @@ class AdaptiveConfig {
     this.background,
     this.monochrome,
     this.safeZone = const SafeZone.fit(),
+    this.foregroundFormat = LayerFormat.vector,
   });
 
   /// Foreground source (SVG/vector or, later, raster).
@@ -207,6 +216,13 @@ class AdaptiveConfig {
   final String? monochrome;
 
   final SafeZone safeZone;
+
+  /// Whether an SVG [foreground] is emitted as a VectorDrawable ([vector],
+  /// default) or baked to density PNGs ([raster]). Use `raster` for a
+  /// gradient-heavy foreground that must render in previewers / non-Android
+  /// targets, where VectorDrawable `aapt:attr` gradients aren't resolved. No
+  /// effect on a raster foreground source (already PNGs).
+  final LayerFormat foregroundFormat;
 
   bool get backgroundIsColor =>
       background != null && background!.trimLeft().startsWith('#');
@@ -235,11 +251,19 @@ class SafeZone {
       : mode = SafeZoneMode.none,
         insetPercent = 0;
 
+  /// Keep the source's own framing: map the whole viewBox (SVG) or full bitmap
+  /// (raster) into the safe square, so the art's authored padding and aspect are
+  /// preserved rather than trimmed. The escape hatch for art already drawn at
+  /// adaptive-icon proportions.
+  const SafeZone.asIs()
+      : mode = SafeZoneMode.asIs,
+        insetPercent = 0;
+
   final SafeZoneMode mode;
   final double insetPercent;
 }
 
-enum SafeZoneMode { fit, inset, none }
+enum SafeZoneMode { fit, inset, none, asIs }
 
 /// Raster-icon post-processing, mirroring Android Asset Studio / IconKitchen.
 /// `none` → flat; `elevate` → soft drop shadow + top-left radial sheen (the
@@ -271,15 +295,15 @@ class ThemedIconConfig {
 /// Where the bottom branding image sits in the splash.
 enum BrandingMode { bottom, bottomLeft, bottomRight }
 
-/// How a branding **image** is sized into the splash's branding area.
+/// How a source **image** is sized into its slot.
 ///
-/// [auto] measures the wordmark's bounding box and scales it to fill the slot,
-/// trimming whatever padding the source carries (the default, best for a
-/// tightly-cropped logo). [asIs] uses the SVG exactly as drawn: its own aspect
-/// ratio, inner padding, and relative size are preserved, just centred in the
-/// slot. Only affects an SVG `branding:` image (a raster branding is already
-/// used as authored, and `branding_text:` is unaffected).
-enum BrandingFit { auto, asIs }
+/// [auto] measures the art's real bounding box and scales it to fill the slot,
+/// trimming whatever transparent padding the source carries (the default, best
+/// for a tightly-cropped logo). [asIs] uses the source exactly as drawn: its own
+/// aspect ratio, inner padding, and relative size are preserved, just centred in
+/// the slot. Applies to both SVG (whole viewBox) and transparent raster (the
+/// full bitmap, margins kept). Shared by `branding_fit` and `image_fit`.
+enum ArtFit { auto, asIs }
 
 /// Brightness of the system-bar **icons** during the splash. `dark` icons suit a
 /// light bar/background (maps to `windowLight*Bar = true`); `light` icons suit a
@@ -310,7 +334,8 @@ class AndroidSplashConfig {
     this.brandingTextColor,
     this.brandingTextColorDark,
     this.brandingMode = BrandingMode.bottom,
-    this.brandingFit = BrandingFit.auto,
+    this.brandingFit = ArtFit.auto,
+    this.imageFit = ArtFit.auto,
     this.brandingBottomPadding = 48,
     this.gravity = 'center',
     this.fullscreen = false,
@@ -397,10 +422,16 @@ class AndroidSplashConfig {
   /// system splash always bottom-centres it).
   final BrandingMode brandingMode;
 
-  /// How an SVG [branding] image is framed: [BrandingFit.auto] trims and fills
-  /// the slot; [BrandingFit.asIs] keeps the SVG's own aspect ratio, inner
-  /// padding, and size.
-  final BrandingFit brandingFit;
+  /// How a [branding] image is framed: [ArtFit.auto] trims and fills the slot;
+  /// [ArtFit.asIs] keeps the source's own aspect ratio, inner padding, and size.
+  final ArtFit brandingFit;
+
+  /// How the centre [image] (splash logo) is framed on the native splash:
+  /// [ArtFit.auto] (default) measures the real art and fills the Android-12 safe
+  /// circle, trimming the source's own padding; [ArtFit.asIs] keeps the source's
+  /// whole viewBox/bitmap (its padding and aspect), just centred and contained.
+  /// Applies to both SVG and transparent raster.
+  final ArtFit imageFit;
 
   /// Branding distance from the bottom edge, in dp.
   final int brandingBottomPadding;

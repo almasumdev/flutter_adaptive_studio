@@ -17,8 +17,12 @@ import 'package:path/path.dart' as p;
 
 const _commands = {'init', 'sync', 'generate', 'doctor', 'preview', 'revert'};
 
+/// Keep in sync with `version:` in pubspec.yaml.
+const _version = '0.27.0';
+
 void main(List<String> args) {
   final parser = ArgParser()
+    ..addFlag('version', negatable: false, help: 'Print the version and exit.')
     ..addOption('project',
         abbr: 'p', help: 'Path to the target Flutter project.', defaultsTo: '.')
     ..addOption('config',
@@ -39,6 +43,11 @@ void main(List<String> args) {
     stderr.writeln(e.message);
     stderr.writeln(parser.usage);
     exit(64);
+  }
+
+  if (opts['version'] as bool) {
+    stdout.writeln('flutter_adaptive_studio $_version');
+    return;
   }
 
   if (opts['help'] as bool) {

@@ -92,6 +92,74 @@ flutter_adaptive_studio:
     expect(statusAt, greaterThan(splashAt));
   });
 
+  /// Direct child keys of the `splash:` section, in file order (active or
+  /// commented), using logical indent so `    #   key:` counts as a child.
+  List<String> splashKeys(List<String> lines) {
+    final keyRe = RegExp(r'^(\s*)(#\s*)?([A-Za-z_]\w*)\s*:');
+    int logical(String l) {
+      final m = RegExp(r'^(\s*)#\s?(.*)$').firstMatch(l);
+      final t = m == null ? l : '${m.group(1)}${m.group(2)}';
+      return t.length - t.trimLeft().length;
+    }
+
+    final out = <String>[];
+    var splashIndent = -1;
+    var inSplash = false;
+    var done = false; // only the FIRST splash (android), not ios/flavors
+    for (final l in lines) {
+      if (done) break;
+      final m = keyRe.firstMatch(l);
+      if (m == null) continue;
+      final key = m.group(3)!;
+      final ind = logical(l);
+      if (key == 'splash' && !inSplash) {
+        splashIndent = ind;
+        inSplash = true;
+        continue;
+      }
+      if (!inSplash) continue;
+      if (ind <= splashIndent) {
+        done = true;
+        continue;
+      }
+      if (ind == splashIndent + 2) out.add(key);
+    }
+    return out;
+  }
+
+  test('inserted keys are grouped with their siblings, not scattered', () {
+    // A splash with only a couple of keys present (in template order).
+    configFile().writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    icon:
+      adaptive:
+        foreground: assets/logo.svg
+    splash:
+      background: "#E4ECE8"
+      image: assets/logo.svg
+''');
+    ConfigSync(projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
+        .run();
+    final keys = splashKeys(configFile().readAsLinesSync());
+
+    // `image`'s companions land right after it, contiguous, in template order,
+    // rather than being appended to the bottom of the section.
+    final i = keys.indexOf('image');
+    expect(keys.sublist(i, i + 4),
+        ['image', 'image_dark', 'image_fit', 'image_format']);
+
+    // `background_dark` sits right after `background` (before `image`).
+    expect(keys.indexOf('background_dark'), keys.indexOf('background') + 1);
+
+    // Every branding key forms one contiguous run.
+    final brand = keys.where((k) => k.startsWith('branding')).toList();
+    expect(brand, isNotEmpty);
+    final start = keys.indexOf(brand.first);
+    expect(keys.sublist(start, start + brand.length), brand,
+        reason: 'branding keys must be contiguous, got $keys');
+  });
+
   test('sync is idempotent: a second run adds nothing', () {
     final first = ConfigSync(
             projectRoot: project.path, logger: Logger(level: LogLevel.quiet))

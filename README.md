@@ -252,7 +252,8 @@ flutter_adaptive_studio:
         foreground: assets/logo.svg
         background: "#E4ECE8"
         monochrome: assets/logo_mono.svg    # Android 13 themed icon
-        safe_zone: fit                       # fit | inset:<pct> | none
+        safe_zone: fit                       # fit | inset:<pct> | none | as_is
+        foreground_format: vector            # vector (default) | raster (bake a gradient SVG to PNGs for universal rendering)
       round: true
       play_store: true                       # 512² store icon (always PNG)
       legacy_padding: 15                     # % inset for legacy and store art
@@ -262,6 +263,7 @@ flutter_adaptive_studio:
       background: "#E4ECE8"
       background_dark: "#0C1413"
       image: assets/logo.svg                 # static logo (in-app + pre-31)
+      image_fit: auto                        # auto (default) trims the logo's padding + fills the safe circle; as_is keeps it as drawn
       animated_icon: assets/logo_anim.xml    # AnimatedVectorDrawable, Android 12+
       animated_icon_dark: assets/logo_anim_dark.xml
       icon_padding: 30                       # % the native splash icon is inset (auto when icon_background is set, so an OEM adaptive mask can't clip a tall logo)

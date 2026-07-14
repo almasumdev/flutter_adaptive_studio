@@ -195,8 +195,14 @@ class ConfigLoader {
       safeZone: raw['padding'] != null
           ? SafeZone.inset((_int(raw['padding']) ?? 15).toDouble())
           : _parseSafeZone(raw['safe_zone']),
+      foregroundFormat: _layerFormat(raw['foreground_format']),
     );
   }
+
+  static LayerFormat _layerFormat(Object? v) =>
+      v?.toString().trim().toLowerCase() == 'raster'
+          ? LayerFormat.raster
+          : LayerFormat.vector;
 
   SafeZone _parseSafeZone(Object? value) {
     if (value == null) return const SafeZone.fit();
@@ -204,6 +210,7 @@ class ConfigLoader {
     final text = value.toString().trim().toLowerCase();
     if (text == 'fit') return const SafeZone.fit();
     if (text == 'none') return const SafeZone.none();
+    if (text.replaceAll('_', '') == 'asis') return const SafeZone.asIs();
     if (text.startsWith('inset')) {
       final parts = text.split(':');
       final pct = parts.length > 1 ? double.tryParse(parts[1].trim()) : null;
@@ -234,7 +241,8 @@ class ConfigLoader {
       brandingTextColor: _str(raw['branding_text_color']),
       brandingTextColorDark: _str(raw['branding_text_color_dark']),
       brandingMode: _brandingMode(raw['branding_mode']),
-      brandingFit: _brandingFit(raw['branding_fit']),
+      brandingFit: _artFit(raw['branding_fit']),
+      imageFit: _artFit(raw['image_fit']),
       brandingBottomPadding: _int(raw['branding_bottom_padding']) ?? 48,
       gravity: _str(raw['gravity']) ?? 'center',
       fullscreen: _bool(raw['fullscreen']) ?? false,
@@ -275,11 +283,11 @@ class ConfigLoader {
     };
   }
 
-  static BrandingFit _brandingFit(Object? v) {
+  static ArtFit _artFit(Object? v) {
     final s = v?.toString().trim().toLowerCase().replaceAll('_', '');
     return switch (s) {
-      'asis' => BrandingFit.asIs,
-      _ => BrandingFit.auto,
+      'asis' => ArtFit.asIs,
+      _ => ArtFit.auto,
     };
   }
 
