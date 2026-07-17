@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.28.0
+
+### The legacy and Play Store icons now match the adaptive icon: full-bleed background, padded foreground
+
+Padding is a foreground concern; the background always fills the tile. The
+legacy mipmaps and the 512 Play Store PNG are now composed the same way the
+adaptive icon is:
+
+- **The background fills the tile.** The adaptive background is rendered
+  full-bleed, whether it is a colour, an **SVG, or a PNG**. Previously the
+  raster path understood only a colour background and fell back to white for an
+  SVG/PNG, so a themed icon on an SVG ground came out on a white card. Now the
+  ground reaches every edge.
+- **Only the foreground is inset.** A bare `adaptive.foreground` is fit to the
+  same fraction the adaptive foreground uses (`padding` / `safe_zone`), so the
+  mark is the same size in the mipmaps, the Play Store icon, and the on-device
+  adaptive icon. The mipmaps no longer inset the whole icon as a card, so the
+  background is full-bleed there too (the `elevate` effect still insets, to leave
+  room for its drop shadow).
+- **A finished `icon.image` is used full-bleed**, since it already carries its
+  own ground with the mark framed as authored. `legacy_padding` (legacy + store)
+  or `play_store_padding` (store only) insets the foreground on purpose.
+
+The net effect: a gradient/SVG-ground icon (e.g. a flame on a warm radial
+charcoal) now renders as a full-bleed ground with a centred, padded mark across
+every Android icon output, instead of a shrunken icon matted on white.
+
 ## 0.27.1
 
 ### Discoverability

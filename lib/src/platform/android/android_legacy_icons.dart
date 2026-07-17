@@ -77,19 +77,20 @@ class AndroidLegacyIcons {
     if (emitLegacy) {
       final src = legacy!; // prepared above whenever emitLegacy is true
       _mipmap.forEach((density, px) {
-        // Each density is rendered straight at its target size (SVG: a direct
-        // rasterisation, no resample, no grid). Geometry matches Android
-        // Studio / Asset Studio's square target (5,5,38,38 in 48dp): ~10.4%
-        // inset, ~8% corner radius.
+        // The composed square is already background-full-bleed with the
+        // foreground fit to the safe zone (padding is a foreground concern), so
+        // the mipmap fills the tile and is only shaped: rounded ~8%, or a circle
+        // for the round variant. The `elevate` card effect is the one case that
+        // insets the whole icon, to leave room for its drop shadow.
         _shapeDensity(src, px, density, '$name$ext', report,
-            paddingFraction: 0.104,
+            paddingFraction: elevate ? 0.104 : 0.0,
             cornerRadiusFraction: 0.08,
             circle: false,
             elevate: elevate,
             format: fmt);
         if (iconConfig.round) {
           _shapeDensity(src, px, density, '${name}_round$ext', report,
-              paddingFraction: 0.042,
+              paddingFraction: elevate ? 0.042 : 0.0,
               cornerRadiusFraction: 0,
               circle: true,
               elevate: elevate,
@@ -141,8 +142,11 @@ class AndroidLegacyIcons {
     return pp == null ? null : 1 - (pp.clamp(0, 95) / 100);
   }
 
-  /// Renders one density icon: a direct inner-sized square from [src], shaped
-  /// and written into `mipmap-<density>/`.
+  /// Shapes one density mipmap from [src]: renders the composed square (its
+  /// background already full-bleed, its foreground already fit to the safe
+  /// zone), masks it to the launcher shape, and insets it by [paddingFraction]
+  /// (0 = full-bleed; a positive value is the `elevate` card margin). Written
+  /// into `mipmap-<density>/`.
   void _shapeDensity(
     _Source src,
     int px,
@@ -190,14 +194,20 @@ class AndroidLegacyIcons {
     }
   }
 
-  /// Resolves the icon source into a [_Source] that can produce a solid square
-  /// at any size. The source is an explicit `icon.image`, or failing that the
-  /// adaptive foreground; either way the art is inset to match the adaptive
-  /// foreground (see [_composePadding]) so every generated icon shares one
-  /// framing. SVG defers to a direct per-size render (sharpest, grid-free);
-  /// raster composes a high-res master once. Returns null (with a clear skip)
-  /// when no source can be used.
+  /// Resolves the icon into a [_Source] that composites a **full-bleed
+  /// background** under a **fit foreground**, so the raster icons match the
+  /// adaptive icon (whose background fills the tile and whose foreground sits in
+  /// the safe zone).
+  ///
+  /// The foreground is a finished `icon.image` (used full-bleed, it carries its
+  /// own ground) or, failing that, the adaptive foreground (a bare mark, fit to
+  /// the same fraction the adaptive foreground uses). The background is the
+  /// adaptive background rendered full-bleed (colour, SVG or PNG); it is never
+  /// padded. `legacy_padding` / `play_store_padding` override the foreground
+  /// inset; `safe_zone: as_is` keeps the mark's own framing. Returns null (with
+  /// a clear skip) when no foreground source can be used.
   _Source? _prepareSource(GenerationReport report, {double? fillOverride}) {
+    // ---- Foreground source ----
     final String rel;
     final bool fullIcon;
     if (iconConfig.image != null) {
@@ -211,129 +221,164 @@ class AndroidLegacyIcons {
       report.skipped.add('legacy/store (no composable source)');
       return null;
     }
-
     final abs = loader.resolveAsset(rel);
     if (!File(abs).existsSync()) {
       logger.warn('legacy/store source not found: $abs');
       report.skipped.add('legacy/store (source missing)');
       return null;
     }
+    final fgLayer = _layerFor(abs, 'legacy/store foreground', report);
+    if (fgLayer == null) return null;
 
-    final bg = (adaptive != null && adaptive!.backgroundIsColor)
-        ? adaptive!.background!
-        : '#FFFFFF';
-    final bgArgb = SvgColor.parse(bg).argb;
-    final ext = p.extension(abs).toLowerCase();
+    // ---- Foreground framing ----
+    // A finished `icon.image` is full-bleed. A bare foreground is fit to the
+    // SAME fraction the adaptive foreground uses, so the raster icons match the
+    // adaptive icon. `legacy_padding`/`play_store_padding` override the inset;
+    // `safe_zone: as_is` keeps the source's own framing.
+    final zone = adaptive?.safeZone ?? const SafeZone.fit();
+    final asIs = fillOverride == null && zone.mode == SafeZoneMode.asIs;
+    final double? fgFill;
+    if (fillOverride != null) {
+      fgFill = fillOverride; // play_store_padding
+    } else if (iconConfig.legacyPadding != null) {
+      fgFill = 1 - (iconConfig.legacyPadding!.clamp(0, 95) / 100);
+    } else if (fullIcon || asIs) {
+      fgFill = null; // finished icon, or `as_is` mark: full-bleed
+    } else {
+      fgFill = AdaptiveGeometry.canvasFillFraction(zone); // match adaptive fg
+    }
+    final fgTrim =
+        fgFill != null && !asIs; // auto-trim only when fitting a mark
 
-    // Inset the legacy/store art by the same amount as every other generated
-    // icon, so the launcher mipmaps + Play Store PNG line up with the adaptive
-    // foreground and the iOS icon. An explicit `legacy_padding` wins, else the
-    // adaptive `safe_zone`, else the package default. A genuinely finished
-    // `icon.image` with no inset intent (no adaptive safe zone and no
-    // `legacy_padding`) is still used full-bleed. Set `legacy_padding: 0` to
-    // force that explicitly.
-    // A [fillOverride] (the Play Store's own `play_store_padding`) forces an
-    // explicit inset even for an otherwise full-bleed finished `icon.image`.
-    final insetArt = fillOverride != null ||
-        !fullIcon ||
-        adaptive != null ||
-        iconConfig.legacyPadding != null;
-    final composeFill =
-        insetArt ? (fillOverride ?? (1 - _composePadding())) : 1.0;
-    // `safe_zone: as_is` keeps the source's own framing (whole viewBox / full
-    // bitmap, padding preserved) so the mipmaps + Play Store PNG match the
-    // adaptive foreground. A Play Store `fillOverride` still forces its inset.
-    final asIs =
-        fillOverride == null && adaptive?.safeZone.mode == SafeZoneMode.asIs;
-
-    // SVG → render directly at each target size (no resample → no grid, sharpest
-    // result). A null fit fraction fills the canvas (a finished icon kept
-    // full-bleed); otherwise the art is fit into the inset.
-    if (ext == '.svg') {
-      try {
-        final doc = SvgDocument.parse(File(abs).readAsStringSync());
-        return _Source.svg(
-            doc, bgArgb, asIs ? null : (insetArt ? composeFill : null));
-      } on Exception {
-        logger.skip('legacy/store: could not parse SVG "$rel"');
-        report.skipped.add('legacy/store (SVG parse failed)');
-        return null;
+    // ---- Background: full-bleed colour / SVG / PNG (never padded). A finished
+    //      `icon.image` already includes its ground, so it needs none. ----
+    var bgArgb = 0xFFFFFF; // opaque backing behind any transparency
+    _Layer? bgLayer;
+    final adpt = adaptive;
+    if (adpt != null && adpt.background != null) {
+      if (adpt.backgroundIsColor) {
+        bgArgb = SvgColor.parse(adpt.background!).argb;
+      } else if (!fullIcon) {
+        final bgAbs = loader.resolveAsset(adpt.background!);
+        if (File(bgAbs).existsSync()) {
+          bgLayer = _layerFor(bgAbs, 'legacy/store background', report);
+        } else {
+          logger.warn('legacy/store background not found: $bgAbs');
+        }
       }
     }
 
-    // Raster → compose a high-res master once; each density resizes from it.
-    if (ImageRasterizer().supports(ext)) {
-      final tmpDir = Directory.systemTemp.createTempSync('fas_legacy_');
-      final master = p.join(tmpDir.path, 'master.png');
-      final ok = insetArt
-          ? const ImageRasterizer().composeIconPng(
-              foregroundPath: abs,
-              backgroundArgb: bgArgb,
-              sizePx: 1024,
-              fillFraction: asIs ? 1.0 : composeFill,
-              outPath: master,
-              trim: !asIs)
-          : const ImageRasterizer().renderFlattenedPng(
-              sourcePath: abs,
-              sizePx: 1024,
-              outPath: master,
-              backgroundArgb: bgArgb);
-      if (!ok) {
-        tmpDir.deleteSync(recursive: true);
-        report.skipped.add('legacy/store (compose failed)');
-        return null;
-      }
-      return _Source.raster(master, tmpDir);
-    }
-
-    logger.skip('legacy/store: source "$rel" not rasterisable ($ext)');
-    report.skipped.add('legacy/store (unsupported $ext)');
-    return null;
+    return _Source(
+      foreground: fgLayer,
+      background: bgLayer,
+      backgroundArgb: bgArgb,
+      foregroundFill: fgFill,
+      foregroundTrim: fgTrim,
+    );
   }
 
-  /// Fraction (0..1) the composed legacy/store art is inset from the tile edge.
-  /// An explicit `legacy_padding` (percent, clamped 0-95) wins; otherwise it
-  /// follows the adaptive safe zone, then the package default.
-  double _composePadding() {
-    final lp = iconConfig.legacyPadding;
-    if (lp != null) return lp.clamp(0, 95) / 100;
-    return adaptive != null
-        ? AdaptiveGeometry.paddingFraction(adaptive!.safeZone)
-        : SafeZone.defaultPadding / 100;
+  /// Wraps a source file as an SVG or raster [_Layer], or null (with a skip) if
+  /// it can't be rasterised.
+  _Layer? _layerFor(String abs, String label, GenerationReport report) {
+    final ext = p.extension(abs).toLowerCase();
+    if (ext == '.svg') {
+      try {
+        return _Layer.svg(SvgDocument.parse(File(abs).readAsStringSync()));
+      } on Exception {
+        logger.skip('$label: could not parse SVG "$abs"');
+        report.skipped.add('$label (SVG parse failed)');
+        return null;
+      }
+    }
+    if (ImageRasterizer().supports(ext)) return _Layer.raster(abs);
+    logger.skip('$label: "$abs" not rasterisable ($ext)');
+    report.skipped.add('$label (unsupported $ext)');
+    return null;
   }
 }
 
-/// Produces a background-filled square icon image at any size. SVG renders
-/// directly at the requested size (no resampling, avoids the box-average grid
-/// on flat fills); a raster source resizes from a once-composed master.
+/// Composites a full-bleed [background] under a [foreground] fit to
+/// [foregroundFill] of the tile (null = full-bleed), producing a solid,
+/// background-filled square at any size. Rendered per size (SVG renders
+/// directly, avoiding the box-average grid `copyResize` leaves on flat fills).
 class _Source {
-  _Source.svg(this._doc, this._bgArgb, this._fit)
-      : _masterPath = null,
-        _tmpDir = null;
-  _Source.raster(this._masterPath, this._tmpDir)
-      : _doc = null,
-        _bgArgb = 0,
-        _fit = null;
+  _Source({
+    required this.foreground,
+    required this.backgroundArgb,
+    this.background,
+    this.foregroundFill,
+    this.foregroundTrim = false,
+  });
 
-  final SvgDocument? _doc;
-  final String? _masterPath;
-  final int _bgArgb;
-  final double? _fit;
-  final Directory? _tmpDir;
+  final _Layer foreground;
+  final _Layer? background;
+  final int backgroundArgb;
+  final double? foregroundFill;
+  final bool foregroundTrim;
 
   img.Image? square(int size) {
+    final canvas = background != null
+        ? background!.renderFull(size, backgroundArgb)
+        : solid(size, backgroundArgb);
+    img.compositeImage(
+        canvas, foreground.renderFit(size, foregroundFill, foregroundTrim));
+    return canvas;
+  }
+
+  /// An opaque [size]² square filled with [argb].
+  static img.Image solid(int size, int argb) =>
+      img.Image(width: size, height: size, numChannels: 4)
+        ..clear(img.ColorRgba8(
+            (argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF, 0xFF));
+
+  void cleanup() {}
+}
+
+/// One icon layer, rendered from an SVG document or a raster file.
+class _Layer {
+  _Layer.svg(this._doc) : _path = null;
+  _Layer.raster(this._path) : _doc = null;
+
+  final SvgDocument? _doc;
+  final String? _path;
+
+  /// Fills the whole [size] square (no inset), opaque over [bgArgb]: the
+  /// background layer.
+  img.Image renderFull(int size, int bgArgb) {
     final doc = _doc;
     if (doc != null) {
       return const SvgRasterizer()
-          .rasterize(doc, size, backgroundArgb: _bgArgb, fitFraction: _fit);
+          .rasterize(doc, size, backgroundArgb: bgArgb, fitFraction: null);
     }
-    final src = img.decodeImage(File(_masterPath!).readAsBytesSync());
-    if (src == null) return null;
-    return ImageRasterizer.resizeSmart(src, size, size);
+    final canvas = _Source.solid(size, bgArgb);
+    final src = img.decodeImage(File(_path!).readAsBytesSync());
+    if (src != null) {
+      img.compositeImage(canvas, ImageRasterizer.resizeSmart(src, size, size));
+    }
+    return canvas;
   }
 
-  void cleanup() {
-    final d = _tmpDir;
-    if (d != null && d.existsSync()) d.deleteSync(recursive: true);
+  /// The art scaled to [fill] of [size] (null = full-bleed), centred on a
+  /// transparent canvas; [trim] drops the source's transparent margins first
+  /// (the `auto` fit). The foreground layer.
+  img.Image renderFit(int size, double? fill, bool trim) {
+    final doc = _doc;
+    if (doc != null) {
+      return const SvgRasterizer()
+          .rasterize(doc, size, fitFraction: fill, fitArtBounds: trim);
+    }
+    final canvas = img.Image(width: size, height: size, numChannels: 4);
+    var src = img.decodeImage(File(_path!).readAsBytesSync());
+    if (src == null) return canvas;
+    if (trim) src = ImageRasterizer.trimTransparent(src);
+    final target = fill == null ? size : (size * fill).round();
+    final longest = src.width > src.height ? src.width : src.height;
+    final scale = longest == 0 ? 1.0 : target / longest;
+    final w = (src.width * scale).round().clamp(1, size);
+    final h = (src.height * scale).round().clamp(1, size);
+    final resized = ImageRasterizer.resizeSmart(src, w, h);
+    img.compositeImage(canvas, resized,
+        dstX: ((size - w) / 2).round(), dstY: ((size - h) / 2).round());
+    return canvas;
   }
 }

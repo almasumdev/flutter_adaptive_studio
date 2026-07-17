@@ -5,10 +5,12 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-/// A finished `icon.image` must be inset to match the adaptive foreground (and
-/// the iOS icon) on the raster outputs, the legacy mipmaps and the Play Store
-/// PNG, so every generated icon shares one framing. `legacy_padding: 0` opts
-/// back into edge-to-edge for a genuinely pre-framed icon.
+/// Padding is a foreground concern. A finished `icon.image` already carries its
+/// own background full-bleed with the mark framed as authored, so the legacy
+/// mipmaps and the Play Store PNG use it edge-to-edge, even when an adaptive
+/// `safe_zone` is set (that governs the bare adaptive foreground, not a finished
+/// image). An explicit `legacy_padding` / `play_store_padding` insets it on
+/// purpose.
 void main() {
   late Directory project;
   String main_(String rel) =>
@@ -35,8 +37,8 @@ void main() {
     File(p.join(project.path, 'assets', 'icon.png'))
       ..parent.createSync(recursive: true)
       ..writeAsBytesSync(img.encodePng(red));
-    // A foreground the adaptive layer composes from (so an adaptive safe zone
-    // is in play, the inset intent the finished icon should also follow).
+    // A foreground the adaptive layer composes from (so an adaptive safe zone is
+    // in play; the finished icon.image must NOT inherit that inset).
     File(p.join(project.path, 'assets', 'logo.svg')).writeAsStringSync(
         '<svg viewBox="0 0 100 100"><rect width="100" height="100" '
         'fill="#FF0000"/></svg>');
@@ -69,25 +71,29 @@ $padLine      image: assets/icon.png
   bool isRed(img.Pixel px) => px.r > 200 && px.g < 80 && px.b < 80;
   bool isWhite(img.Pixel px) => px.r > 200 && px.g > 200 && px.b > 200;
 
-  test('icon.image is inset to the safe zone on the Play Store PNG', () {
+  test('a finished icon.image is full-bleed by default on the Play Store PNG',
+      () {
     final store = storeIcon();
     expect(store.width, 512);
-    // Inset → a background-coloured (white) border; the red art is centred and
-    // does not reach the corner.
+    // Full-bleed: the finished icon's own ground reaches the corner. The
+    // adaptive safe_zone does NOT matte a border around it.
+    expect(isRed(store.getPixel(4, 4)), isTrue,
+        reason: 'a finished icon.image must not be inset by the safe zone');
+    expect(isRed(store.getPixel(256, 256)), isTrue,
+        reason: 'the art still fills the centre');
+  });
+
+  test('legacy_padding insets a finished icon.image on purpose', () {
+    final store = storeIcon(legacyPadding: 25);
+    // Inset → a background-coloured (white) border; the art is centred and does
+    // not reach the corner.
     expect(isWhite(store.getPixel(4, 4)), isTrue,
-        reason: 'corner should be the background, not the art');
+        reason: 'legacy_padding must inset the finished icon');
     expect(isRed(store.getPixel(256, 256)), isTrue,
         reason: 'the art is still centred');
   });
 
-  test('legacy_padding: 0 keeps a finished icon.image edge-to-edge', () {
-    final store = storeIcon(legacyPadding: 0);
-    // Full-bleed → the red art reaches the corner.
-    expect(isRed(store.getPixel(4, 4)), isTrue,
-        reason: 'legacy_padding: 0 must opt back into edge-to-edge');
-  });
-
-  test('the inset shrinks the red area vs. edge-to-edge', () {
+  test('a larger inset leaves less art than the full-bleed default', () {
     int redPixels(img.Image im) {
       var n = 0;
       for (var y = 0; y < im.height; y++) {
@@ -98,10 +104,11 @@ $padLine      image: assets/icon.png
       return n;
     }
 
-    final inset = redPixels(storeIcon()); // safe-zone fit (~15%)
-    final fullBleed = redPixels(storeIcon(legacyPadding: 0));
+    final fullBleed = redPixels(storeIcon()); // default, edge-to-edge
+    final inset = redPixels(storeIcon(legacyPadding: 25));
     expect(inset, greaterThan(0));
     expect(inset, lessThan(fullBleed),
-        reason: 'the safe-zone inset must leave less art than edge-to-edge');
+        reason:
+            'legacy_padding must leave less art than the full-bleed default');
   });
 }
