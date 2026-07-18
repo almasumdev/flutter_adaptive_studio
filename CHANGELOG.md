@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.28.2
+## 0.28.3
 
 ### The legacy and Play Store icons now match the adaptive icon: full-bleed background, padded foreground
 
@@ -16,7 +16,8 @@ adaptive icon is:
 - **Only the foreground is inset.** A bare `adaptive.foreground` is fit to the
   same fraction the adaptive foreground uses (`padding` / `safe_zone`), so the
   mark is the same size in the mipmaps, the Play Store icon, and the on-device
-  adaptive icon. The mipmaps no longer inset the whole icon as a card, so the
+  adaptive icon, for every `safe_zone` mode (`as_is` fills the safe square there
+  too, not the whole tile). The mipmaps no longer inset the whole icon as a card, so the
   background is full-bleed there too (the `elevate` effect still insets, to leave
   room for its drop shadow).
 - **The legacy and Play Store icons compose from the layers, not `icon.image`.**

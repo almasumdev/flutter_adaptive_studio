@@ -257,17 +257,21 @@ class AndroidLegacyIcons {
     final zone = adaptive?.safeZone ?? const SafeZone.fit();
     final asIs = fillOverride == null && zone.mode == SafeZoneMode.asIs;
     final double? fgFill;
-    if (fullIcon || asIs) {
-      fgFill = null; // finished icon, or `as_is` mark: full-bleed
+    if (fullIcon) {
+      fgFill = null; // a finished icon.image is used full-bleed
     } else if (fillOverride != null) {
       fgFill = fillOverride; // play_store_padding
     } else if (iconConfig.legacyPadding != null) {
       fgFill = 1 - (iconConfig.legacyPadding!.clamp(0, 95) / 100);
     } else {
-      fgFill = AdaptiveGeometry.canvasFillFraction(zone); // match adaptive fg
+      // fit / inset / none / as_is all map through canvasFillFraction, so the
+      // mark is the SAME size as the adaptive foreground (as_is fills the safe
+      // square, not the whole tile).
+      fgFill = AdaptiveGeometry.canvasFillFraction(zone);
     }
-    final fgTrim =
-        fgFill != null && !asIs; // auto-trim only when fitting a mark
+    // `as_is` keeps the source's own framing (whole viewBox / full bitmap); every
+    // other mode trims to the measured art before fitting.
+    final fgTrim = fgFill != null && !asIs;
 
     // ---- Background: full-bleed colour / SVG / PNG (never padded). It backs
     //      the foreground, so any transparent area (a fit bare mark, or a

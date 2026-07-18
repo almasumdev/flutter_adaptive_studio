@@ -95,4 +95,61 @@ flutter_adaptive_studio:
     // `as_is` keeps the border, so the same mark lands markedly smaller.
     expect(asIsW, lessThan(fitW));
   });
+
+  // ---- The legacy/store foreground is the SAME size as the adaptive
+  //      foreground, for every safe_zone mode (as_is must fill the safe square,
+  //      not the whole tile). ----
+
+  String mainFile(String rel) =>
+      p.join(project.path, 'android', 'app', 'src', 'main', rel);
+
+  void genRaster(String safeZone) {
+    cfg().writeAsStringSync('''
+flutter_adaptive_studio:
+  android:
+    icon:
+      legacy: true
+      play_store: true
+      adaptive:
+        foreground: assets/logo.svg
+        background: "#FFFFFF"
+        safe_zone: $safeZone
+        foreground_format: raster
+''');
+    AdaptiveStudio(
+            projectRoot: project.path, logger: Logger(level: LogLevel.quiet))
+        .run();
+  }
+
+  /// Horizontal fraction of the dark (#123456) mark in [im].
+  double markFraction(img.Image im) {
+    var minX = im.width, maxX = -1;
+    for (var y = 0; y < im.height; y++) {
+      for (var x = 0; x < im.width; x++) {
+        final px = im.getPixel(x, y);
+        if (px.a > 200 && px.r < 100 && px.g < 100) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+        }
+      }
+    }
+    return maxX < 0 ? 0 : (maxX - minX + 1) / im.width;
+  }
+
+  for (final mode in const ['as_is', 'fit', 'none']) {
+    test(
+        '$mode: the Play Store foreground matches the adaptive foreground size',
+        () {
+      genRaster(mode);
+      final fg = markFraction(img.decodeImage(
+          File(res('drawable-xxhdpi/ic_launcher_foreground.png'))
+              .readAsBytesSync())!);
+      final store = markFraction(img.decodeImage(
+          File(mainFile('ic_launcher-playstore.png')).readAsBytesSync())!);
+      expect(fg, greaterThan(0), reason: 'the mark should be present');
+      expect(store, closeTo(fg, 0.04),
+          reason: '$mode must scale the mark the same in the adaptive '
+              'foreground and the Play Store icon');
+    });
+  }
 }
