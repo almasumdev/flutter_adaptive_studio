@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.28.7
+
+### `fas preview`: safe-zone keylines + an iOS section
+
+The `preview` command now overlays the official guideline keylines on the mask
+tiles, like Android Studio's safe-zone view, and adds an iOS section:
+
+- **Android (Google):** the composed icon under the circle, squircle, rounded
+  square, and square masks, each with the 66dp safe circle, the 72dp safe square,
+  and a centre crosshair drawn on top. The icon is composed at your real
+  `safe_zone` fill, so you see how your actual mark sits against the guides.
+- **iOS (Apple):** the app icon under Apple's squircle (a true superellipse) with
+  a dashed keep-content-inside inset, next to the square (App Store) form.
+- A pure-CSS checkbox toggles the keylines on and off. Still one self-contained
+  HTML file (inline SVG and CSS, no assets, no JavaScript).
+
+Run `fas preview` and open `flutter_adaptive_studio/preview/icon_preview.html`.
+
 ## 0.28.6
 
 ### Docs: the `legacy_padding` / `play_store_padding` reference frame is now explicit

@@ -189,7 +189,6 @@ Direction is driven by what users request on the
 
 - ⬜ Full-color themed icons from raster sources
 - ⬜ macOS, Windows, and Linux icon targets
-- ⬜ Richer launcher-mask preview sheet
 
 Shipped milestones are in the
 [changelog](https://github.com/almasumdev/flutter_adaptive_studio/blob/main/CHANGELOG.md).
@@ -365,7 +364,7 @@ dart run flutter_adaptive_studio <command> [options]   # as a dev dependency
 | `sync`     | Add newly-available options to an existing config (commented, keeps your values) |
 | `generate` | Generate icons and splash (the default command)       |
 | `doctor`   | Validate the config and environment                   |
-| `preview`  | Write an HTML launcher-mask preview sheet             |
+| `preview`  | Write an HTML icon-guideline sheet: masks + Google/Apple safe-zone keylines |
 | `revert`   | Remove generated files                                |
 
 Options: `-p/--project <path>`, `-c/--config <file>`, `-F/--flavor <name>`,
