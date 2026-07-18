@@ -3,7 +3,9 @@
 /// square, square) with the **Google adaptive-icon keylines** overlaid (the
 /// 66dp safe circle, the 72dp safe square, and a centre crosshair), plus an
 /// **iOS section** showing the app icon under Apple's squircle mask next to its
-/// square (App Store) form, and the monochrome themed-icon preview.
+/// square (App Store) form, a **legacy mipmap + Play Store** section framed by
+/// the tile-relative `legacy_padding`/`play_store_padding` (so a mark at 0 fills
+/// the tile, matching the generated PNGs), and the monochrome themed-icon tile.
 ///
 /// This brings the Android-Studio "preview across masks + safe zone" experience
 /// to the CLI, and adds the iOS side, so a dev can verify safe-zone fit and
@@ -101,7 +103,31 @@ class PreviewGenerator {
       }
     }
 
-    final html = _html(composed, iosComposed, mono);
+    // Legacy mipmap + Play Store: raster icons framed by their OWN, tile-relative
+    // padding (not the adaptive safe zone), so `legacy_padding: 0` fills the tile
+    // just as the generated PNGs do. The background stays full-bleed.
+    final iconCfg = config.android?.icon;
+    final minSdk = config.android?.minSdk ?? 21;
+    double rasterFill(int? pad) =>
+        pad != null ? (1 - pad.clamp(0, 95) / 100).toDouble() : fill;
+    final legacy = (iconCfg?.legacy ?? (minSdk < 26))
+        ? _composeDataUri(
+            fg: fg,
+            fgFill: rasterFill(iconCfg?.legacyPadding),
+            fgTrim: trim,
+            ground: ground)
+        : null;
+    final store = (iconCfg?.playStore ?? false)
+        ? _composeDataUri(
+            fg: fg,
+            fgFill:
+                rasterFill(iconCfg?.playStorePadding ?? iconCfg?.legacyPadding),
+            fgTrim: trim,
+            ground: ground)
+        : null;
+
+    final html =
+        _html(composed, iosComposed, mono, legacy: legacy, store: store);
     final outDir =
         p.join(loader.projectRoot, 'flutter_adaptive_studio', 'preview');
     final outPath = p.join(outDir, 'icon_preview.html');
@@ -237,7 +263,8 @@ class PreviewGenerator {
 
   // --------------------------------------------------------------------- HTML
 
-  String _html(String android, String ios, String? mono) {
+  String _html(String android, String ios, String? mono,
+      {String? legacy, String? store}) {
     String tile(String label, String shape, String uri,
             {required String keylines}) =>
         '''
@@ -268,6 +295,21 @@ class PreviewGenerator {
     <h2>Monochrome (Android 13 themed icon)</h2>
     <div class="row">
       ${tile('Tinted circle', 'circle', mono, keylines: _androidKeylines)}
+    </div>''';
+
+    final rasterSection = (legacy == null && store == null)
+        ? ''
+        : '''
+    <h2>Legacy mipmap + Play Store (Google raster)</h2>
+    <p class="legend">Not adaptive: framed by <code>legacy_padding</code> /
+    <code>play_store_padding</code>, measured from the full tile (not the safe
+    zone), so a mark at 0 fills the tile. No safe-zone circle applies here.</p>
+    <div class="row">
+${[
+            if (legacy != null)
+              tile('Legacy mipmap', 'round', legacy, keylines: ''),
+            if (store != null) tile('Play Store', 'round', store, keylines: ''),
+          ].join('\n')}
     </div>''';
 
     return '''<!doctype html>
@@ -327,6 +369,7 @@ $androidTiles
   <div class="row">
 $iosTiles
   </div>
+$rasterSection
 $monoSection
 </body></html>''';
   }

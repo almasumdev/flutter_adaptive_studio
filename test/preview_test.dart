@@ -113,6 +113,52 @@ flutter_adaptive_studio:
         reason: 'the foreground is composited over the full-bleed ground');
   });
 
+  test('the legacy section fills more than the safe-zone adaptive tile', () {
+    // Distinct GREEN ground + small RED mark, so foreground extent is countable.
+    File(p.join(project.path, 'assets', 'bg.svg')).writeAsStringSync(
+        '<svg viewBox="0 0 100 100"><rect width="100" height="100" '
+        'fill="#1B7F3B"/></svg>');
+    File(p.join(project.path, 'assets', 'fg.svg')).writeAsStringSync(
+        '<svg viewBox="0 0 100 100"><rect x="38" y="38" width="24" '
+        'height="24" fill="#E53935"/></svg>');
+    writeCfg('''
+flutter_adaptive_studio:
+  android:
+    icon:
+      legacy: true
+      legacy_padding: 0
+      adaptive:
+        foreground: assets/fg.svg
+        background: assets/bg.svg
+''');
+    final html = File(runPreview()!).readAsStringSync();
+    expect(html, contains('Legacy mipmap + Play Store'));
+
+    int redPixels(String dataUri) {
+      final b64 = dataUri.replaceFirst('data:image/png;base64,', '');
+      final im = img.decodeImage(base64Decode(b64))!;
+      var n = 0;
+      for (var y = 0; y < im.height; y++) {
+        for (var x = 0; x < im.width; x++) {
+          final px = im.getPixel(x, y);
+          if (px.r > 150 && px.g < 100 && px.b < 100) n++;
+        }
+      }
+      return n;
+    }
+
+    final uris = RegExp(r'data:image/png;base64,[A-Za-z0-9+/=]+')
+        .allMatches(html)
+        .map((m) => m.group(0)!)
+        .toList();
+    // Order: 4 adaptive, 2 iOS, 1 legacy (no play_store / monochrome here).
+    final adaptiveRed = redPixels(uris.first);
+    final legacyRed = redPixels(uris.last);
+    expect(legacyRed, greaterThan(adaptiveRed),
+        reason: 'legacy_padding: 0 fills the tile; the adaptive tile is '
+            'inset to the safe zone');
+  });
+
   test('the iOS section is present even without an ios.icon (shared source)',
       () {
     writeCfg('''

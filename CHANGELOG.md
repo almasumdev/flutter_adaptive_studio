@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.28.9
+
+### `fas preview`: adds the legacy mipmap + Play Store icons
+
+The preview showed only the adaptive icon (foreground fit to the safe zone), so
+an icon with `legacy_padding: 0` looked wrong there: the generated legacy PNG
+fills the tile, but the preview kept the mark inside the safe circle. The sheet
+now has a **Legacy mipmap + Play Store** section, composed the way those raster
+icons ship: background full-bleed, foreground framed by `legacy_padding` /
+`play_store_padding` (measured from the full tile, not the safe zone). A mark at
+0 now fills the tile in the preview too, matching the PNG. These tiles carry no
+safe-zone circle, since they are not masked to it.
+
 ## 0.28.8
 
 ### Fix: `fas preview` renders the real background full-bleed
