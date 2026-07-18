@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.28.1
+## 0.28.2
 
 ### The legacy and Play Store icons now match the adaptive icon: full-bleed background, padded foreground
 
@@ -19,12 +19,13 @@ adaptive icon is:
   adaptive icon. The mipmaps no longer inset the whole icon as a card, so the
   background is full-bleed there too (the `elevate` effect still insets, to leave
   room for its drop shadow).
-- **A finished `icon.image` is always used full-bleed**, since it already
-  carries its own ground with the mark framed as authored. You cannot pad just
-  its foreground, so `legacy_padding` / `play_store_padding` do not apply to a
-  finished `icon.image` (a warning points you to the foreground + background
-  layers, which pad the mark over a full-bleed ground). Those keys still inset a
-  bare foreground.
+- **The legacy and Play Store icons compose from the layers, not `icon.image`.**
+  They use the adaptive foreground (padded) over the adaptive background
+  (full-bleed), so `padding` / `safe_zone` / `legacy_padding` /
+  `play_store_padding` all apply and the icons match the adaptive icon. A
+  finished `icon.image` is only a fallback for when there is no adaptive
+  foreground; when both are set, `icon.image` is superseded (with a warning),
+  because a pre-composed image has no separable foreground to pad.
 
 The net effect: a gradient/SVG-ground icon (e.g. a flame on a warm radial
 charcoal) now renders as a full-bleed ground with a centred, padded mark across

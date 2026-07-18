@@ -1,11 +1,13 @@
 /// Generates the raster-only icon outputs: pre-API-26 legacy mipmaps (+ round)
 /// and the 512² Play Store PNG.
 ///
-/// Source priority: an explicit `icon.image`, otherwise a composed
-/// foreground-over-background SVG. Rasterisation goes through the pluggable
-/// [RasterizerFactory] (pure-Dart for raster sources, a detected system tool for
-/// SVG). If no backend can handle the source, the outputs are skipped with a
-/// clear message, never a hard failure.
+/// These compose the same way as the adaptive icon: the adaptive foreground
+/// (padded to the safe zone) over the adaptive background (full-bleed colour,
+/// SVG or PNG), so every padding key applies and the icons match. A finished
+/// `icon.image` is a fallback used full-bleed only when there is no adaptive
+/// foreground. Rasterisation is pure-Dart (the SVG rasteriser, or the image
+/// package for raster sources); if a source can't be handled the outputs are
+/// skipped with a clear message, never a hard failure.
 library;
 
 import 'dart:io';
@@ -61,16 +63,15 @@ class AndroidLegacyIcons {
     final fmt = iconConfig.imageFormat;
     final ext = fmt.extension;
 
-    // A finished icon.image is used full-bleed, so an inset asked for with
-    // legacy_padding / play_store_padding can't apply (it would shrink the whole
-    // icon, ground and all). Point the user at the layers, which pad the mark.
-    if (iconConfig.image != null &&
-        (iconConfig.legacyPadding != null ||
-            iconConfig.playStorePadding != null)) {
+    // The legacy + Play Store icons compose from the adaptive foreground
+    // (padded) over the background (full-bleed) to match the adaptive icon, so a
+    // pre-composed icon.image is superseded when the layers exist. Say so rather
+    // than silently dropping it.
+    if (iconConfig.image != null && adaptive?.foreground != null) {
       logger.warn(
-          'legacy_padding / play_store_padding do not apply to a finished '
-          'icon.image (it is used full-bleed). To inset the mark, remove '
-          'icon.image and use the adaptive foreground + background layers.');
+          'icon.image is ignored: the legacy and Play Store icons are composed '
+          'from the adaptive foreground + background, so padding applies and '
+          'they match the adaptive icon. Remove icon.image to silence this.');
     }
 
     // The Play Store icon gets its own inset when `play_store_padding` is set;
@@ -211,25 +212,29 @@ class AndroidLegacyIcons {
   /// adaptive icon (whose background fills the tile and whose foreground sits in
   /// the safe zone).
   ///
-  /// The foreground is a finished `icon.image` (used full-bleed, it carries its
-  /// own ground) or, failing that, the adaptive foreground (a bare mark, fit to
-  /// the same fraction the adaptive foreground uses). The background is the
-  /// adaptive background rendered full-bleed (colour, SVG or PNG); it is never
-  /// padded. `legacy_padding` / `play_store_padding` override the foreground
-  /// inset; `safe_zone: as_is` keeps the mark's own framing. Returns null (with
-  /// a clear skip) when no foreground source can be used.
+  /// The foreground is the adaptive foreground (a bare mark, fit to the same
+  /// fraction the adaptive foreground uses, so the icons match), or, only when
+  /// there is no adaptive foreground, a finished `icon.image` (used full-bleed).
+  /// The background is the adaptive background rendered full-bleed (colour, SVG
+  /// or PNG); it is never padded. `legacy_padding` / `play_store_padding`
+  /// override the foreground inset; `safe_zone: as_is` keeps the mark's own
+  /// framing. Returns null (with a clear skip) when no source can be used.
   _Source? _prepareSource(GenerationReport report, {double? fillOverride}) {
     // ---- Foreground source ----
+    // Prefer the adaptive foreground so the legacy/store icons compose the same
+    // way as the adaptive icon (mark padded over a full-bleed ground) and every
+    // padding key applies. A finished icon.image is only a fallback for when no
+    // foreground exists; when both are set it is superseded (see generate).
     final String rel;
     final bool fullIcon;
-    if (iconConfig.image != null) {
-      rel = iconConfig.image!;
-      fullIcon = true;
-    } else if (adaptive?.foreground != null) {
+    if (adaptive?.foreground != null) {
       rel = adaptive!.foreground!;
       fullIcon = false;
+    } else if (iconConfig.image != null) {
+      rel = iconConfig.image!;
+      fullIcon = true;
     } else {
-      logger.skip('legacy/store: no icon.image and no foreground to compose');
+      logger.skip('legacy/store: no foreground or icon.image to compose');
       report.skipped.add('legacy/store (no composable source)');
       return null;
     }
