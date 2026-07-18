@@ -61,6 +61,18 @@ class AndroidLegacyIcons {
     final fmt = iconConfig.imageFormat;
     final ext = fmt.extension;
 
+    // A finished icon.image is used full-bleed, so an inset asked for with
+    // legacy_padding / play_store_padding can't apply (it would shrink the whole
+    // icon, ground and all). Point the user at the layers, which pad the mark.
+    if (iconConfig.image != null &&
+        (iconConfig.legacyPadding != null ||
+            iconConfig.playStorePadding != null)) {
+      logger.warn(
+          'legacy_padding / play_store_padding do not apply to a finished '
+          'icon.image (it is used full-bleed). To inset the mark, remove '
+          'icon.image and use the adaptive foreground + background layers.');
+    }
+
     // The Play Store icon gets its own inset when `play_store_padding` is set;
     // otherwise it shares the legacy source's framing.
     final storeFill = emitPlayStore ? _playStoreFill() : null;
@@ -231,34 +243,38 @@ class AndroidLegacyIcons {
     if (fgLayer == null) return null;
 
     // ---- Foreground framing ----
-    // A finished `icon.image` is full-bleed. A bare foreground is fit to the
-    // SAME fraction the adaptive foreground uses, so the raster icons match the
-    // adaptive icon. `legacy_padding`/`play_store_padding` override the inset;
-    // `safe_zone: as_is` keeps the source's own framing.
+    // A finished `icon.image` is ALWAYS full-bleed: it carries its own ground,
+    // so you cannot pad just its foreground, and `legacy_padding` /
+    // `play_store_padding` do not apply to it (see the warning in `generate`).
+    // A bare foreground is fit to the SAME fraction the adaptive foreground uses
+    // (so the raster icons match the adaptive icon), with those keys overriding
+    // and `safe_zone: as_is` keeping the source's own framing.
     final zone = adaptive?.safeZone ?? const SafeZone.fit();
     final asIs = fillOverride == null && zone.mode == SafeZoneMode.asIs;
     final double? fgFill;
-    if (fillOverride != null) {
+    if (fullIcon || asIs) {
+      fgFill = null; // finished icon, or `as_is` mark: full-bleed
+    } else if (fillOverride != null) {
       fgFill = fillOverride; // play_store_padding
     } else if (iconConfig.legacyPadding != null) {
       fgFill = 1 - (iconConfig.legacyPadding!.clamp(0, 95) / 100);
-    } else if (fullIcon || asIs) {
-      fgFill = null; // finished icon, or `as_is` mark: full-bleed
     } else {
       fgFill = AdaptiveGeometry.canvasFillFraction(zone); // match adaptive fg
     }
     final fgTrim =
         fgFill != null && !asIs; // auto-trim only when fitting a mark
 
-    // ---- Background: full-bleed colour / SVG / PNG (never padded). A finished
-    //      `icon.image` already includes its ground, so it needs none. ----
+    // ---- Background: full-bleed colour / SVG / PNG (never padded). It backs
+    //      the foreground, so any transparent area (a fit bare mark, or a
+    //      transparent `icon.image`) shows the ground rather than a white
+    //      matte. ----
     var bgArgb = 0xFFFFFF; // opaque backing behind any transparency
     _Layer? bgLayer;
     final adpt = adaptive;
     if (adpt != null && adpt.background != null) {
       if (adpt.backgroundIsColor) {
         bgArgb = SvgColor.parse(adpt.background!).argb;
-      } else if (!fullIcon) {
+      } else {
         final bgAbs = loader.resolveAsset(adpt.background!);
         if (File(bgAbs).existsSync()) {
           bgLayer = _layerFor(bgAbs, 'legacy/store background', report);

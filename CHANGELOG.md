@@ -19,9 +19,12 @@ adaptive icon is:
   adaptive icon. The mipmaps no longer inset the whole icon as a card, so the
   background is full-bleed there too (the `elevate` effect still insets, to leave
   room for its drop shadow).
-- **A finished `icon.image` is used full-bleed**, since it already carries its
-  own ground with the mark framed as authored. `legacy_padding` (legacy + store)
-  or `play_store_padding` (store only) insets the foreground on purpose.
+- **A finished `icon.image` is always used full-bleed**, since it already
+  carries its own ground with the mark framed as authored. You cannot pad just
+  its foreground, so `legacy_padding` / `play_store_padding` do not apply to a
+  finished `icon.image` (a warning points you to the foreground + background
+  layers, which pad the mark over a full-bleed ground). Those keys still inset a
+  bare foreground.
 
 The net effect: a gradient/SVG-ground icon (e.g. a flame on a warm radial
 charcoal) now renders as a full-bleed ground with a centred, padded mark across
