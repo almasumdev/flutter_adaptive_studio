@@ -73,9 +73,9 @@ flutter_adaptive_studio:
       round: true                          # also emit ic_launcher_round
       # icon_name: ic_launcher             # launcher resource base name
       # legacy: true                       # pre-API-26 mipmap PNGs
-      # legacy_padding: 15                 # % the legacy/store art is inset (overrides the adaptive safe zone for these raster icons)
+      # legacy_padding: 43              # % inset from the FULL icon square, not the 72dp safe zone that padding/safe_zone use; leaving it unset already matches the adaptive icon, and 43 reproduces that (15% of the safe zone is about 43% of the tile). 0 is edge-to-edge; a lower number is a bigger mark
       # play_store: true                   # 512² Play Store icon (always PNG, per Google)
-      # play_store_padding: 15             # % the Play Store art is inset, on its own (else follows legacy_padding/safe_zone)
+      # play_store_padding: 43             # same FULL-square inset for the Play Store icon alone; unset follows legacy_padding, else the safe-zone default (about 43)
       # image_format: png                  # png | webp, encoding for the generated icon resources
       # image: assets/icon.png             # finished-icon source for legacy + play_store
       #                                    #   (otherwise they're rasterised from `foreground`)

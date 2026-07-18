@@ -256,8 +256,8 @@ flutter_adaptive_studio:
         foreground_format: vector            # vector (default) | raster (bake a gradient SVG to PNGs for universal rendering)
       round: true
       play_store: true                       # 512² store icon (always PNG)
-      legacy_padding: 15                     # % inset for legacy and store art
-      play_store_padding: 20                 # % inset for the Play Store icon on its own
+      legacy_padding: 43                     # % inset from the full icon square, not the safe zone; 43 matches the adaptive default, a lower number gives a bigger mark, 0 is edge-to-edge
+      play_store_padding: 43                 # same full-square frame for the Play Store icon alone; unset follows legacy_padding
       image_format: webp                     # png (default) | webp
     splash:
       background: "#E4ECE8"

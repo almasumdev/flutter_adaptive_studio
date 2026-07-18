@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.28.6
+
+### Docs: the `legacy_padding` / `play_store_padding` reference frame is now explicit
+
+No behaviour change. `legacy_padding` and `play_store_padding` are measured from
+the full 108dp icon square, while `padding` / `safe_zone` measure the inner 72dp
+mask-safe square, so the same number is not the same inset. That was easy to miss:
+the `init` starter showed `legacy_padding: 15`, which reads as the same 15% as the
+safe zone but actually produces a bigger mark, because the real default works out
+to about 43 (15% of the 72dp square is roughly 43% of the 108dp tile).
+
+The `init` starter, the README, and the dartdoc now state the full-square frame
+and show the default-equivalent value (about 43), so copying the starter
+reproduces the default instead of a surprise. Leaving the keys unset still matches
+the adaptive icon exactly, as before.
+
 ## 0.28.5
 
 ### Test coverage: the remaining iOS and `-dark` keys

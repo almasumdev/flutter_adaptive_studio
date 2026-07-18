@@ -161,10 +161,13 @@ class AndroidIconConfig {
   /// Emit pre-API-26 mipmap PNGs. `null` ⇒ decide from `minSdk`.
   final bool? legacy;
 
-  /// Percent the legacy/store art is inset from the icon edge, overriding the
-  /// adaptive safe zone for the raster outputs only. `null` ⇒ follow
-  /// `adaptive.safe_zone`/`padding`. Applies whether the art comes from the
-  /// adaptive foreground or an explicit [image]; set `0` to keep a finished
+  /// Percent the legacy/store art is inset from the **full icon square** (the
+  /// 108dp tile), overriding the adaptive safe zone for the raster outputs only.
+  /// This measures a different box from `adaptive.safe_zone`/`padding` (the inner
+  /// 72dp mask-safe square), so the same number is not the same inset. `null`
+  /// follows the safe zone, which works out to about 43 here: 15% of the 72dp
+  /// square is roughly 43% of the 108dp tile. Applies whether the art comes from
+  /// the adaptive foreground or an explicit [image]; set `0` to keep a finished
   /// [image] edge-to-edge.
   final int? legacyPadding;
 
@@ -174,10 +177,12 @@ class AndroidIconConfig {
   /// Emit the 512² Play Store marketing PNG.
   final bool playStore;
 
-  /// Percent the **Play Store** PNG's art is inset, independently of the legacy
-  /// mipmaps. `null` follows the shared framing ([legacyPadding], else
-  /// `adaptive.safe_zone`, else the default); set it to frame the marketing icon
-  /// on its own (0-95, e.g. a roomier inset for Play's rounded presentation).
+  /// Percent the **Play Store** PNG's art is inset from the full icon square,
+  /// independently of the legacy mipmaps (same tile reference as [legacyPadding],
+  /// not the mask-safe safe zone). `null` follows the shared framing
+  /// ([legacyPadding], else `adaptive.safe_zone`, else the default, about 43);
+  /// set it to frame the marketing icon on its own (0-95, e.g. a roomier inset
+  /// for Play's rounded presentation).
   final int? playStorePadding;
 
   /// Full-colour light/dark icon via activity-alias.
