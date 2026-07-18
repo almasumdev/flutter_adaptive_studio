@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.28.0
+## 0.28.1
 
 ### The legacy and Play Store icons now match the adaptive icon: full-bleed background, padded foreground
 
