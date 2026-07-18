@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.28.5
+
+### Test coverage: the remaining iOS and `-dark` keys
+
+No behaviour change. Closes the last verification gaps from the 0.28.4 config-key
+audit with behavioural tests that assert on real generated output (PNG sizes,
+pixel colours, and style-item values):
+
+- iOS `splash.logo_size` (the `LaunchImage` imageset is sized 1x / 2x / 3x from
+  the point size), `splash.background_image_dark` (a `~dark` image is rendered
+  from the dark source with a dark appearance entry), and `icon.padding` (the
+  mark is inset from the icon square).
+- The `icon.image` full-bleed path for the legacy mipmaps and the 512 Play Store
+  icon, used when the adaptive block carries no foreground of its own (the
+  foreground then comes from the top-level `source`).
+- The `-dark` splash overrides `branding_text_color_dark`,
+  `status_bar_icon_brightness_dark`, and `navigation_bar_icon_brightness_dark`,
+  each verified to win in dark mode independently of its day counterpart.
+
 ## 0.28.4
 
 ### Fix: `splash.gravity: fill` stretches the pre-31 logo
