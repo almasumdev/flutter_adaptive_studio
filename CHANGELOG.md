@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.28.8
+
+### Fix: `fas preview` renders the real background full-bleed
+
+The preview only used the background when it was a colour; an SVG or PNG
+background was dropped and a grey placeholder shown, so an icon on a themed
+(gradient) ground came out on grey. The preview now composes each tile the same
+way the icons ship: the background fills the canvas (colour, SVG, or PNG,
+gradients and all) and only the foreground is inset. Tiles are rasterised to
+inline PNG data URIs, so the sheet stays a single self-contained file.
+
 ## 0.28.7
 
 ### `fas preview`: safe-zone keylines + an iOS section
