@@ -1228,11 +1228,22 @@ class AndroidSplash {
         });
       }
       if (iconRef != null) {
+        // Pin the logo to a fixed box so a positional gravity places it; but a
+        // `fill` gravity must be free to stretch, so drop the dimension it fills
+        // (fill = both, fill_horizontal = width, fill_vertical = height).
+        final g = splash.gravity.toLowerCase();
+        final fillsWidth = g.contains('fill') && !g.contains('fill_vertical');
+        final fillsHeight =
+            g.contains('fill') && !g.contains('fill_horizontal');
         b.element('item', nest: () {
           b.attribute('drawable', '@drawable/$iconRef', namespaceUri: _ns);
           b.attribute('gravity', splash.gravity, namespaceUri: _ns);
-          b.attribute('width', '${_legacyBoxDp}dp', namespaceUri: _ns);
-          b.attribute('height', '${_legacyBoxDp}dp', namespaceUri: _ns);
+          if (!fillsWidth) {
+            b.attribute('width', '${_legacyBoxDp}dp', namespaceUri: _ns);
+          }
+          if (!fillsHeight) {
+            b.attribute('height', '${_legacyBoxDp}dp', namespaceUri: _ns);
+          }
         });
       }
       if (brandingRef != null) {

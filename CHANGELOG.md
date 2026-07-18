@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.28.4
+
+### Fix: `splash.gravity: fill` stretches the pre-31 logo
+
+`gravity: fill` (and `fill_horizontal` / `fill_vertical`) advertised a full-bleed
+pre-31 splash logo, but the logo item was pinned to a fixed 192dp box, so `fill`
+could not stretch it. A `fill` gravity now drops the dimension it fills, so the
+logo stretches as documented (on API 23+; API 21-22 ignore the item size and use
+the drawable's intrinsic size). Positional gravities (`center`, `top`, `bottom`,
+and so on) still pin the box.
+
+### Config-key audit
+
+Audited every config key end to end (parsed, stored, and read by the generator):
+all are wired to a real output, none are dead. Added behavioural tests for keys
+that were correct but previously unverified: `gravity`, `icon_name`, `effect`,
+and the `min_sdk` legacy-mipmap gating.
+
 ## 0.28.3
 
 ### The legacy and Play Store icons now match the adaptive icon: full-bleed background, padded foreground
