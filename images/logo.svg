@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="bg" cx="46%" cy="42%" r="80%">
+      <stop offset="0%" stop-color="#463F6B"/>
+      <stop offset="55%" stop-color="#262138"/>
+      <stop offset="100%" stop-color="#12101C"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.5"/>
+      <stop offset="62%" stop-color="#FFFFFF" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haloV" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8C6BFF" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#8C6BFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="drop" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#080512" stop-opacity="0.5"/>
+      <stop offset="68%" stop-color="#080512" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#080512" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0%" stop-color="#9A86FF"/>
+      <stop offset="55%" stop-color="#7458EE"/>
+      <stop offset="100%" stop-color="#5A3EDC"/>
+    </linearGradient>
+    <linearGradient id="ghost" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8E7BF6"/>
+      <stop offset="100%" stop-color="#5B41D6"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#EDE8FF"/>
+    </linearGradient>
+    <clipPath id="face">
+      <rect x="242" y="242" width="540" height="540" rx="140"/>
+    </clipPath>
+  </defs>
+
+  <!-- dark violet background -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- soft glow behind the mark (gradient, no blur filter) -->
+  <ellipse cx="504" cy="482" rx="432" ry="446" fill="url(#halo)"/>
+  <ellipse cx="716" cy="322" rx="320" ry="300" fill="url(#haloV)"/>
+
+  <!-- ghost tile behind: one source, many masked icons -->
+  <rect x="300" y="150" width="470" height="470" rx="122" fill="url(#ghost)" opacity="0.26"
+        transform="rotate(-9 512 512)"/>
+
+  <!-- soft ground shadow under the main tile -->
+  <ellipse cx="512" cy="792" rx="292" ry="82" fill="url(#drop)"/>
+
+  <!-- main adaptive-icon tile -->
+  <rect x="242" y="242" width="540" height="540" rx="140" fill="url(#tile)"/>
+
+  <!-- top sheen on the tile face -->
+  <g clip-path="url(#face)">
+    <rect x="242" y="242" width="540" height="150" fill="#FFFFFF" opacity="0.12"/>
+  </g>
+
+  <!-- safe-zone keyline circle: the adaptive / mask-correct signature -->
+  <circle cx="512" cy="512" r="196" fill="none" stroke="#E7E1FF" stroke-width="7" opacity="0.62"/>
+
+  <!-- foreground mark, fit inside the safe zone: a bold 4-point spark -->
+  <path d="M512 356
+           C528 440 584 496 668 512
+           C584 528 528 584 512 668
+           C496 584 440 528 356 512
+           C440 496 496 440 512 356 Z"
+        fill="url(#mark)"/>
+  <!-- small studio spark -->
+  <path d="M672 596 C678 624 690 636 718 642 C690 648 678 660 672 688 C666 660 654 648 626 642 C654 636 666 624 672 596 Z"
+        fill="#FFFFFF" opacity="0.9"/>
+
+  <!-- tile edge -->
+  <rect x="242" y="242" width="540" height="540" rx="140" fill="none" stroke="#B7A6FF" stroke-width="4" opacity="0.5"/>
+</svg>

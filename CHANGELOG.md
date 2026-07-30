@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.28.11
+
+### New logo
+
+Adds a package logo (`images/logo.svg` + `images/logo.png`): an adaptive
+app-icon tile with the safe-zone keyline, on a dark violet ground. The pubspec
+screenshot now points at the PNG (replacing the old WebP). The vector source uses
+gradient-based glow rather than blur filters, so it renders identically in a
+browser and through the package's own rasterizer.
+
 ## 0.28.10
 
 ### Discoverability: target the splash-screen and launch-icon search variants
