@@ -18,7 +18,7 @@ import 'package:path/path.dart' as p;
 const _commands = {'init', 'sync', 'generate', 'doctor', 'preview', 'revert'};
 
 /// Keep in sync with `version:` in pubspec.yaml.
-const _version = '0.28.9';
+const _version = '0.28.10';
 
 void main(List<String> args) {
   final parser = ArgParser()

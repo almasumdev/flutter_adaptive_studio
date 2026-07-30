@@ -1,8 +1,9 @@
 name: flutter_adaptive_studio
 description: >-
-  Generate adaptive launcher icons, app icons and animated splash screens for
-  Flutter on Android and iOS from one SVG. Themed and mask-correct, per flavor.
-version: 0.28.9
+  Flutter launcher icon and splash screen generator: adaptive app icons, native
+  animated splash, and iOS launch screen from one SVG. Android + iOS, themed,
+  mask-correct, per flavor.
+version: 0.28.10
 repository: https://github.com/almasumdev/flutter_adaptive_studio
 issue_tracker: https://github.com/almasumdev/flutter_adaptive_studio/issues
 

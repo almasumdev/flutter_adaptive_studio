@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.28.10
+
+### Discoverability: target the splash-screen and launch-icon search variants
+
+No code change. The pubspec description and README now include the exact phrases
+people search that were missing, so pub.dev search can match them: `launcher
+icon` (singular, not just the plural), `launch screen`, `splash screen
+generator`, and `app icon generator`. The description stays within pub.dev's
+180-character sweet spot. Publish to pub.dev for the new metadata to take effect
+in search.
+
 ## 0.28.9
 
 ### `fas preview`: adds the legacy mipmap + Play Store icons

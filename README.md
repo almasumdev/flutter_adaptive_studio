@@ -24,6 +24,11 @@ splash**. Everything is light and dark aware and works per flavor. It covers wha
 `flutter_launcher_icons` and `flutter_native_splash` do together, and fills the
 gaps both leave open.
 
+Use it as a **Flutter launcher icon generator**, an **app icon generator**, and a
+**launch screen / splash screen generator** in one: adaptive icons, the Android 13
+monochrome themed icon, legacy mipmaps, the Play Store icon, iOS app icons, and
+native, animated, and in-app splash screens.
+
 > ⭐ **Find this useful?** [Star it on GitHub](https://github.com/almasumdev/flutter_adaptive_studio)
 > and 👍 [like it on pub.dev](https://pub.dev/packages/flutter_adaptive_studio) so other
 > Flutter developers can find a maintained icon and splash generator.
