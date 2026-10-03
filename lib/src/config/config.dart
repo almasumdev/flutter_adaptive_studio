@@ -139,6 +139,7 @@ class AndroidIconConfig {
     this.iconName = 'ic_launcher',
     this.effect = LegacyEffect.none,
     this.imageFormat = ImageFormat.png,
+    this.rasterView = RasterView.tile,
   });
 
   final AdaptiveConfig? adaptive;
@@ -184,6 +185,15 @@ class AndroidIconConfig {
   /// set it to frame the marketing icon on its own (0-95, e.g. a roomier inset
   /// for Play's rounded presentation).
   final int? playStorePadding;
+
+  /// What the legacy mipmaps and the Play Store PNG depict when they are
+  /// composed from the adaptive layers. [RasterView.tile] (the default) draws
+  /// the whole 108dp tile. [RasterView.launcher] draws only the 72dp part a
+  /// launcher shows, so the background is framed as on a phone: zoomed 1.5x,
+  /// with art near its edges cropped and art further in moved outwards. In
+  /// that view [legacyPadding] and [playStorePadding] inset from that visible
+  /// square, and with neither set the mark is the size a launcher shows it.
+  final RasterView rasterView;
 
   /// Full-colour light/dark icon via activity-alias.
   final ThemedIconConfig? themed;
@@ -274,6 +284,11 @@ enum SafeZoneMode { fit, inset, none, asIs }
 /// `none` → flat; `elevate` → soft drop shadow + top-left radial sheen (the
 /// classic Material launcher look).
 enum LegacyEffect { none, elevate }
+
+/// What a composed raster icon shows of the adaptive layers: the whole 108dp
+/// [tile], or the 72dp square a [launcher] shows (see
+/// [AndroidIconConfig.rasterView]).
+enum RasterView { tile, launcher }
 
 /// Themed full-colour light/dark icon (Phase 4, opt-in).
 @immutable

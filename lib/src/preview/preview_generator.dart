@@ -108,14 +108,21 @@ class PreviewGenerator {
     // just as the generated PNGs do. The background stays full-bleed.
     final iconCfg = config.android?.icon;
     final minSdk = config.android?.minSdk ?? 21;
+    // `raster_view: launcher`: framed as a launcher's visible 72dp square.
+    final zoom = iconCfg?.rasterView == RasterView.launcher
+        ? AdaptiveGeometry.canvas / AdaptiveGeometry.safeSquare
+        : 1.0;
+    final rasterDefault =
+        zoom == 1.0 ? fill : (fill * zoom).clamp(0.0, 1.0).toDouble();
     double rasterFill(int? pad) =>
-        pad != null ? (1 - pad.clamp(0, 95) / 100).toDouble() : fill;
+        pad != null ? (1 - pad.clamp(0, 95) / 100).toDouble() : rasterDefault;
     final legacy = (iconCfg?.legacy ?? (minSdk < 26))
         ? _composeDataUri(
             fg: fg,
             fgFill: rasterFill(iconCfg?.legacyPadding),
             fgTrim: trim,
-            ground: ground)
+            ground: ground,
+            groundZoom: zoom)
         : null;
     final store = (iconCfg?.playStore ?? false)
         ? _composeDataUri(
@@ -123,7 +130,8 @@ class PreviewGenerator {
             fgFill:
                 rasterFill(iconCfg?.playStorePadding ?? iconCfg?.legacyPadding),
             fgTrim: trim,
-            ground: ground)
+            ground: ground,
+            groundZoom: zoom)
         : null;
 
     final html =
@@ -165,9 +173,21 @@ class PreviewGenerator {
     required double fgFill,
     required bool fgTrim,
     required _Ground ground,
+    double groundZoom = 1.0,
   }) {
     const size = _px;
     final img.Image base;
+    if (groundZoom != 1.0) {
+      // The ground enlarged about its centre, then the centre square kept.
+      final big = (size * groundZoom).round();
+      final off = (big - size) ~/ 2;
+      base = img.copyCrop(_ground(ground, big),
+          x: off, y: off, width: size, height: size);
+      final fgImg = const SvgRasterizer()
+          .rasterize(fg, size, fitFraction: fgFill, fitArtBounds: fgTrim);
+      img.compositeImage(base, fgImg);
+      return 'data:image/png;base64,${base64Encode(img.encodePng(base))}';
+    }
     if (ground.svg != null) {
       base = const SvgRasterizer().rasterize(ground.svg!, size,
           backgroundArgb: ground.colorArgb ?? 0xFFE0E0E0, fitFraction: null);
@@ -184,6 +204,23 @@ class PreviewGenerator {
         .rasterize(fg, size, fitFraction: fgFill, fitArtBounds: fgTrim);
     img.compositeImage(base, fgImg);
     return 'data:image/png;base64,${base64Encode(img.encodePng(base))}';
+  }
+
+  /// The [ground] alone as an opaque [size] square.
+  img.Image _ground(_Ground ground, int size) {
+    if (ground.svg != null) {
+      return const SvgRasterizer().rasterize(ground.svg!, size,
+          backgroundArgb: ground.colorArgb ?? 0xFFE0E0E0, fitFraction: null);
+    }
+    if (ground.rasterPath != null) {
+      final base = _solid(size, ground.colorArgb ?? 0xFFE0E0E0);
+      final src = img.decodeImage(File(ground.rasterPath!).readAsBytesSync());
+      if (src != null) {
+        img.compositeImage(base, ImageRasterizer.resizeSmart(src, size, size));
+      }
+      return base;
+    }
+    return _solid(size, ground.colorArgb ?? 0xFFFFFFFF);
   }
 
   static img.Image _solid(int size, int argb) =>

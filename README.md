@@ -262,6 +262,7 @@ flutter_adaptive_studio:
       play_store: true                       # 512² store icon (always PNG)
       legacy_padding: 43                     # % inset from the full icon square, not the safe zone; 43 matches the adaptive default, a lower number gives a bigger mark, 0 is edge-to-edge
       play_store_padding: 43                 # same full-square frame for the Play Store icon alone; unset follows legacy_padding
+      raster_view: launcher                  # tile (default) | launcher: the legacy + Play icons show the 72dp part a phone shows, so the background is framed as on the home screen
       image_format: webp                     # png (default) | webp
     splash:
       background: "#E4ECE8"

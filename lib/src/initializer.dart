@@ -76,6 +76,7 @@ flutter_adaptive_studio:
       # legacy_padding: 43              # % inset from the FULL icon square, not the 72dp safe zone that padding/safe_zone use; leaving it unset already matches the adaptive icon, and 43 reproduces that (15% of the safe zone is about 43% of the tile). 0 is edge-to-edge; a lower number is a bigger mark
       # play_store: true                   # 512² Play Store icon (always PNG, per Google)
       # play_store_padding: 43             # same FULL-square inset for the Play Store icon alone; unset follows legacy_padding, else the safe-zone default (about 43)
+      # raster_view: tile                  # tile (default): legacy + Play icons show the whole 108dp tile | launcher: only the 72dp part a phone shows, so the background is framed as on the home screen (the paddings then inset from that square)
       # image_format: png                  # png | webp, encoding for the generated icon resources
       # image: assets/icon.png             # finished-icon source for legacy + play_store
       #                                    #   (otherwise they're rasterised from `foreground`)

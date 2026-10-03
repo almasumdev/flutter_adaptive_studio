@@ -21,6 +21,7 @@ const Map<String, dynamic> _schema = {
       'legacy_padding': null,
       'round': null,
       'play_store': null,
+      'raster_view': null,
       'image_format': null,
       'image': null,
       'effect': null,

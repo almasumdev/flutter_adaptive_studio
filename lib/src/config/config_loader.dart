@@ -171,6 +171,7 @@ class ConfigLoader {
       playStorePadding: _int(raw['play_store_padding']),
       image: _str(raw['image']),
       effect: _effect(raw['effect']),
+      rasterView: _rasterView(raw['raster_view']),
       adaptive: raw['adaptive'] is Map
           ? _parseAdaptive(raw['adaptive'] as Map)
           : null,
@@ -302,6 +303,14 @@ class ConfigLoader {
     return switch (s) {
       'elevate' || 'shadow' || 'elevated' => LegacyEffect.elevate,
       _ => LegacyEffect.none,
+    };
+  }
+
+  static RasterView _rasterView(Object? v) {
+    final s = v?.toString().trim().toLowerCase();
+    return switch (s) {
+      'launcher' || 'mask' || 'visible' => RasterView.launcher,
+      _ => RasterView.tile,
     };
   }
 

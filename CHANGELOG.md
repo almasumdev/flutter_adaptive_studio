@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.28.12
+
+### `raster_view`: Play Store and legacy icons framed as a launcher shows them
+
+The legacy mipmaps and the Play Store PNG draw the whole 108dp adaptive tile,
+but a launcher shows only its 72dp centre, so a background with art near its
+edges looked different on Play from the home screen. `raster_view: launcher`
+frames both raster icons as the launcher's visible square: the background is
+zoomed 1.5x about its centre, the default mark is sized as on the phone, and
+`legacy_padding` / `play_store_padding` inset from that square. Unset (or
+`tile`) keeps the output exactly as before.
+
 ## 0.28.11
 
 - New package logo.

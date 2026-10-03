@@ -218,7 +218,10 @@ class AndroidLegacyIcons {
   /// The background is the adaptive background rendered full-bleed (colour, SVG
   /// or PNG); it is never padded. `legacy_padding` / `play_store_padding`
   /// override the foreground inset; `safe_zone: as_is` keeps the mark's own
-  /// framing. Returns null (with a clear skip) when no source can be used.
+  /// framing. With `raster_view: launcher` both layers are framed as a
+  /// launcher shows them: the background zoomed to its visible 72dp square and
+  /// the default mark sized to match. Returns null (with a clear skip) when no
+  /// source can be used.
   _Source? _prepareSource(GenerationReport report, {double? fillOverride}) {
     // ---- Foreground source ----
     // Prefer the adaptive foreground so the legacy/store icons compose the same
@@ -256,6 +259,11 @@ class AndroidLegacyIcons {
     // and `safe_zone: as_is` keeping the source's own framing.
     final zone = adaptive?.safeZone ?? const SafeZone.fit();
     final asIs = fillOverride == null && zone.mode == SafeZoneMode.asIs;
+    // `raster_view: launcher` frames the square as the launcher's visible 72dp
+    // of the 108dp tile. A finished icon.image carries its own framing.
+    final zoom = !fullIcon && iconConfig.rasterView == RasterView.launcher
+        ? AdaptiveGeometry.canvas / AdaptiveGeometry.safeSquare
+        : 1.0;
     final double? fgFill;
     if (fullIcon) {
       fgFill = null; // a finished icon.image is used full-bleed
@@ -267,7 +275,8 @@ class AndroidLegacyIcons {
       // fit / inset / none / as_is all map through canvasFillFraction, so the
       // mark is the SAME size as the adaptive foreground (as_is fills the safe
       // square, not the whole tile).
-      fgFill = AdaptiveGeometry.canvasFillFraction(zone);
+      final tileFill = AdaptiveGeometry.canvasFillFraction(zone);
+      fgFill = zoom == 1.0 ? tileFill : (tileFill * zoom).clamp(0.0, 1.0);
     }
     // `as_is` keeps the source's own framing (whole viewBox / full bitmap); every
     // other mode trims to the measured art before fitting.
@@ -299,6 +308,7 @@ class AndroidLegacyIcons {
       backgroundArgb: bgArgb,
       foregroundFill: fgFill,
       foregroundTrim: fgTrim,
+      backgroundZoom: zoom,
     );
   }
 
@@ -333,6 +343,7 @@ class _Source {
     this.background,
     this.foregroundFill,
     this.foregroundTrim = false,
+    this.backgroundZoom = 1.0,
   });
 
   final _Layer foreground;
@@ -341,9 +352,13 @@ class _Source {
   final double? foregroundFill;
   final bool foregroundTrim;
 
+  /// How far the background is enlarged about its centre before the square is
+  /// cut from it: 1 for the whole tile, 1.5 for a launcher's visible part.
+  final double backgroundZoom;
+
   img.Image? square(int size) {
     final canvas = background != null
-        ? background!.renderFull(size, backgroundArgb)
+        ? background!.renderFull(size, backgroundArgb, zoom: backgroundZoom)
         : solid(size, backgroundArgb);
     img.compositeImage(
         canvas, foreground.renderFit(size, foregroundFill, foregroundTrim));
@@ -368,8 +383,15 @@ class _Layer {
   final String? _path;
 
   /// Fills the whole [size] square (no inset), opaque over [bgArgb]: the
-  /// background layer.
-  img.Image renderFull(int size, int bgArgb) {
+  /// background layer. A [zoom] above 1 renders it that much larger and keeps
+  /// the centre [size] square, as a launcher's mask does.
+  img.Image renderFull(int size, int bgArgb, {double zoom = 1.0}) {
+    if (zoom != 1.0) {
+      final big = (size * zoom).round();
+      final off = (big - size) ~/ 2;
+      return img.copyCrop(renderFull(big, bgArgb),
+          x: off, y: off, width: size, height: size);
+    }
     final doc = _doc;
     if (doc != null) {
       return const SvgRasterizer()
