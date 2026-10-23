@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.28.13
+
+### A mistyped colour no longer stops the run, and is reported
+
+A colour such as `#gggggg` or `rgb(10,20` threw out of the colour parser, so
+one bad value in the config or inside an SVG ended the whole generate run with
+a bare `FormatException` or `RangeError`. The parser now does what it always
+said it did: anything it cannot read becomes black, flagged as unrecognised.
+
+A colour you typed in the config is also reported now, rather than quietly
+turning the icon black. A bad `background` or `branding_text_color` prints a
+warning naming the key and the value, so the typo is found from the output
+instead of from the device. Colours inside SVG art stay quiet, as before.
+
+
 ## 0.28.12
 
 ### `raster_view`: Play Store and legacy icons framed as a launcher shows them

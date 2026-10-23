@@ -18,6 +18,7 @@ import 'package:xml/xml.dart';
 import '../../config/config.dart';
 import '../../config/config_loader.dart';
 import '../../geometry/adaptive_geometry.dart';
+import '../../graphic/config_color.dart';
 import '../../graphic/svg_color.dart';
 import '../../graphic/svg_document.dart';
 import '../../io/res_writer.dart';
@@ -551,18 +552,22 @@ class AndroidSplash {
 
     final text = splash.brandingText;
     if (text == null) return const _BrandingPlan(slotRef: null, layerRef: null);
-    final lightArgb = SvgColor.parse(
-            splash.brandingTextColor ?? _defaultBrandingTextColor(false))
-        .argb;
+    final lightArgb = configColorArgb(
+      splash.brandingTextColor ?? _defaultBrandingTextColor(false),
+      'branding_text_color',
+      logger,
+    );
     if (!_emitBrandingText(text, lightArgb, report, night: false)) {
       return const _BrandingPlan(slotRef: null, layerRef: null);
     }
     // A dark wordmark is emitted when a dark text colour or dark background is
     // configured (so the `-night` resource contrasts the dark splash).
     if (splash.brandingTextColorDark != null || splash.backgroundDark != null) {
-      final darkArgb = SvgColor.parse(
-              splash.brandingTextColorDark ?? _defaultBrandingTextColor(true))
-          .argb;
+      final darkArgb = configColorArgb(
+        splash.brandingTextColorDark ?? _defaultBrandingTextColor(true),
+        'branding_text_color_dark',
+        logger,
+      );
       _emitBrandingText(text, darkArgb, report, night: true);
     }
     logger.step('branding text "$text" → drawable-*/$_branding');

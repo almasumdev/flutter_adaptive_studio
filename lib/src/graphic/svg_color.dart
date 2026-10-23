@@ -51,7 +51,7 @@ class SvgColor {
     final named = _named[v];
     if (named != null) return SvgColor._(named);
 
-    return const SvgColor._(0xFF000000, recognised: false);
+    return _unrecognised;
   }
 
   static SvgColor _parseHex(String h) {
@@ -76,30 +76,46 @@ class SvgColor {
         b = h.substring(4, 6);
         a = h.substring(6, 8);
       default:
-        return const SvgColor._(0xFF000000, recognised: false);
+        return _unrecognised;
     }
-    final value = int.parse('$a$r$g$b', radix: 16);
+    // The right number of characters is not the same as hex digits: `#gggggg`
+    // would otherwise throw out of a whole generate run.
+    final value = int.tryParse('$a$r$g$b', radix: 16);
+    if (value == null) return _unrecognised;
     return SvgColor._(value);
   }
 
+  /// The documented answer for anything that is not a colour: opaque black,
+  /// flagged so the caller can say so.
+  static const SvgColor _unrecognised = SvgColor._(
+    0xFF000000,
+    recognised: false,
+  );
+
   static SvgColor _parseRgb(String v) {
-    final inside = v.substring(v.indexOf('(') + 1, v.indexOf(')'));
-    final parts = inside.split(',').map((s) => s.trim()).toList();
-    int channel(String s) {
-      if (s.endsWith('%')) {
-        return ((double.parse(s.substring(0, s.length - 1)) / 100) * 255)
-            .round()
-            .clamp(0, 255);
-      }
-      return double.parse(s).round().clamp(0, 255);
+    final open = v.indexOf('(');
+    final close = v.indexOf(')');
+    if (open < 0 || close < open) return _unrecognised;
+    final parts =
+        v.substring(open + 1, close).split(',').map((s) => s.trim()).toList();
+    if (parts.length < 3) return _unrecognised;
+    int? channel(String s) {
+      final pct = s.endsWith('%');
+      final n = double.tryParse(pct ? s.substring(0, s.length - 1) : s);
+      if (n == null) return null;
+      return (pct ? n / 100 * 255 : n).round().clamp(0, 255);
     }
 
     final r = channel(parts[0]);
     final g = channel(parts[1]);
     final b = channel(parts[2]);
-    final a = parts.length > 3
-        ? (double.parse(parts[3]) * 255).round().clamp(0, 255)
-        : 255;
+    if (r == null || g == null || b == null) return _unrecognised;
+    var a = 255;
+    if (parts.length > 3) {
+      final alpha = double.tryParse(parts[3]);
+      if (alpha == null) return _unrecognised;
+      a = (alpha * 255).round().clamp(0, 255);
+    }
     return SvgColor._((a << 24) | (r << 16) | (g << 8) | b);
   }
 
