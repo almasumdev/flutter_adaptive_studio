@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.28.14
+
+### A mistyped iOS colour is reported too
+
+0.28.13 said a colour typed wrongly in the config prints a warning, but that
+only reached the Android generators. On iOS, `ios.icon.background`,
+`ios.icon.background_dark`, `ios.splash.background` and
+`ios.splash.background_dark` still turned black with nothing said. They now warn
+the same way, naming the key and the value.
+
 ## 0.28.13
 
 ### A mistyped colour no longer stops the run, and is reported

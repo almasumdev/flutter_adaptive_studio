@@ -15,7 +15,7 @@ import 'package:path/path.dart' as p;
 
 import '../../config/config.dart';
 import '../../config/config_loader.dart';
-import '../../graphic/svg_color.dart';
+import '../../graphic/config_color.dart';
 import '../../graphic/svg_document.dart';
 import '../../logger.dart';
 import '../../raster/image_rasterizer.dart';
@@ -73,7 +73,10 @@ class IosIcons {
         : null;
 
     // Standard (light) appearance. Required.
-    if (!_render(abs, SvgColor.parse(iconConfig.background).argb, fit,
+    if (!_render(
+        abs,
+        configColorArgb(iconConfig.background, 'ios.icon.background', logger),
+        fit,
         p.join(dir, 'Icon-1024.png'))) {
       report.skipped.add('ios icon (render failed)');
       return report;
@@ -140,7 +143,8 @@ class IosIcons {
     final abs = loader.resolveAsset(src);
     final dir = paths.appIconSet(flavor);
     if (File(abs).existsSync() &&
-        _render(abs, SvgColor.parse(bg).argb, fit, p.join(dir, file))) {
+        _render(abs, configColorArgb(bg, 'ios.icon.background_dark', logger),
+            fit, p.join(dir, file))) {
       report.written.add('${p.basename(dir)}/$file');
       return true;
     }

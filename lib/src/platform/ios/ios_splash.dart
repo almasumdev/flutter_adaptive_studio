@@ -18,7 +18,7 @@ import 'package:xml/xml.dart';
 
 import '../../config/config.dart';
 import '../../config/config_loader.dart';
-import '../../graphic/svg_color.dart';
+import '../../graphic/config_color.dart';
 import '../../graphic/svg_document.dart';
 import '../../logger.dart';
 import '../../raster/image_rasterizer.dart';
@@ -94,8 +94,10 @@ class IosSplash {
           },
         };
     final colors = <Map<String, Object>>[
-      entry(SvgColor.parse(bg).argb),
-      if (bgDark != null) entry(SvgColor.parse(bgDark).argb, 'dark'),
+      entry(configColorArgb(bg, 'ios.splash.background', logger)),
+      if (bgDark != null)
+        entry(configColorArgb(bgDark, 'ios.splash.background_dark', logger),
+            'dark'),
     ];
     _writeJson(
         p.join(paths.xcassetsDir, '$_bgColorName.colorset', 'Contents.json'),
