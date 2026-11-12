@@ -13,6 +13,7 @@ import 'package:xml/xml.dart';
 import '../../config/config.dart';
 import '../../config/config_loader.dart';
 import '../../geometry/adaptive_geometry.dart';
+import '../../graphic/config_color.dart';
 import '../../graphic/svg_document.dart';
 import '../../io/res_writer.dart';
 import '../../logger.dart';
@@ -76,8 +77,11 @@ class AndroidIcons {
       logger.skip('adaptive background: none given, defaulting to #FFFFFF');
       report.skipped.add('adaptive background (defaulted #FFFFFF)');
     } else if (adaptive.backgroundIsColor) {
-      writer.upsertColor(paths.valuesDir, '${name}_background',
-          adaptive.background!.toUpperCase());
+      writer.upsertColor(
+          paths.valuesDir,
+          '${name}_background',
+          configColorAndroidHex(adaptive.background!,
+              'android.icon.adaptive.background', logger));
       backgroundRef = '@color/${name}_background';
       logger.step('background colour → @color/${name}_background');
     } else {

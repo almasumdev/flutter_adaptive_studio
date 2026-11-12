@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.28.15
+
+### A colour name or `rgb()` in the Android config is written as hex
+
+A colour name or `rgb()` value in the Android splash or icon config was copied
+into `colors.xml` as typed, which Android cannot read, so the app failed to
+build. It is now written as hex, and a mistyped Android colour prints a warning
+like the iOS ones.
+
 ## 0.28.14
 
 ### A mistyped iOS colour is reported too

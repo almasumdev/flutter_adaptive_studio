@@ -148,4 +148,124 @@ ios:
       expect(warnings.where((w) => w.contains('is not a colour')), isEmpty);
     });
   });
+
+  group('Android Config Colours', () {
+    late Directory project;
+
+    setUp(() {
+      project = Directory.systemTemp.createTempSync('fas_color_android_');
+      Directory(p.join(project.path, 'android', 'app', 'src', 'main'))
+          .createSync(recursive: true);
+      File(p.join(project.path, 'android', 'app', 'src', 'main',
+              'AndroidManifest.xml'))
+          .writeAsStringSync(
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+        '<application android:icon="@mipmap/ic_launcher"/></manifest>',
+      );
+      Directory(p.join(project.path, 'assets')).createSync();
+      File(p.join(project.path, 'assets', 'logo.svg')).writeAsStringSync(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        '<rect x="20" y="20" width="60" height="60" fill="#336699"/></svg>',
+      );
+    });
+
+    tearDown(() => project.deleteSync(recursive: true));
+
+    List<String> run(String yaml) {
+      File(p.join(project.path, 'flutter_adaptive_studio.yaml'))
+          .writeAsStringSync(yaml);
+      final logger = _RecordingLogger();
+      AdaptiveStudio(projectRoot: project.path, logger: logger).run();
+      return logger.warnings;
+    }
+
+    String colors(String valuesDir) => File(p.join(project.path, 'android',
+            'app', 'src', 'main', 'res', valuesDir, 'colors.xml'))
+        .readAsStringSync();
+
+    test('a colour name is written to colors.xml as hex', () {
+      final warnings = run('''
+android:
+  splash:
+    image: assets/logo.svg
+    background: "white"
+    background_dark: "navy"
+    status_bar_color: "red"
+''');
+      expect(colors('values'),
+          contains('<color name="splash_background">#FFFFFF</color>'));
+      expect(colors('values'),
+          contains('<color name="splash_status_bar">#FF0000</color>'));
+      expect(colors('values-night'),
+          contains('<color name="splash_background">#000080</color>'));
+      expect(colors('values'), isNot(contains('WHITE')));
+      expect(warnings.where((w) => w.contains('is not a colour')), isEmpty);
+    });
+
+    test('an rgb() colour is written as hex', () {
+      final warnings = run('''
+android:
+  splash:
+    image: assets/logo.svg
+    background: "rgb(255,0,0)"
+''');
+      expect(colors('values'),
+          contains('<color name="splash_background">#FF0000</color>'));
+      expect(colors('values'), isNot(contains('RGB(')));
+      expect(warnings.where((w) => w.contains('is not a colour')), isEmpty);
+    });
+
+    test('a mistyped splash colour is reported and written as black', () {
+      final warnings = run('''
+android:
+  splash:
+    image: assets/logo.svg
+    background: "#FFFFFF"
+    background_dark: "#gggggg"
+''');
+      final bad = warnings.where((w) => w.contains('is not a colour'));
+      expect(bad, hasLength(1));
+      expect(bad.single, contains('android.splash.background_dark'));
+      expect(bad.single, contains('#gggggg'));
+      expect(colors('values-night'),
+          contains('<color name="splash_background">#000000</color>'));
+    });
+
+    test('a mistyped adaptive background is reported once', () {
+      final warnings = run('''
+android:
+  icon:
+    legacy: true
+    adaptive:
+      foreground: assets/logo.svg
+      background: "#gggggg"
+''');
+      final bad = warnings.where((w) => w.contains('is not a colour'));
+      expect(bad, hasLength(1));
+      expect(bad.single, contains('android.icon.adaptive.background'));
+      expect(colors('values'),
+          contains('<color name="ic_launcher_background">#000000</color>'));
+    });
+
+    test('a valid hex colour is written unchanged', () {
+      final warnings = run('''
+android:
+  icon:
+    adaptive:
+      foreground: assets/logo.svg
+      background: "#e4ece8"
+  splash:
+    image: assets/logo.svg
+    background: "#E4ECE8"
+    background_dark: "#80FF0000"
+''');
+      expect(colors('values'),
+          contains('<color name="splash_background">#E4ECE8</color>'));
+      expect(colors('values'),
+          contains('<color name="ic_launcher_background">#E4ECE8</color>'));
+      expect(colors('values-night'),
+          contains('<color name="splash_background">#80FF0000</color>'));
+      expect(warnings.where((w) => w.contains('is not a colour')), isEmpty);
+    });
+  });
 }

@@ -121,22 +121,32 @@ class AndroidSplash {
 
     // ---- Background colours ----
     final bg = splash.background ?? '#FFFFFF';
-    writer.upsertColor(paths.valuesDir, 'splash_background', bg.toUpperCase());
+    writer.upsertColor(paths.valuesDir, 'splash_background',
+        configColorAndroidHex(bg, 'android.splash.background', logger));
     if (splash.background == null) {
       logger.skip('splash background: none given, defaulting to #FFFFFF');
     }
     if (splash.backgroundDark != null) {
-      writer.upsertColor(paths.valuesNightDir, 'splash_background',
-          splash.backgroundDark!.toUpperCase());
+      writer.upsertColor(
+          paths.valuesNightDir,
+          'splash_background',
+          configColorAndroidHex(splash.backgroundDark!,
+              'android.splash.background_dark', logger));
     }
     if (_hasIconBackground) {
       if (splash.iconBackground != null) {
-        writer.upsertColor(paths.valuesDir, 'splash_icon_background',
-            splash.iconBackground!.toUpperCase());
+        writer.upsertColor(
+            paths.valuesDir,
+            'splash_icon_background',
+            configColorAndroidHex(splash.iconBackground!,
+                'android.splash.icon_background', logger));
       }
       if (splash.iconBackgroundDark != null) {
-        writer.upsertColor(paths.valuesNightDir, 'splash_icon_background',
-            splash.iconBackgroundDark!.toUpperCase());
+        writer.upsertColor(
+            paths.valuesNightDir,
+            'splash_icon_background',
+            configColorAndroidHex(splash.iconBackgroundDark!,
+                'android.splash.icon_background_dark', logger));
       }
     } else if (splash.iconBackground != null) {
       final w = 'icon_background matches the splash background, so the API 31+ '
@@ -1098,20 +1108,29 @@ class AndroidSplash {
   /// `transparent` bars need no colour resource (they use `@android:color/
   /// transparent`), so only real hex values are emitted.
   void _writeSystemBarColors() {
-    void write(String? light, String? dark, String name) {
+    void write(String? light, String? dark, String name, String key) {
+      String? lightHex;
       if (light != null && !_isTransparent(light)) {
-        writer.upsertColor(paths.valuesDir, name, light.toUpperCase());
+        lightHex = configColorAndroidHex(light, 'android.splash.$key', logger);
+        writer.upsertColor(paths.valuesDir, name, lightHex);
       }
-      final d = dark ?? light;
-      if (d != null && !_isTransparent(d)) {
-        writer.upsertColor(paths.valuesNightDir, name, d.toUpperCase());
+      if (dark != null) {
+        if (!_isTransparent(dark)) {
+          writer.upsertColor(
+              paths.valuesNightDir,
+              name,
+              configColorAndroidHex(
+                  dark, 'android.splash.${key}_dark', logger));
+        }
+      } else if (lightHex != null) {
+        writer.upsertColor(paths.valuesNightDir, name, lightHex);
       }
     }
 
-    write(
-        splash.statusBarColor, splash.statusBarColorDark, 'splash_status_bar');
+    write(splash.statusBarColor, splash.statusBarColorDark, 'splash_status_bar',
+        'status_bar_color');
     write(splash.navigationBarColor, splash.navigationBarColorDark,
-        'splash_navigation_bar');
+        'splash_navigation_bar', 'navigation_bar_color');
   }
 
   /// Applies status/navigation bar colour + icon-brightness items to a launch

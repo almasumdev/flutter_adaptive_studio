@@ -18,7 +18,7 @@ import 'package:path/path.dart' as p;
 import '../../config/config.dart';
 import '../../config/config_loader.dart';
 import '../../geometry/adaptive_geometry.dart';
-import '../../graphic/config_color.dart';
+import '../../graphic/svg_color.dart';
 import '../../graphic/svg_document.dart';
 import '../../logger.dart';
 import '../../raster/image_rasterizer.dart';
@@ -291,7 +291,8 @@ class AndroidLegacyIcons {
     final adpt = adaptive;
     if (adpt != null && adpt.background != null) {
       if (adpt.backgroundIsColor) {
-        bgArgb = configColorArgb(adpt.background!, 'background', logger);
+        // AndroidIcons already reported a bad value when it wrote colors.xml.
+        bgArgb = SvgColor.parse(adpt.background!).argb;
       } else {
         final bgAbs = loader.resolveAsset(adpt.background!);
         if (File(bgAbs).existsSync()) {
