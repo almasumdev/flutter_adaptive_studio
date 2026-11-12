@@ -5,6 +5,7 @@
 // into the self-contained `fas_splash.g.dart`, which imports only
 // `package:flutter`. Regenerate it with the CLI (`fas generate`, or from the
 // package root `dart run flutter_adaptive_studio generate -p example`).
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 
 import 'fas_splash.g.dart';
